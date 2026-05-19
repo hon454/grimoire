@@ -13,6 +13,8 @@ Grimoire is a personal, public skill library for reusable coding-agent workflows
 - Do not add roadmap lists or promised future spells until there is a real skill to commit.
 - Keep Codex local marketplace files out of the repository unless local marketplace testing becomes necessary.
 - Treat `.ephemeral/` as scratch planning space; do not commit it.
+- Use Conventional Commits for commit messages, such as `{type}({scope}): {summary}`.
+- Use branch names that expose the Conventional Commit type, such as `{type}/{slug}`.
 - Verify JSON manifests before committing.
 - Verify `CLAUDE.md` remains a symbolic link to `AGENTS.md` before publishing.
 

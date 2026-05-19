@@ -6,11 +6,12 @@ The repository starts Codex-first and stays compatible with Claude Code where th
 
 ## Status
 
-This repository is a new public skeleton. It intentionally includes only the starter usage skill for now.
+This repository is a new public skeleton. It intentionally includes only the bootstrap and repository-maintenance skills for now.
 
 ## Contents
 
-- `skills/using-grimoire/SKILL.md`: a starter skill that explains how agents should treat this repository.
+- `skills/using-grimoire/SKILL.md`: a bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
+- `skills/maintaining-grimoire/SKILL.md`: a repository-maintenance skill for changing Grimoire skills, manifests, compatibility files, and publishing checks.
 - `AGENTS.md`: the source-of-truth agent protocol for this repository.
 - `CLAUDE.md`: a symbolic link to `AGENTS.md` for Claude Code compatibility.
 
