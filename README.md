@@ -1,5 +1,7 @@
 # Grimoire
 
+[한국어](README.ko.md)
+
 Grimoire is my personal collection of reusable workflow skills for coding agents.
 
 The repository starts Codex-first and stays compatible with Claude Code where the underlying skill format overlaps. The shared source of truth is `skills/<skill>/SKILL.md`; client-specific metadata lives in `.codex-plugin/` and `.claude-plugin/`.

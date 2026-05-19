@@ -16,6 +16,12 @@ Grimoire is a personal, public skill library for reusable coding-agent workflows
 - Verify JSON manifests before committing.
 - Verify `CLAUDE.md` remains a symbolic link to `AGENTS.md` before publishing.
 
+## README Maintenance
+
+- Keep `README.md` as the canonical English README and `README.ko.md` as its Korean companion.
+- When changing repository purpose, contents, installation, compatibility, or license details, update both READMEs in the same change.
+- Keep commands, paths, product names, and language-switch links consistent across both files.
+
 ## Compatibility Notes
 
 Codex is the primary authoring target. Claude Code compatibility is maintained by keeping shared instructions in Markdown skill files and by exposing the same repository protocol through the `CLAUDE.md` symlink.
