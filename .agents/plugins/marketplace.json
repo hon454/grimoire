@@ -1,0 +1,21 @@
+{
+  "name": "grimoire",
+  "interface": {
+    "displayName": "Grimoire"
+  },
+  "plugins": [
+    {
+      "name": "grimoire",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/hon454/grimoire.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

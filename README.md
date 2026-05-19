@@ -17,7 +17,20 @@ This repository is a new public skeleton. It intentionally includes only the boo
 
 ## Installation Notes
 
-For Codex-compatible clients, install or reference this repository as a plugin and use the `.codex-plugin/plugin.json` manifest. The Codex manifest points to `./skills/`.
+For Codex-compatible clients, add this repository as a plugin marketplace:
+
+```bash
+codex plugin marketplace add hon454/grimoire
+```
+
+Then open the Codex plugin directory and install `grimoire` from the Grimoire marketplace:
+
+```text
+codex
+/plugins
+```
+
+The Codex plugin manifest lives at `.codex-plugin/plugin.json` and points to `./skills/`.
 
 For Claude Code-compatible clients, install or reference this repository as a plugin and use the `.claude-plugin/plugin.json` manifest. The local Claude marketplace catalog in `.claude-plugin/marketplace.json` exposes this repo from `./`.
 
