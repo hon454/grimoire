@@ -32,6 +32,9 @@
       "Update a Grimoire skill safely.",
       "Check this skill library before publishing."
     ],
-    "brandColor": "#4B5563"
+    "brandColor": "#4B5563",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.png",
+    "screenshots": []
   }
 }
