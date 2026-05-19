@@ -22,7 +22,8 @@ When adding or updating a skill:
 3. Keep the frontmatter `name` stable and literal.
 4. Make the `description` concrete enough for agents to decide when to use the skill.
 5. Keep the body focused on operational instructions, not roadmap notes or promised future work.
-6. Add bundled resources only when they directly support the skill.
+6. Prefer platform-neutral capability names in shared instructions, such as "native shell", "native plan tool", or "host skill mechanism", instead of client-specific tool names.
+7. Add bundled resources only when they directly support the skill.
 
 ## Sidecar Metadata
 
