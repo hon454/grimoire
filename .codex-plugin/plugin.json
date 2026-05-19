@@ -1,0 +1,20 @@
+{
+  "name": "grimoire",
+  "version": "0.1.0",
+  "description": "A personal grimoire of reusable workflow skills for coding agents.",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "homepage": "https://github.com/hon454/grimoire",
+  "repository": "https://github.com/hon454/grimoire",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "workflow",
+    "codex",
+    "claude-code",
+    "coding-agents"
+  ],
+  "skills": "./skills/"
+}
