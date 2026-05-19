@@ -21,8 +21,6 @@ For Codex-compatible clients, install or reference this repository as a plugin a
 
 For Claude Code-compatible clients, install or reference this repository as a plugin and use the `.claude-plugin/plugin.json` manifest. The local Claude marketplace catalog in `.claude-plugin/marketplace.json` exposes this repo from `./`.
 
-No Codex local marketplace folder is committed in this skeleton. Add one later only if local marketplace testing or multi-plugin cataloging becomes necessary.
-
 ## License
 
 MIT
