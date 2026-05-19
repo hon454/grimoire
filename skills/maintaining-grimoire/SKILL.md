@@ -51,6 +51,8 @@ Before publishing or handing off repository changes:
 1. Verify JSON manifests are valid.
 2. Verify `CLAUDE.md` is still a symlink to `AGENTS.md`.
 3. Verify `.ephemeral/` is not part of committed changes.
-4. Review skill descriptions for trigger clarity.
-5. Use a Conventional Commit message, such as `{type}({scope}): {summary}`.
-6. Use a branch name that exposes the Conventional Commit type, such as `{type}/{slug}`.
+4. Run the available skill validator for each changed skill folder. In Codex, use the `skill-creator` validator when available; otherwise verify equivalent basics manually: YAML frontmatter, required fields, and folder/name alignment.
+5. If a sidecar such as `agents/openai.yaml` exists or changes, verify it still matches the shared `SKILL.md`; regenerate it when available tooling supports that.
+6. Review skill descriptions for trigger clarity.
+7. Use a Conventional Commit message, such as `{type}({scope}): {summary}`.
+8. Use a branch name that exposes the Conventional Commit type, such as `{type}/{slug}`.
