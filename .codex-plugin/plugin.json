@@ -16,5 +16,22 @@
     "claude-code",
     "coding-agents"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Grimoire",
+    "shortDescription": "Reusable workflow skills for coding agents.",
+    "longDescription": "Grimoire is a practical public library of reusable coding-agent workflow skills. It currently includes bootstrap guidance for loading applicable skills and maintenance guidance for evolving the skill library safely.",
+    "developerName": "hon454",
+    "category": "Productivity",
+    "capabilities": [
+      "Skills"
+    ],
+    "websiteURL": "https://github.com/hon454/grimoire",
+    "defaultPrompt": [
+      "Use Grimoire before working in this repo.",
+      "Update a Grimoire skill safely.",
+      "Check this skill library before publishing."
+    ],
+    "brandColor": "#4B5563"
+  }
 }
