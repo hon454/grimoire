@@ -14,7 +14,6 @@ Grimoire is a personal, public skill library for reusable coding-agent workflows
 - Use Conventional Commits for commit messages, such as `{type}({scope}): {summary}`.
 - Use branch names that expose the Conventional Commit type, such as `{type}/{slug}`.
 - Verify JSON manifests before committing.
-- Verify `CLAUDE.md` remains a symbolic link to `AGENTS.md` before publishing.
 
 ## Maintenance Policy
 

@@ -39,7 +39,7 @@ Skill behavior belongs in `SKILL.md`. Platform-specific metadata belongs in side
 Maintain Codex-first, Claude-compatible packaging:
 
 - `AGENTS.md` is the source of truth for repository instructions.
-- `CLAUDE.md` must remain a symbolic link to `AGENTS.md`.
+- `CLAUDE.md` exists as a symbolic link to `AGENTS.md` for Claude Code compatibility.
 - Shared instructions should stay Markdown-first so Codex and Claude Code can consume the same source material.
 - Client-specific metadata belongs in sidecar files or client-specific plugin directories, not in shared skill bodies.
 - Plugin manifests should describe package identity and installation behavior for their client without duplicating repository policy.
@@ -84,11 +84,10 @@ For Codex plugin assets, keep the current repository convention unless the upstr
 Before publishing, handing off, or committing repository changes:
 
 1. Verify JSON manifests are valid.
-2. Verify `CLAUDE.md` is still a symbolic link to `AGENTS.md`.
-3. If plugin visual assets or Codex plugin manifests changed, run `python3 scripts/validate-plugin-assets.py`.
-4. Run the available skill validator for each changed skill folder. In Codex, use the `skill-creator` validator when available; otherwise verify equivalent basics manually: YAML frontmatter, required fields, and folder/name alignment.
-5. Review skill descriptions for trigger clarity.
-6. Use a Conventional Commit message, such as `{type}({scope}): {summary}`.
-7. Use a branch name that exposes the Conventional Commit type, such as `{type}/{slug}`.
+2. If plugin visual assets or Codex plugin manifests changed, run `python3 scripts/validate-plugin-assets.py`.
+3. Run the available skill validator for each changed skill folder. In Codex, use the `skill-creator` validator when available; otherwise verify equivalent basics manually: YAML frontmatter, required fields, and folder/name alignment.
+4. Review skill descriptions for trigger clarity.
+5. Use a Conventional Commit message, such as `{type}({scope}): {summary}`.
+6. Use a branch name that exposes the Conventional Commit type, such as `{type}/{slug}`.
 
 For documentation-only policy changes, inspect the changed policy directly for drift against `AGENTS.md`, READMEs, and plugin packaging. Do not expose repository-only maintenance policy as an installable skill.
