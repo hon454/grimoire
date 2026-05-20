@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use a Conventional Commit-style title, such as `docs(plugins): define the Book of plugin convention`.
+        Use a Conventional Commit-style title, such as `docs(readme): clarify installation steps`.
 
         Keep examples clearly marked as examples. Do not present possible future skills or plugins as promised roadmap items.
 
@@ -15,7 +15,7 @@ body:
       label: Problem
       description: What gap, drift, bug, or ambiguity should this change address?
       placeholder: |
-        After introducing `archmage`, Grimoire needs a clear convention for future domain plugins.
+        A documented setup step is ambiguous, which can lead users or agents to install the plugin incorrectly.
     validations:
       required: true
 
@@ -25,7 +25,7 @@ body:
       label: Expected behavior
       description: What should be true after this issue is completed?
       placeholder: |
-        The repository should document `book-of-*` as the convention for domain-specific Grimoire plugins, distinct from `archmage`.
+        The relevant documentation should describe the intended workflow clearly enough for a new user to follow it without extra context.
     validations:
       required: true
 
@@ -35,9 +35,9 @@ body:
       label: Scope
       description: List the concrete work that is in scope.
       placeholder: |
-        - Document the plugin taxonomy.
-        - Define naming conventions.
-        - Add a short checklist.
+        - Update the affected documentation.
+        - Keep English and Korean docs consistent when both are affected.
+        - Preserve existing repository compatibility rules.
     validations:
       required: true
 
@@ -47,9 +47,9 @@ body:
       label: Acceptance criteria
       description: Use checkboxes for observable completion criteria.
       placeholder: |
-        - [ ] README explains the convention.
-        - [ ] README.ko.md mirrors the same convention in Korean.
-        - [ ] No placeholder directories are created.
+        - [ ] The changed documentation states the expected behavior clearly.
+        - [ ] Companion docs are updated when repository instructions require it.
+        - [ ] Validation commands or manual checks are recorded in the pull request or final summary.
     validations:
       required: true
 
@@ -61,7 +61,7 @@ body:
       placeholder: |
         - `README.md`
         - `README.ko.md`
-        - `AGENTS.md`
+        - `.codex-plugin/plugin.json`
     validations:
       required: true
 
@@ -71,8 +71,8 @@ body:
       label: Non-goals
       description: Clarify what this issue must not do, especially when examples could be mistaken for roadmap commitments.
       placeholder: |
-        - Do not create example plugins yet.
-        - Do not move or invent domain skills.
-        - Do not add roadmap lists of future plugins.
+        - Do not change unrelated skills or manifests.
+        - Do not add placeholder content for future work.
+        - Do not broaden the repository scope beyond this issue.
     validations:
       required: false
