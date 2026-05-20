@@ -1,7 +1,7 @@
 {
-  "name": "grimoire",
+  "name": "archmage",
   "version": "0.1.0",
-  "description": "A personal grimoire of reusable workflow skills for coding agents.",
+  "description": "Operational Grimoire workflows for coding agents.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -18,9 +18,9 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Grimoire",
-    "shortDescription": "Reusable workflow skills for coding agents.",
-    "longDescription": "Grimoire is a practical public library of reusable coding-agent workflow skills. It currently includes bootstrap guidance for loading applicable skills and maintenance guidance for evolving the skill library safely.",
+    "displayName": "Archmage",
+    "shortDescription": "Operational Grimoire workflows for coding agents.",
+    "longDescription": "Archmage packages Grimoire's operational workflow skills for coding agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
@@ -28,12 +28,12 @@
     ],
     "websiteURL": "https://github.com/hon454/grimoire",
     "defaultPrompt": [
-      "Use Grimoire before working in this repo.",
-      "Update a Grimoire skill safely.",
-      "Check this skill library before publishing."
+      "Use Grimoire before starting this task.",
+      "Check which Grimoire skills apply.",
+      "Load the right workflow skill first."
     ],
     "brandColor": "#4C1D95",
-    "composerIcon": "./assets/icon.svg",
+    "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.png",
     "screenshots": []
   }

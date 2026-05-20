@@ -11,7 +11,7 @@
 <!-- These checks come from AGENTS.md. Delete items that do not apply, and add any PR-specific checks you ran. -->
 
 - JSON manifests, if changed:
-- `CLAUDE.md` symlink, if compatibility files changed:
+- Plugin assets or Codex plugin manifests, if changed: `python3 scripts/validate-plugin-assets.py`
 - Skill validation, if skill content changed:
 - README parity, if docs changed:
 - `git diff --check`:

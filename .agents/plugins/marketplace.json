@@ -5,11 +5,10 @@
   },
   "plugins": [
     {
-      "name": "grimoire",
+      "name": "archmage",
       "source": {
-        "source": "url",
-        "url": "https://github.com/hon454/grimoire.git",
-        "ref": "main"
+        "source": "local",
+        "path": "./plugins/archmage"
       },
       "policy": {
         "installation": "AVAILABLE",
