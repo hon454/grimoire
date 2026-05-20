@@ -4,16 +4,19 @@
 
 Grimoire is my personal collection of reusable workflow skills for coding agents.
 
-The repository starts Codex-first and stays compatible with Claude Code where the underlying skill format overlaps. The shared source of truth is `skills/<skill>/SKILL.md`; client-specific metadata lives in `.codex-plugin/` and `.claude-plugin/`.
+Grimoire is the source library maintained by `hon454`. Its installable plugin is `archmage`, packaged under `plugins/archmage` for Codex-first use and Claude Code-compatible readers where the underlying skill format overlaps.
 
 ## Status
 
-This repository is a new public skeleton. It intentionally includes only the bootstrap and repository-maintenance skills for now.
+This repository currently exposes the Archmage plugin and repository-local maintenance policy. It does not promise roadmap contents beyond the skills and policy committed here.
 
 ## Contents
 
-- `skills/using-grimoire/SKILL.md`: a bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
-- `skills/maintaining-grimoire/SKILL.md`: a repository-maintenance skill for changing Grimoire skills, manifests, compatibility files, and publishing checks.
+- `plugins/archmage/`: the installable Archmage plugin package.
+- `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
+- `docs/maintaining-grimoire.md`: repository-local policy for changing Grimoire skills, plugin packaging, compatibility files, documentation, and publishing checks.
+- `.agents/plugins/marketplace.json`: the Codex marketplace catalog that exposes `archmage` from `./plugins/archmage`.
+- `.claude-plugin/marketplace.json`: the local Claude-compatible marketplace catalog that exposes `archmage` from `./plugins/archmage`.
 - `AGENTS.md`: the source-of-truth agent protocol for this repository.
 - `CLAUDE.md`: a symbolic link to `AGENTS.md` for Claude Code compatibility.
 
@@ -25,16 +28,18 @@ For Codex-compatible clients, add this repository as a plugin marketplace:
 codex plugin marketplace add hon454/grimoire
 ```
 
-Then open the Codex plugin directory and install `grimoire` from the Grimoire marketplace:
+Then open the Codex plugin directory and install `archmage` from the Grimoire marketplace:
 
 ```text
 codex
 /plugins
 ```
 
-The Codex plugin manifest lives at `.codex-plugin/plugin.json` and points to `./skills/`.
+The Codex marketplace catalog points to the local plugin path `./plugins/archmage`. Inside that package, `plugins/archmage/.codex-plugin/plugin.json` points to the installable skill directory, including `plugins/archmage/skills/using-grimoire/SKILL.md`.
 
-For Claude Code-compatible clients, install or reference this repository as a plugin and use the `.claude-plugin/plugin.json` manifest. The local Claude marketplace catalog in `.claude-plugin/marketplace.json` exposes this repo from `./`.
+For Claude Code-compatible local marketplace readers, `.claude-plugin/marketplace.json` exposes `archmage` from `./plugins/archmage`, matching the Archmage metadata in `plugins/archmage/.claude-plugin/plugin.json`.
+
+`docs/maintaining-grimoire.md` is repo-local policy for contributors and agents working in this repository. It is not an installable user workflow.
 
 ## License
 

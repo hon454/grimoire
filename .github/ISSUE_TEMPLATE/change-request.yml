@@ -59,9 +59,9 @@ body:
       label: Affected areas
       description: Identify files, directories, manifests, skills, or docs likely to change.
       placeholder: |
-        - `README.md`
-        - `README.ko.md`
-        - `.codex-plugin/plugin.json`
+        - User-facing documentation
+        - Companion localized documentation
+        - Plugin manifest or packaging metadata
     validations:
       required: true
 
