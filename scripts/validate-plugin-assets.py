@@ -20,6 +20,7 @@ EXPECTED_ASSETS = {
 }
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+MAX_PNG_FILE_BYTES = 2 * 1024 * 1024
 MIN_MARGIN_RATIO = 0.08
 MAX_MARGIN_RATIO = 0.40
 
@@ -103,7 +104,38 @@ def unfilter_scanlines(raw: bytes, width: int, height: int) -> list[bytes]:
     return rows
 
 
-def load_png(path: Path) -> PngImage:
+def bounded_zlib_decompress(chunks: list[bytes], expected_length: int) -> bytes:
+    decompressor = zlib.decompressobj()
+    raw = bytearray()
+
+    try:
+        for chunk in chunks:
+            limit = expected_length + 1 - len(raw)
+            if limit <= 0:
+                raise ValueError(f"unexpected decompressed data length greater than {expected_length}")
+            raw.extend(decompressor.decompress(chunk, limit))
+            if len(raw) > expected_length:
+                raise ValueError(f"unexpected decompressed data length {len(raw)}")
+
+        limit = expected_length + 1 - len(raw)
+        if limit <= 0:
+            raise ValueError(f"unexpected decompressed data length greater than {expected_length}")
+        raw.extend(decompressor.flush(limit))
+    except zlib.error as exc:
+        raise ValueError(f"invalid PNG image data: {exc}") from exc
+
+    if len(raw) != expected_length:
+        raise ValueError(f"unexpected decompressed data length {len(raw)}")
+    if not decompressor.eof:
+        raise ValueError("incomplete PNG image data")
+    return bytes(raw)
+
+
+def load_png(path: Path, expected_size: tuple[int, int] | None = None) -> PngImage:
+    file_size = path.stat().st_size
+    if file_size > MAX_PNG_FILE_BYTES:
+        raise ValueError(f"PNG file size {file_size} exceeds maximum {MAX_PNG_FILE_BYTES}")
+
     data = path.read_bytes()
     if not data.startswith(PNG_SIGNATURE):
         raise ValueError("not a PNG file")
@@ -113,6 +145,8 @@ def load_png(path: Path) -> PngImage:
 
     for chunk_type, chunk_data in iter_chunks(data):
         if chunk_type == b"IHDR":
+            if len(chunk_data) != 13:
+                raise ValueError(f"invalid IHDR chunk length {len(chunk_data)}")
             width, height, bit_depth, color_type, _, _, interlace = struct.unpack(
                 ">IIBBBBB", chunk_data
             )
@@ -129,8 +163,13 @@ def load_png(path: Path) -> PngImage:
         raise ValueError(f"expected RGBA PNG color type 6, found {color_type}")
     if interlace != 0:
         raise ValueError("interlaced PNGs are not supported")
+    if expected_size is not None and (width, height) != expected_size:
+        raise ValueError(
+            f"expected {expected_size[0]}x{expected_size[1]}, found {width}x{height}"
+        )
 
-    raw = zlib.decompress(b"".join(idat_parts))
+    row_length = width * 4
+    raw = bounded_zlib_decompress(idat_parts, height * (row_length + 1))
     rows = unfilter_scanlines(raw, width, height)
     return PngImage(width, height, bit_depth, color_type, interlace, rows)
 
@@ -185,15 +224,9 @@ def validate_asset(plugin_dir: Path, manifest_path: Path, key: str, rel_path: st
         errors.append(f"{asset_path}: expected PNG file extension")
 
     try:
-        image = load_png(asset_path)
+        image = load_png(asset_path, expected_size)
     except ValueError as exc:
         return errors + [f"{asset_path}: {exc}"]
-
-    if (image.width, image.height) != expected_size:
-        errors.append(
-            f"{asset_path}: expected {expected_size[0]}x{expected_size[1]}, "
-            f"found {image.width}x{image.height}"
-        )
 
     corner_alpha = [
         alpha_at(image, 0, 0),
