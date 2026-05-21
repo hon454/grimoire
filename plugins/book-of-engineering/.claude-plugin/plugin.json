@@ -1,0 +1,19 @@
+{
+  "name": "book-of-engineering",
+  "description": "Engineering workflow skills for current-state work and handoff context.",
+  "version": "0.1.0",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "homepage": "https://github.com/hon454/grimoire",
+  "repository": "https://github.com/hon454/grimoire",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "workflow",
+    "engineering",
+    "handoff",
+    "coding-agents"
+  ]
+}

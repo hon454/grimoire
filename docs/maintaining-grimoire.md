@@ -34,6 +34,18 @@ Skill behavior belongs in `SKILL.md`. Platform-specific metadata belongs in side
 - Do not add platform-specific frontmatter fields to shared `SKILL.md` unless the repository has an explicit compatibility rule.
 - If sidecar metadata exists or changes, verify it still matches the shared `SKILL.md`; regenerate it when available tooling supports that.
 
+## Explicit Invocation Skills
+
+Some task-oriented skills should run only when a user explicitly calls them. When adding or updating one of these skills:
+
+1. Say in the skill description that it is explicit-invocation-only and name the expected trigger, such as `$work-briefing`.
+2. Add Codex sidecar metadata at `agents/openai.yaml` with `policy.allow_implicit_invocation: false`.
+3. Add a Codex `interface.default_prompt` that includes the `$skill-name` trigger.
+4. Add `disable-model-invocation: true` to `SKILL.md` frontmatter for Claude Code-compatible readers.
+5. Document the Claude Code explicit invocation form in the skill body when the skill is packaged in a plugin, such as `/plugin-name:skill-name`.
+
+This is an explicit compatibility exception to the minimal shared frontmatter rule. Keep the exception limited to skills that are intentionally user-invoked workflows.
+
 ## Compatibility
 
 Maintain Codex-first, Claude-compatible packaging:
@@ -44,15 +56,17 @@ Maintain Codex-first, Claude-compatible packaging:
 - Client-specific metadata belongs in sidecar files or client-specific plugin directories, not in shared skill bodies.
 - Plugin manifests should describe package identity and installation behavior for their client without duplicating repository policy.
 
-## Instruction And Archmage Placement
+## Instruction And Plugin Placement
 
 Use this boundary when deciding where new maintenance material belongs:
 
 - Put always-on repository rules in `AGENTS.md` when every agent working in this repository must see them before doing anything else.
 - Put detailed repository maintenance policy in `docs/maintaining-grimoire.md` when the material governs source ownership, packaging, compatibility, publishing, or documentation maintenance.
-- Put reusable agent workflows in Archmage when installed users should be able to invoke the workflow outside this repository.
-- Keep repository-only operational policy out of Archmage and out of installable `skills/` paths.
-- Move a workflow into Archmage only when it is reusable across repositories and does not depend on Grimoire's local governance, repository layout, or publishing responsibilities.
+- Put reusable agent workflows in an installable plugin when installed users should be able to invoke the workflow outside this repository.
+- Use Archmage for Grimoire bootstrap, repository-library orientation, skill selection, and other workflows that help agents use or maintain Grimoire as a skill library.
+- Use Book of Engineering for current-work engineering context, handoff, briefing, planning, and execution-support workflows.
+- Add a separate plugin only when the workflow has a durable user-facing domain boundary that would make Archmage's responsibility unclear.
+- Keep repository-only operational policy out of installable plugin `skills/` paths.
 
 ## README Maintenance
 
@@ -81,13 +95,15 @@ For Codex plugin assets, keep the current repository convention unless the upstr
 - `interface.logo`: 512 by 512 pixel RGBA PNG.
 - `interface.composerIcon`: 256 by 256 pixel RGBA PNG.
 
+Text-only plugins may omit visual asset fields until a reviewed asset is available. If any visual asset field is present, keep `interface.logo` and `interface.composerIcon` as a validated pair.
+
 ## Publishing Checks
 
 Before publishing, handing off, or committing repository changes:
 
 1. Verify JSON manifests are valid.
 2. If plugin visual assets or Codex plugin manifest asset references changed, run `python3 scripts/validate-plugin-assets.py`.
-3. Run the available skill validator for each changed skill folder. In Codex, use the `skill-creator` validator when available; otherwise verify equivalent basics manually: YAML frontmatter, required fields, and folder/name alignment.
+3. Run the available skill validator for each changed skill folder. In Codex, use the `skill-creator` validator when available; otherwise verify equivalent basics manually: YAML frontmatter, required fields, and folder/name alignment. For explicit invocation skills, manually verify `disable-model-invocation: true` if the available validator does not recognize that compatibility field.
 4. Review skill descriptions for trigger clarity.
 5. Use a Conventional Commit message, such as `{type}({scope}): {summary}`.
 6. Use a branch name that exposes the Conventional Commit type, such as `{type}/{slug}`.

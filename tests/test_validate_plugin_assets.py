@@ -36,6 +36,23 @@ def png_bytes(width: int, height: int, *, idat: bytes = b"not-zlib-data") -> byt
     )
 
 
+def valid_asset_png(width: int, height: int) -> bytes:
+    row_length = width * 4
+    min_x = width // 4
+    max_x = width - min_x
+    min_y = height // 4
+    max_y = height - min_y
+    rows = []
+    for y in range(height):
+        row = bytearray(row_length)
+        for x in range(width):
+            offset = x * 4
+            if min_x <= x < max_x and min_y <= y < max_y:
+                row[offset : offset + 4] = bytes([192, 32, 64, 255])
+        rows.append(b"\x00" + bytes(row))
+    return png_bytes(width, height, idat=zlib.compress(b"".join(rows)))
+
+
 class ValidatePluginAssetsTests(unittest.TestCase):
     def validate_temp_manifest(self, manifest: object) -> list[str]:
         with tempfile.TemporaryDirectory() as tmp:
@@ -153,6 +170,54 @@ class ValidatePluginAssetsTests(unittest.TestCase):
             any("unexpected decompressed data length" in error for error in errors),
             errors,
         )
+
+    def test_manifest_without_visual_asset_fields_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text('{"interface": {"displayName": "No Assets"}}')
+
+            self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])
+
+    def test_manifest_with_partial_visual_asset_fields_requires_the_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text(
+                '{"interface": {"displayName": "Partial Assets", "logo": "./logo.png"}}'
+            )
+
+            errors = validate_plugin_assets.validate_manifest(manifest_path)
+
+        self.assertTrue(any("missing interface.composerIcon" in error for error in errors), errors)
+
+    def test_manifest_with_composer_icon_only_requires_logo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text(
+                '{"interface": {"displayName": "Partial Assets", "composerIcon": "./icon.png"}}'
+            )
+
+            errors = validate_plugin_assets.validate_manifest(manifest_path)
+
+        self.assertTrue(any("missing interface.logo" in error for error in errors), errors)
+
+    def test_manifest_with_paired_visual_asset_fields_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir()
+            (plugin_dir / "logo.png").write_bytes(valid_asset_png(512, 512))
+            (plugin_dir / "icon.png").write_bytes(valid_asset_png(256, 256))
+            manifest_path.write_text(
+                '{"interface": {"displayName": "Full Assets", "logo": "./logo.png", "composerIcon": "./icon.png"}}'
+            )
+
+            self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])
 
 
 if __name__ == "__main__":
