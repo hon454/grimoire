@@ -18,7 +18,14 @@ Grimoire is a personal, public skill library for reusable coding-agent workflows
 
 ## Pull Requests
 
-Before creating or updating a pull request, read `.github/pull_request_template.md` and use its current section structure for the PR body. Use a Conventional Commit-style pull request title with an appropriately narrow scope. Fill in applicable content from the template; delete template prompts and inapplicable checklist items instead of leaving placeholders behind.
+Before creating or updating a pull request:
+
+- Read `.github/pull_request_template.md`.
+- Use the template's current section structure for the PR body.
+- Use a Conventional Commit-style pull request title.
+- Choose the pull request title scope by the smallest durable responsibility affected by the change.
+- Fill in applicable template content with concrete details.
+- Delete template prompts and inapplicable checklist items instead of leaving placeholders behind.
 
 ## Maintenance Policy
 
