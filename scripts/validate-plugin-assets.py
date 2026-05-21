@@ -276,6 +276,9 @@ def validate_manifest(manifest_path: Path) -> list[str]:
     if not isinstance(interface, dict):
         return [f"{manifest_path}: missing interface object"]
 
+    if not any(key in interface for key in EXPECTED_ASSETS):
+        return []
+
     for key in EXPECTED_ASSETS:
         if key not in interface:
             continue
@@ -297,7 +300,7 @@ def main() -> int:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
-    print(f"Validated plugin assets for {len(manifests)} Codex plugin manifest(s).")
+    print(f"Validated plugin asset fields for {len(manifests)} Codex plugin manifest(s).")
     return 0
 
 

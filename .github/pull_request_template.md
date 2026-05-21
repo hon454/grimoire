@@ -24,6 +24,6 @@
 - Plugin or marketplace impact:
 - Follow-up required:
 
-## Related Issues
+## Related Issues (optional)
 
 <!-- List closing or related issues here. Example: Closes #123 -->

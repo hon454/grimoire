@@ -154,6 +154,28 @@ class ValidatePluginAssetsTests(unittest.TestCase):
             errors,
         )
 
+    def test_manifest_without_visual_asset_fields_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text('{"interface": {"displayName": "No Assets"}}')
+
+            self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])
+
+    def test_manifest_with_partial_visual_asset_fields_requires_the_pair(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text(
+                '{"interface": {"displayName": "Partial Assets", "logo": "./logo.png"}}'
+            )
+
+            errors = validate_plugin_assets.validate_manifest(manifest_path)
+
+        self.assertTrue(any("missing interface.composerIcon" in error for error in errors), errors)
+
 
 if __name__ == "__main__":
     unittest.main()
