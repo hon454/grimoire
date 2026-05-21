@@ -28,7 +28,7 @@ Use this skill only when the user explicitly invokes it. In Codex, the explicit 
    - POSIX shells commonly use `python3`.
    - Windows PowerShell or `cmd.exe` commonly use `py -3` or `python`.
 
-4. Run the bundled script in dry-run mode from any path inside the repository:
+4. Run the bundled script in dry-run mode from any path inside the repository. The dry run fetches the remote and verifies the preserved branch can fast-forward before reporting the destructive plan:
 
    ```bash
    <python> <skill-dir>/scripts/git_workspace_cleanup.py --repo . --dry-run
@@ -61,7 +61,7 @@ Use `--repo <path>` when the current shell is not inside the target repository.
 - Do not mutate anything unless the user approves the dry-run result.
 - Stop if the main worktree is dirty.
 - Stop if an extra worktree is dirty. Use `--force-worktrees` only when the user explicitly approves discarding files in those dirty extra worktrees.
-- Treat `git pull --ff-only` failure as a blocker. Do not merge, rebase, reset, or force-push as part of this skill.
+- Treat fast-forward failure as a blocker before removing worktrees or deleting branches. Do not merge, rebase, reset, or force-push as part of this skill.
 - If the repository uses a preserved branch other than `main`, rerun the script with `--main-branch <branch>` only after the user confirms that branch name.
 
 ## Script Behavior
@@ -69,9 +69,10 @@ Use `--repo <path>` when the current shell is not inside the target repository.
 The bundled script:
 
 - locates the worktree checked out on the preserved branch, defaulting to `main`
+- runs `git fetch --prune <remote>`, defaulting to `origin`
+- verifies the preserved branch can fast-forward to `<remote>/<main-branch>`
 - removes every other worktree
 - deletes every other local branch with `git branch -D`
-- runs `git fetch --prune origin`
-- runs `git pull --ff-only origin main`
+- runs `git pull --ff-only <remote> <main-branch>`, defaulting to `origin main`
 
 The script requires Python 3.9 or newer and either `--dry-run` or `--yes`; it refuses to mutate by default.

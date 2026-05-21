@@ -110,6 +110,49 @@ class GitWorkspaceCleanupScriptTests(unittest.TestCase):
             self.assertIn("dirty worktree", result.stderr)
             self.assertTrue((tmp / "feature-worktree").exists())
 
+    def test_refuses_dirty_main_worktree_without_mutating_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            main, _remote = self.make_repo(tmp)
+            (main / "dirty.txt").write_text("dirty\n")
+
+            result = run(
+                [sys.executable, str(SCRIPT), "--repo", str(main), "--yes"],
+                main,
+                check=False,
+            )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("main worktree is dirty", result.stderr)
+            self.assertTrue((tmp / "feature-worktree").exists())
+            branches = run(["git", "branch", "--format=%(refname:short)"], main).stdout
+            self.assertIn("topic", branches)
+            self.assertIn("worktree-topic", branches)
+
+    def test_refuses_diverged_main_before_mutating_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            main, remote = self.make_repo(tmp)
+            self.advance_remote_main(tmp, remote)
+            (main / "README.md").write_text("local\n")
+            run(["git", "commit", "-am", "local main"], main)
+
+            result = run(
+                [sys.executable, str(SCRIPT), "--repo", str(main), "--yes"],
+                main,
+                check=False,
+            )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn(
+                "main cannot fast-forward to origin/main; refusing before removing worktrees or branches",
+                result.stderr,
+            )
+            self.assertTrue((tmp / "feature-worktree").exists())
+            branches = run(["git", "branch", "--format=%(refname:short)"], main).stdout
+            self.assertIn("topic", branches)
+            self.assertIn("worktree-topic", branches)
+
     def test_script_uses_python_39_compatible_type_syntax(self) -> None:
         source = SCRIPT.read_text()
 

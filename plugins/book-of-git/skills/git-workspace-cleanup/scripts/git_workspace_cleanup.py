@@ -83,6 +83,17 @@ def require_remote(repo: Path, remote: str) -> None:
     run_git(["remote", "get-url", remote], repo)
 
 
+def preflight_fast_forward(repo: Path, remote: str, main_branch: str) -> None:
+    run_git(["fetch", "--prune", remote], repo)
+    upstream = f"{remote}/{main_branch}"
+    result = run_git(["merge-base", "--is-ancestor", "HEAD", upstream], repo, check=False)
+    if result.returncode != 0:
+        raise GitError(
+            f"{main_branch} cannot fast-forward to {upstream}; "
+            "refusing before removing worktrees or branches"
+        )
+
+
 def plan(args: argparse.Namespace) -> Tuple[Worktree, List[Worktree], List[str]]:
     starting_repo = require_git_repo(Path(args.repo).resolve())
     worktrees = list_worktrees(starting_repo)
@@ -102,6 +113,8 @@ def plan(args: argparse.Namespace) -> Tuple[Worktree, List[Worktree], List[str]]
         branch for branch in local_branches(main_worktree.path) if branch != args.main_branch
     ]
 
+    preflight_fast_forward(main_worktree.path, args.remote, args.main_branch)
+
     return main_worktree, remove_worktrees, delete_branches
 
 
@@ -116,7 +129,8 @@ def print_plan(
         print(f"Would remove worktree: {worktree.path} ({worktree.branch or 'detached'})")
     for branch in delete_branches:
         print(f"Would delete local branch: {branch}")
-    print(f"Would fetch --prune {args.remote}")
+    print(f"Fetched --prune {args.remote}")
+    print(f"Verified {args.main_branch} can fast-forward to {args.remote}/{args.main_branch}")
     print(f"Would update {args.main_branch} with --ff-only from {args.remote}/{args.main_branch}")
 
 
