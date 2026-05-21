@@ -23,26 +23,31 @@ Use this skill only when the user explicitly invokes it. In Codex, the explicit 
    scripts/git_workspace_cleanup.py
    ```
 
-3. Run the bundled script in dry-run mode from any path inside the repository:
+3. Choose the Python 3 launcher available in the user's shell and call it `<python>` in the commands below:
+
+   - POSIX shells commonly use `python3`.
+   - Windows PowerShell or `cmd.exe` commonly use `py -3` or `python`.
+
+4. Run the bundled script in dry-run mode from any path inside the repository:
 
    ```bash
-   python3 <skill-dir>/scripts/git_workspace_cleanup.py --repo . --dry-run
+   <python> <skill-dir>/scripts/git_workspace_cleanup.py --repo . --dry-run
    ```
 
-4. Show the user the main worktree path and the worktrees and branches that would be removed.
-5. Ask for explicit approval before mutating the repository.
-6. After approval, run:
+5. Show the user the main worktree path and the worktrees and branches that would be removed.
+6. Ask for explicit approval before mutating the repository.
+7. After approval, run:
 
    ```bash
-   python3 <skill-dir>/scripts/git_workspace_cleanup.py --repo . --yes
+   <python> <skill-dir>/scripts/git_workspace_cleanup.py --repo . --yes
    ```
 
-7. Continue subsequent repository work from the printed main worktree path.
-8. Verify the final state with:
+8. Continue subsequent repository work from the printed main worktree path.
+9. Verify the final state with:
 
    ```bash
    git worktree list
-   git branch --format='%(refname:short)'
+   git branch --format="%(refname:short)"
    git status --short --branch
    git pull --ff-only
    ```
@@ -69,4 +74,4 @@ The bundled script:
 - runs `git fetch --prune origin`
 - runs `git pull --ff-only origin main`
 
-The script requires either `--dry-run` or `--yes`; it refuses to mutate by default.
+The script requires Python 3.9 or newer and either `--dry-run` or `--yes`; it refuses to mutate by default.

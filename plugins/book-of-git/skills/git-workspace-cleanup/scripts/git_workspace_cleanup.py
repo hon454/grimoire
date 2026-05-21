@@ -6,7 +6,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class GitError(RuntimeError):
     pass
 
 
-def run_git(args: list[str], repo: Path, *, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run_git(args: List[str], repo: Path, *, check: bool = True) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         ["git", "-C", str(repo), *args],
         check=False,
@@ -39,9 +39,9 @@ def require_git_repo(repo: Path) -> Path:
 
 def list_worktrees(repo: Path) -> list[Worktree]:
     output = run_git(["worktree", "list", "--porcelain"], repo).stdout
-    entries: list[Worktree] = []
-    current_path: Path | None = None
-    current_branch: str | None = None
+    entries: List[Worktree] = []
+    current_path: Optional[Path] = None
+    current_branch: Optional[str] = None
 
     for line in [*output.splitlines(), ""]:
         if not line:
@@ -60,7 +60,7 @@ def list_worktrees(repo: Path) -> list[Worktree]:
     return entries
 
 
-def find_main_worktree(worktrees: list[Worktree], main_branch: str) -> Worktree:
+def find_main_worktree(worktrees: List[Worktree], main_branch: str) -> Worktree:
     matches = [worktree for worktree in worktrees if worktree.branch == main_branch]
     if not matches:
         raise GitError(f"no worktree is checked out on {main_branch}")
@@ -74,7 +74,7 @@ def is_dirty(repo: Path) -> bool:
     return bool(run_git(["status", "--porcelain"], repo).stdout.strip())
 
 
-def local_branches(repo: Path) -> list[str]:
+def local_branches(repo: Path) -> List[str]:
     output = run_git(["branch", "--format=%(refname:short)"], repo).stdout
     return [line.strip() for line in output.splitlines() if line.strip()]
 
@@ -83,7 +83,7 @@ def require_remote(repo: Path, remote: str) -> None:
     run_git(["remote", "get-url", remote], repo)
 
 
-def plan(args: argparse.Namespace) -> tuple[Worktree, list[Worktree], list[str]]:
+def plan(args: argparse.Namespace) -> Tuple[Worktree, List[Worktree], List[str]]:
     starting_repo = require_git_repo(Path(args.repo).resolve())
     worktrees = list_worktrees(starting_repo)
     main_worktree = find_main_worktree(worktrees, args.main_branch)
@@ -107,8 +107,8 @@ def plan(args: argparse.Namespace) -> tuple[Worktree, list[Worktree], list[str]]
 
 def print_plan(
     main_worktree: Worktree,
-    remove_worktrees: list[Worktree],
-    delete_branches: list[str],
+    remove_worktrees: List[Worktree],
+    delete_branches: List[str],
     args: argparse.Namespace,
 ) -> None:
     print(f"Main worktree: {main_worktree.path}")
@@ -122,8 +122,8 @@ def print_plan(
 
 def apply_plan(
     main_worktree: Worktree,
-    remove_worktrees: list[Worktree],
-    delete_branches: list[str],
+    remove_worktrees: List[Worktree],
+    delete_branches: List[str],
     args: argparse.Namespace,
 ) -> None:
     for worktree in remove_worktrees:
@@ -145,7 +145,7 @@ def apply_plan(
     print(f"Updated {args.main_branch} with --ff-only from {args.remote}/{args.main_branch}")
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
+def parse_args(argv: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Keep only the main worktree and local main branch, then update main."
     )
@@ -162,7 +162,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list[str]) -> int:
+def main(argv: List[str]) -> int:
     args = parse_args(argv)
     if args.dry_run and args.yes:
         print("--dry-run and --yes cannot be used together", file=sys.stderr)

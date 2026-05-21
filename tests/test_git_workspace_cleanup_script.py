@@ -17,6 +17,7 @@ SCRIPT = (
     / "scripts"
     / "git_workspace_cleanup.py"
 )
+SKILL = SCRIPT.parents[1] / "SKILL.md"
 
 
 def run(command: list[str], cwd: Path, *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -108,6 +109,24 @@ class GitWorkspaceCleanupScriptTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode)
             self.assertIn("dirty worktree", result.stderr)
             self.assertTrue((tmp / "feature-worktree").exists())
+
+    def test_script_uses_python_39_compatible_type_syntax(self) -> None:
+        source = SCRIPT.read_text()
+
+        self.assertNotIn(" | None", source)
+
+    def test_skill_uses_cross_platform_python_launcher_placeholder(self) -> None:
+        content = SKILL.read_text()
+
+        self.assertIn("<python> <skill-dir>/scripts/git_workspace_cleanup.py --repo . --dry-run", content)
+        self.assertIn("<python> <skill-dir>/scripts/git_workspace_cleanup.py --repo . --yes", content)
+        self.assertNotIn("python3 <skill-dir>/scripts/git_workspace_cleanup.py", content)
+
+    def test_skill_uses_windows_safe_git_format_quoting(self) -> None:
+        content = SKILL.read_text()
+
+        self.assertIn('git branch --format="%(refname:short)"', content)
+        self.assertNotIn("git branch --format='%(refname:short)'", content)
 
 
 if __name__ == "__main__":
