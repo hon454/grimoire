@@ -10,7 +10,7 @@
 
 ## Validation
 
-<!-- These checks come from AGENTS.md. Delete items that do not apply, and add any PR-specific checks you ran. -->
+<!-- These checks come from AGENTS.md and docs/maintaining-grimoire.md. Delete items that do not apply, and add any PR-specific checks you ran. -->
 
 - JSON manifests, if changed:
 - Plugin assets or Codex plugin manifests, if changed: `python3 scripts/validate-plugin-assets.py`
