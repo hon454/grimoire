@@ -26,4 +26,4 @@
 
 ## Related Issues (optional)
 
-<!-- List closing or related issues here. Example: Closes #123 -->
+<!-- Delete this section when there are no closing or related issues. Example: Closes #123 -->
