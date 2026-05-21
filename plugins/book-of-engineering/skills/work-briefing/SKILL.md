@@ -10,6 +10,10 @@ Create a current-state handoff briefing for the user's future self. The output i
 
 This is not a verification, implementation, or review workflow. Preserve work context; do not improve the work.
 
+## Invocation
+
+Use this skill only when the user explicitly invokes it. In Codex, the explicit invocation form is `$work-briefing`. In Claude Code-compatible plugin readers, the explicit invocation form is `/book-of-engineering:work-briefing`.
+
 ## Start Message
 
 Before inspecting files or tools, tell the user which sources you will check. Match the user's current conversation language.
@@ -101,7 +105,9 @@ If the target filename already exists, append `-2`, `-3`, and so on instead of o
 
 ## Briefing Language
 
-Use the user's current conversation language for prose. Section headings may remain in English for scanability. Preserve commands, file paths, branch names, issue IDs, URLs, and error text exactly.
+Use the user's current conversation language for prose. Section headings may remain in English for scanability.
+
+Preserve stable identifiers and useful excerpts for commands, file paths, branch names, issue IDs, URLs, and error text, but redact sensitive values before writing the briefing. Redact secrets, tokens, credentials, signed URL query strings, private email addresses, and private workspace, customer, or user metadata. When redaction affects evidence, note that redaction occurred in `Evidence` without exposing the original value.
 
 ## Briefing Structure
 

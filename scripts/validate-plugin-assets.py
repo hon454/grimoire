@@ -281,6 +281,7 @@ def validate_manifest(manifest_path: Path) -> list[str]:
 
     for key in EXPECTED_ASSETS:
         if key not in interface:
+            errors.append(f"{manifest_path}: missing interface.{key}")
             continue
         rel_path = interface[key]
         errors.extend(validate_asset(plugin_dir, manifest_path, key, rel_path))
