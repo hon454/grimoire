@@ -16,7 +16,7 @@ Use this skill only when the user explicitly invokes it. In Codex, the explicit 
 
 ## Start Message
 
-Before inspecting files or tools, tell the user which sources you will check. Match the user's current conversation language.
+Before inspecting files or tools, tell the user which sources you will check. Use the language selected by `Briefing Language`.
 
 Include these source categories when applicable:
 
@@ -105,7 +105,14 @@ If the target filename already exists, append `-2`, `-3`, and so on instead of o
 
 ## Briefing Language
 
-Use the user's current conversation language for prose. Section headings may remain in English for scanability.
+Choose the briefing prose language from the first clear signal:
+
+1. Use the language the user explicitly requested for the briefing or session response.
+2. Use the user's natural-language messages in the current session.
+3. Use the host operating system language when already available.
+4. Use English.
+
+Ignore skill triggers, default prompts, assistant text, tool output, commands, identifiers, paths, URLs, quoted source text, and section templates when choosing the session language. Section headings may remain in English for scanability.
 
 Preserve stable identifiers and useful excerpts for commands, file paths, branch names, issue IDs, URLs, and error text, but redact sensitive values before writing the briefing. Redact secrets, tokens, credentials, signed URL query strings, private email addresses, and private workspace, customer, or user metadata. When redaction affects evidence, note that redaction occurred in `Evidence` without exposing the original value.
 
