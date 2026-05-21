@@ -1,0 +1,176 @@
+from __future__ import annotations
+
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = (
+    ROOT
+    / "plugins"
+    / "book-of-git"
+    / "skills"
+    / "git-workspace-cleanup"
+    / "scripts"
+    / "git_workspace_cleanup.py"
+)
+SKILL = SCRIPT.parents[1] / "SKILL.md"
+
+
+def run(command: list[str], cwd: Path, *, check: bool = True) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(command, cwd=cwd, check=check, text=True, capture_output=True)
+
+
+class GitWorkspaceCleanupScriptTests(unittest.TestCase):
+    def make_repo(self, tmp: Path) -> tuple[Path, Path]:
+        remote = tmp / "remote.git"
+        main = tmp / "main"
+        feature = tmp / "feature-worktree"
+
+        run(["git", "init", "--bare", str(remote)], tmp)
+        run(["git", "clone", str(remote), str(main)], tmp)
+        run(["git", "config", "user.email", "agent@example.com"], main)
+        run(["git", "config", "user.name", "Agent"], main)
+        run(["git", "checkout", "-b", "main"], main)
+        (main / "README.md").write_text("one\n")
+        run(["git", "add", "README.md"], main)
+        run(["git", "commit", "-m", "initial"], main)
+        run(["git", "push", "-u", "origin", "main"], main)
+        run(["git", "checkout", "-b", "topic"], main)
+        run(["git", "checkout", "main"], main)
+        run(["git", "worktree", "add", "-b", "worktree-topic", str(feature)], main)
+        run(["git", "config", "user.email", "agent@example.com"], feature)
+        run(["git", "config", "user.name", "Agent"], feature)
+        return main, remote
+
+    def advance_remote_main(self, tmp: Path, remote: Path) -> None:
+        clone = tmp / "remote-advance"
+        run(["git", "clone", str(remote), str(clone)], tmp)
+        run(["git", "config", "user.email", "agent@example.com"], clone)
+        run(["git", "config", "user.name", "Agent"], clone)
+        run(["git", "checkout", "main"], clone)
+        (clone / "README.md").write_text("two\n")
+        run(["git", "commit", "-am", "advance main"], clone)
+        run(["git", "push", "origin", "main"], clone)
+
+    def test_dry_run_reports_changes_without_mutating_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            main, remote = self.make_repo(tmp)
+            self.advance_remote_main(tmp, remote)
+
+            result = run(
+                [sys.executable, str(SCRIPT), "--repo", str(main), "--dry-run"],
+                main,
+            )
+
+            self.assertIn("Would remove worktree", result.stdout)
+            self.assertIn("Would delete local branch: topic", result.stdout)
+            self.assertIn("Would update main with --ff-only", result.stdout)
+            self.assertTrue((tmp / "feature-worktree").exists())
+            branches = run(["git", "branch", "--format=%(refname:short)"], main).stdout
+            self.assertIn("topic", branches)
+            self.assertEqual((main / "README.md").read_text(), "one\n")
+
+    def test_yes_removes_extra_worktrees_deletes_branches_and_updates_main(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            main, remote = self.make_repo(tmp)
+            self.advance_remote_main(tmp, remote)
+
+            result = run(
+                [sys.executable, str(SCRIPT), "--repo", str(main), "--yes"],
+                main,
+            )
+
+            self.assertIn("Removed worktree", result.stdout)
+            self.assertIn("Deleted local branch: topic", result.stdout)
+            self.assertIn("Updated main with --ff-only", result.stdout)
+            self.assertFalse((tmp / "feature-worktree").exists())
+            branches = run(["git", "branch", "--format=%(refname:short)"], main).stdout
+            self.assertEqual(["main"], branches.splitlines())
+            self.assertEqual((main / "README.md").read_text(), "two\n")
+
+    def test_refuses_to_remove_dirty_worktree_without_force_worktrees(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            main, _remote = self.make_repo(tmp)
+            (tmp / "feature-worktree" / "dirty.txt").write_text("dirty\n")
+
+            result = run(
+                [sys.executable, str(SCRIPT), "--repo", str(main), "--yes"],
+                main,
+                check=False,
+            )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("dirty worktree", result.stderr)
+            self.assertTrue((tmp / "feature-worktree").exists())
+
+    def test_refuses_dirty_main_worktree_without_mutating_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            main, _remote = self.make_repo(tmp)
+            (main / "dirty.txt").write_text("dirty\n")
+
+            result = run(
+                [sys.executable, str(SCRIPT), "--repo", str(main), "--yes"],
+                main,
+                check=False,
+            )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("main worktree is dirty", result.stderr)
+            self.assertTrue((tmp / "feature-worktree").exists())
+            branches = run(["git", "branch", "--format=%(refname:short)"], main).stdout
+            self.assertIn("topic", branches)
+            self.assertIn("worktree-topic", branches)
+
+    def test_refuses_diverged_main_before_mutating_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            main, remote = self.make_repo(tmp)
+            self.advance_remote_main(tmp, remote)
+            (main / "README.md").write_text("local\n")
+            run(["git", "commit", "-am", "local main"], main)
+
+            result = run(
+                [sys.executable, str(SCRIPT), "--repo", str(main), "--yes"],
+                main,
+                check=False,
+            )
+
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn(
+                "main cannot fast-forward to origin/main; refusing before removing worktrees or branches",
+                result.stderr,
+            )
+            self.assertTrue((tmp / "feature-worktree").exists())
+            branches = run(["git", "branch", "--format=%(refname:short)"], main).stdout
+            self.assertIn("topic", branches)
+            self.assertIn("worktree-topic", branches)
+
+    def test_script_uses_python_39_compatible_type_syntax(self) -> None:
+        source = SCRIPT.read_text()
+
+        self.assertNotIn(" | None", source)
+
+    def test_skill_uses_cross_platform_python_launcher_placeholder(self) -> None:
+        content = SKILL.read_text()
+
+        self.assertIn("<python> <skill-dir>/scripts/git_workspace_cleanup.py --repo . --dry-run", content)
+        self.assertIn("<python> <skill-dir>/scripts/git_workspace_cleanup.py --repo . --yes", content)
+        self.assertNotIn("python3 <skill-dir>/scripts/git_workspace_cleanup.py", content)
+
+    def test_skill_uses_windows_safe_git_format_quoting(self) -> None:
+        content = SKILL.read_text()
+
+        self.assertIn('git branch --format="%(refname:short)"', content)
+        self.assertNotIn("git branch --format='%(refname:short)'", content)
+
+
+if __name__ == "__main__":
+    unittest.main()

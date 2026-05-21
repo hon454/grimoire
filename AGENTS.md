@@ -11,9 +11,21 @@ Grimoire is a personal, public skill library for reusable coding-agent workflows
 - Prefer small, readable skills over broad catch-all instructions.
 - Keep skill names stable and literal so different clients can trigger them predictably.
 - Do not add roadmap lists or promised future spells until there is a real skill to commit.
-- Use Conventional Commits for commit messages, such as `{type}({scope}): {summary}`.
-- Use branch names that expose the Conventional Commit type, such as `{type}/{slug}`.
+- Use Conventional Commits for commit messages.
+- Choose commit and pull request scopes by the smallest durable responsibility affected by the change, not by the broadest package, repository area, or file path.
+- Use branch names that expose the Conventional Commit type.
 - Verify JSON manifests before committing.
+
+## Pull Requests
+
+Before creating or updating a pull request:
+
+- Read `.github/pull_request_template.md`.
+- Use the template's current section structure for the PR body.
+- Use a Conventional Commit-style pull request title.
+- Choose the pull request title scope by the smallest durable responsibility affected by the change.
+- Fill in applicable template content with concrete details.
+- Delete template prompts and inapplicable checklist items instead of leaving placeholders behind.
 
 ## Maintenance Policy
 

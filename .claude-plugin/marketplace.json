@@ -45,6 +45,27 @@
         "handoff",
         "coding-agents"
       ]
+    },
+    {
+      "name": "book-of-git",
+      "description": "Git workflow skills for repository hygiene and workspace cleanup.",
+      "version": "0.1.0",
+      "source": "./plugins/book-of-git",
+      "author": {
+        "name": "hon454",
+        "url": "https://github.com/hon454"
+      },
+      "homepage": "https://github.com/hon454/grimoire",
+      "repository": "https://github.com/hon454/grimoire",
+      "license": "MIT",
+      "keywords": [
+        "skills",
+        "workflow",
+        "git",
+        "worktree",
+        "branch",
+        "coding-agents"
+      ]
     }
   ]
 }
