@@ -1,3 +1,5 @@
+<!-- PR title: use Conventional Commit style, `{type}({scope}): {summary}`. Examples: `feat(book-of-git): add workspace cleanup skill`, `fix(work-briefing): clarify language selection`. -->
+
 ## Summary
 
 <!-- Briefly explain what changed and why. -->
