@@ -86,6 +86,16 @@ When creating a new `book-of-*` plugin, copy the approved default book assets in
 
 Keep the copied default book assets until a human approves a plugin-specific variant in the same family, such as a changed central emblem or cover color. Treat plugin-specific `book-of-*` variants as manual visual asset updates, not as part of initial plugin scaffolding.
 
+When creating an approved plugin-specific `book-of-*` variant:
+
+- Use `assets/book-of/default-logo.png` as the family baseline for the book silhouette, centered placement, transparent padding, and approximate visual footprint.
+- Keep the book shape in the same family as the default asset. Limit plugin-specific differentiation to the central emblem, cover color, and a small number of ornamental accent colors.
+- Keep the bottom page block in the same warm parchment beige/tan family as the approved default assets. Do not tint pages with the plugin theme color.
+- Keep the cover body and left spine in one cohesive color family. Reserve strong accent colors for the central emblem and optional right-side corner or edge ornaments.
+- Prefer cel-shaded or hard-faceted painted shading that matches the existing icon family. Avoid smooth gradients, center glows, airbrush shading, vignettes, mottled color noise, and broad color-grading passes.
+- If a generated variant misses the approved art direction, regenerate or redraw the image instead of relying on color correction. Limit post-processing to transparency extraction, footprint alignment, small-fringe cleanup, and icon resizing.
+- Keep the central emblem simple enough to remain legible in the 256 by 256 composer icon and smaller client surfaces.
+
 When manually adding or updating plugin images:
 
 - Use only source images with clear usage rights, or manually approved original assets.
