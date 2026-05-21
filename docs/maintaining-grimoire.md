@@ -78,9 +78,7 @@ Do not modify README files for maintenance-policy-only changes unless the reposi
 
 ## Plugin Visual Assets
 
-Do not create or generate plugin visual assets automatically during scaffolding or maintenance. Add `logo` and `composerIcon` only after a human has supplied or approved the assets.
-
-`book-of-*` plugins are the exception for this repository's shared book family. When creating a new `book-of-*` plugin, copy the approved default book assets into the plugin instead of generating new images:
+When creating a new `book-of-*` plugin, copy the approved default book assets into the plugin instead of generating new images:
 
 1. Copy `assets/book-of/default-logo.png` to `plugins/<plugin>/assets/logo.png`.
 2. Copy `assets/book-of/default-icon.png` to `plugins/<plugin>/assets/icon.png`.
