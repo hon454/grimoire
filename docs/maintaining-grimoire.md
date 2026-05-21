@@ -78,9 +78,15 @@ Do not modify README files for maintenance-policy-only changes unless the reposi
 
 ## Plugin Visual Assets
 
-Do not create plugin visual assets automatically during scaffolding or maintenance. Add `logo` and `composerIcon` only after a human has supplied or approved the assets.
+Do not create or generate plugin visual assets automatically during scaffolding or maintenance. Add `logo` and `composerIcon` only after a human has supplied or approved the assets.
 
-`book-of-*` plugins are the exception for this repository's shared book family. When creating a new `book-of-*` plugin, start from the approved default book assets by copying `assets/book-of/default-logo.png` to `plugins/<plugin>/assets/logo.png` and `assets/book-of/default-icon.png` to `plugins/<plugin>/assets/icon.png`, then reference them from the Codex manifest as `./assets/logo.png` and `./assets/icon.png`. Keep the default book asset until a human approves a plugin-specific variant in the same family, such as a changed central emblem or cover color.
+`book-of-*` plugins are the exception for this repository's shared book family. When creating a new `book-of-*` plugin, copy the approved default book assets into the plugin instead of generating new images:
+
+1. Copy `assets/book-of/default-logo.png` to `plugins/<plugin>/assets/logo.png`.
+2. Copy `assets/book-of/default-icon.png` to `plugins/<plugin>/assets/icon.png`.
+3. Reference them from the Codex manifest as `./assets/logo.png` and `./assets/icon.png`.
+
+Keep the copied default book assets until a human approves a plugin-specific variant in the same family, such as a changed central emblem or cover color. Treat plugin-specific `book-of-*` variants as manual visual asset updates, not as part of initial plugin scaffolding.
 
 When manually adding or updating plugin images:
 
