@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import sys
 import tempfile
 import unittest
@@ -215,6 +216,27 @@ class ValidatePluginAssetsTests(unittest.TestCase):
             (plugin_dir / "icon.png").write_bytes(valid_asset_png(256, 256))
             manifest_path.write_text(
                 '{"interface": {"displayName": "Full Assets", "logo": "./logo.png", "composerIcon": "./icon.png"}}'
+            )
+
+            self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])
+
+    def test_default_book_assets_are_valid_when_copied_to_plugin(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            assets_dir = plugin_dir / "assets"
+            manifest_path.parent.mkdir()
+            assets_dir.mkdir()
+            shutil.copy2(
+                ROOT / "assets" / "book-of" / "default-logo.png",
+                assets_dir / "logo.png",
+            )
+            shutil.copy2(
+                ROOT / "assets" / "book-of" / "default-icon.png",
+                assets_dir / "icon.png",
+            )
+            manifest_path.write_text(
+                '{"interface": {"displayName": "Book Defaults", "logo": "./assets/logo.png", "composerIcon": "./assets/icon.png"}}'
             )
 
             self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])

@@ -16,6 +16,7 @@ This repository currently exposes the Archmage and Book of Engineering plugins p
 - `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/work-briefing/SKILL.md`: the explicit-invocation handoff skill that writes current-state work briefings.
+- `assets/book-of/`: approved default book-family visual assets for `book-of-*` plugin scaffolding.
 - `docs/maintaining-grimoire.md`: repository-local policy for changing Grimoire skills, plugin packaging, compatibility files, documentation, and publishing checks.
 - `.agents/plugins/marketplace.json`: the Codex marketplace catalog that exposes local plugins from `./plugins/`.
 - `.claude-plugin/marketplace.json`: the local Claude-compatible marketplace catalog that exposes local plugins from `./plugins/`.

@@ -31,6 +31,10 @@
       "Use $work-briefing to create a handoff briefing for my current work.",
       "Use $work-briefing to summarize where this workspace should resume.",
       "Use $work-briefing to write a current-state engineering handoff."
-    ]
+    ],
+    "brandColor": "#1E3A5F",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
   }
 }
