@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import unittest
@@ -36,6 +37,14 @@ def png_bytes(width: int, height: int, *, idat: bytes = b"not-zlib-data") -> byt
 
 
 class ValidatePluginAssetsTests(unittest.TestCase):
+    def validate_temp_manifest(self, manifest: object) -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin_dir = Path(tmp)
+            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text(json.dumps(manifest))
+            return validate_plugin_assets.validate_manifest(manifest_path)
+
     def validate_temp_asset(self, asset_bytes: bytes, *, key: str = "logo") -> list[str]:
         with tempfile.TemporaryDirectory() as tmp:
             plugin_dir = Path(tmp)
@@ -49,6 +58,55 @@ class ValidatePluginAssetsTests(unittest.TestCase):
                 key,
                 "./asset.png",
             )
+
+    def test_manifest_visual_assets_are_optional(self) -> None:
+        errors = self.validate_temp_manifest({"name": "book-of", "interface": {}})
+
+        self.assertEqual([], errors)
+
+    def test_manifest_without_interface_has_no_asset_errors(self) -> None:
+        errors = self.validate_temp_manifest({"name": "book-of"})
+
+        self.assertEqual([], errors)
+
+    def test_manifest_must_be_json_object(self) -> None:
+        for manifest in ([], None, 1, "plugin"):
+            with self.subTest(manifest=manifest):
+                errors = self.validate_temp_manifest(manifest)
+
+                self.assertTrue(
+                    any("manifest must be a JSON object" in error for error in errors),
+                    errors,
+                )
+
+    def test_null_manifest_interface_is_rejected(self) -> None:
+        errors = self.validate_temp_manifest({"name": "book-of", "interface": None})
+
+        self.assertTrue(any("missing interface object" in error for error in errors), errors)
+
+    def test_null_manifest_visual_asset_is_rejected_when_present(self) -> None:
+        errors = self.validate_temp_manifest({"name": "book-of", "interface": {"logo": None}})
+
+        self.assertTrue(
+            any("interface.logo must be a ./ relative path" in error for error in errors),
+            errors,
+        )
+
+    def test_present_manifest_logo_is_validated(self) -> None:
+        errors = self.validate_temp_manifest(
+            {"name": "book-of", "interface": {"logo": "./missing.png"}}
+        )
+
+        self.assertTrue(any("interface.logo target does not exist" in error for error in errors))
+
+    def test_present_manifest_composer_icon_is_validated(self) -> None:
+        errors = self.validate_temp_manifest(
+            {"name": "book-of", "interface": {"composerIcon": "./missing.png"}}
+        )
+
+        self.assertTrue(
+            any("interface.composerIcon target does not exist" in error for error in errors)
+        )
 
     def test_dimension_mismatch_is_rejected_before_decompression(self) -> None:
         errors = self.validate_temp_asset(png_bytes(1, 1, idat=b"not-zlib-data"))
