@@ -64,17 +64,19 @@ Do not modify README files for maintenance-policy-only changes unless the reposi
 
 ## Plugin Visual Assets
 
-When creating or updating plugin images:
+Do not create plugin visual assets automatically during scaffolding or maintenance. Add `logo` and `composerIcon` only after a human has supplied or approved the assets.
 
-- Use only source images with clear usage rights, or generate a new original asset from a loose visual direction.
-- Do not directly clean up watermarked stock images into repository assets. If a reference image has a watermark, create a new original mark that avoids copying the protected source.
-- Keep `logo` and `composerIcon` visually related, but optimize the icon for small-size recognition.
+When manually adding or updating plugin images:
+
+- Use only source images with clear usage rights, or manually approved original assets.
+- Do not directly clean up watermarked stock images into repository assets. If a reference image has a watermark, use a separately supplied or approved original mark that avoids copying the protected source.
+- If both are present, keep `logo` and `composerIcon` visually related, but optimize the icon for small-size recognition.
 - Use transparent PNG assets by default, with no text, watermark, decorative floating particles, shadows, or background fill.
 - Center the subject and leave enough transparent padding so the mark is not clipped in rounded or masked client surfaces.
 - Store plugin visual assets under the plugin's `./assets/` directory and reference them from the Codex manifest with `./assets/...` paths.
 - Treat copyright clearance, brand fit, and small-size legibility as manual review items; do not rely on automation for those judgments.
 
-For Codex plugin assets, keep the current repository convention unless the upstream client requirement changes:
+For Codex plugin assets, keep the current repository convention unless the upstream client requirement changes. These manifest fields are optional, but if present they must point to matching assets:
 
 - `interface.logo`: 512 by 512 pixel RGBA PNG.
 - `interface.composerIcon`: 256 by 256 pixel RGBA PNG.
@@ -84,7 +86,7 @@ For Codex plugin assets, keep the current repository convention unless the upstr
 Before publishing, handing off, or committing repository changes:
 
 1. Verify JSON manifests are valid.
-2. If plugin visual assets or Codex plugin manifests changed, run `python3 scripts/validate-plugin-assets.py`.
+2. If plugin visual assets or Codex plugin manifest asset references changed, run `python3 scripts/validate-plugin-assets.py`.
 3. Run the available skill validator for each changed skill folder. In Codex, use the `skill-creator` validator when available; otherwise verify equivalent basics manually: YAML frontmatter, required fields, and folder/name alignment.
 4. Review skill descriptions for trigger clarity.
 5. Use a Conventional Commit message, such as `{type}({scope}): {summary}`.

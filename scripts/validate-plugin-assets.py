@@ -268,14 +268,15 @@ def validate_manifest(manifest_path: Path) -> list[str]:
     except json.JSONDecodeError as exc:
         return [f"{manifest_path}: invalid JSON: {exc}"]
 
-    interface = manifest.get("interface")
+    if "interface" not in manifest:
+        return errors
+    interface = manifest["interface"]
     if not isinstance(interface, dict):
         return [f"{manifest_path}: missing interface object"]
 
     for key in EXPECTED_ASSETS:
         rel_path = interface.get(key)
         if rel_path is None:
-            errors.append(f"{manifest_path}: missing interface.{key}")
             continue
         errors.extend(validate_asset(plugin_dir, manifest_path, key, rel_path))
 
