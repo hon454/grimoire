@@ -8,7 +8,7 @@ Grimoire is the source library maintained by `hon454`. Its installable plugins a
 
 ## Status
 
-This repository currently exposes the Archmage and Book of Engineering plugins plus repository-local maintenance policy. It does not promise roadmap contents beyond the skills and policy committed here.
+This repository currently exposes the Archmage, Book of Engineering, and Book of Git plugins plus repository-local maintenance policy. It does not promise roadmap contents beyond the skills and policy committed here.
 
 ## Contents
 
@@ -16,6 +16,8 @@ This repository currently exposes the Archmage and Book of Engineering plugins p
 - `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/work-briefing/SKILL.md`: the explicit-invocation handoff skill that writes current-state work briefings.
+- `plugins/book-of-git/`: the installable Book of Git plugin package.
+- `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `assets/book-of/`: approved default book-family visual assets for `book-of-*` plugin scaffolding.
 - `docs/maintaining-grimoire.md`: repository-local policy for changing Grimoire skills, plugin packaging, compatibility files, documentation, and publishing checks.
 - `.agents/plugins/marketplace.json`: the Codex marketplace catalog that exposes local plugins from `./plugins/`.
@@ -31,7 +33,7 @@ For Codex-compatible clients, add this repository as a plugin marketplace:
 codex plugin marketplace add hon454/grimoire
 ```
 
-Then open the Codex plugin directory and install `archmage` or `book-of-engineering` from the Grimoire marketplace:
+Then open the Codex plugin directory and install `archmage`, `book-of-engineering`, or `book-of-git` from the Grimoire marketplace:
 
 ```text
 codex
