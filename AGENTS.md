@@ -15,6 +15,10 @@ Grimoire is a personal, public skill library for reusable coding-agent workflows
 - Use branch names that expose the Conventional Commit type, such as `{type}/{slug}`.
 - Verify JSON manifests before committing.
 
+## Pull Requests
+
+Before creating or updating a pull request, read `.github/pull_request_template.md` and use its current section structure for the PR body. Fill in applicable content from the template; delete template prompts and inapplicable checklist items instead of leaving placeholders behind.
+
 ## Maintenance Policy
 
 Read `docs/maintaining-grimoire.md` before changing skills, plugin manifests, repository instructions, compatibility files, sidecar metadata, publishing checks, or README content.
