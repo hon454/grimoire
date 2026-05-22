@@ -35,7 +35,7 @@ Use this skill only when the user explicitly invokes it. In Codex, the explicit 
    ```
 
 5. Show the user the main worktree path and the worktrees and branches that would be removed.
-6. Ask for explicit approval before mutating the repository.
+6. Ask for explicit approval before mutating the repository. Use the host's native user-input or approval UI when it is available; in Codex, use `request_user_input` when the current mode exposes it. Offer a destructive approval choice and a cancel choice. If no native choice UI is available, ask for a short typed approval phrase instead.
 7. After approval, run:
 
    ```bash
@@ -60,7 +60,7 @@ Use `--repo <path>` when the current shell is not inside the target repository.
 - Do not delete the local `main` branch.
 - Do not mutate anything unless the user approves the dry-run result.
 - Stop if the main worktree is dirty.
-- Stop if an extra worktree is dirty. Use `--force-worktrees` only when the user explicitly approves discarding files in those dirty extra worktrees.
+- Stop if an extra worktree is dirty. Use `--force-worktrees` only when the user explicitly approves discarding files in those dirty extra worktrees. Prefer the host's native user-input or approval UI for this approval when available; otherwise require a typed approval phrase.
 - Treat fast-forward failure as a blocker before removing worktrees or deleting branches. Do not merge, rebase, reset, or force-push as part of this skill.
 - If the repository uses a preserved branch other than `main`, rerun the script with `--main-branch <branch>` only after the user confirms that branch name.
 
