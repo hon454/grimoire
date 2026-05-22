@@ -18,6 +18,8 @@ Use this skill only when the user explicitly invokes it. In Codex, the explicit 
 
 Before inspecting files or tools, tell the user which sources you will check. Use the language selected by `Briefing Language`.
 
+Before the start message, the only allowed inspection is a read-only command to check the host locale or preferred OS languages when `Briefing Language` has no substantive user-language signal. Do not inspect tracker, repository, git, pull request, or local-change context before the start message.
+
 Include these source categories when applicable:
 
 - available issue tracker work items
