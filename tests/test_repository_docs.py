@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def markdown_section(content: str, heading: str) -> str:
+    marker = f"\n## {heading}\n"
+    start = content.index(marker) + 1
+    next_heading = content.find("\n## ", start + len(marker))
+    end = next_heading if next_heading != -1 else len(content)
+    return content[start:end].strip()
 
 
 class RepositoryDocsTests(unittest.TestCase):
@@ -15,36 +24,25 @@ class RepositoryDocsTests(unittest.TestCase):
 
                 self.assertIn("`assets/book-of/`", content)
 
-    def test_work_briefing_language_selection_ignores_invocation_boilerplate(self) -> None:
+    def test_work_briefing_uses_documented_language_baseline(self) -> None:
+        maintenance = (ROOT / "docs" / "maintaining-grimoire.md").read_text()
+        work_briefing = (
+            ROOT / "plugins" / "book-of-engineering" / "skills" / "work-briefing" / "SKILL.md"
+        ).read_text()
+        baseline_match = re.search(r"```markdown\n(## Language\n.*?)\n```", maintenance, re.S)
+
+        self.assertIsNotNone(baseline_match)
+        assert baseline_match is not None
+        self.assertEqual(baseline_match.group(1).strip(), markdown_section(work_briefing, "Language"))
+        self.assertLess(work_briefing.index("## Language"), work_briefing.index("## Invocation"))
+
+    def test_work_briefing_allows_language_check_before_start_message(self) -> None:
         content = (
             ROOT / "plugins" / "book-of-engineering" / "skills" / "work-briefing" / "SKILL.md"
         ).read_text()
 
-        self.assertIn(
-            "Before the start message, the only allowed inspection is a read-only command "
-            "to check the host locale or preferred OS languages when `Briefing Language` "
-            "has no substantive user-language signal.",
-            content,
-        )
-        self.assertIn("substantive natural-language user messages", content)
-        self.assertIn("inspect the host locale or preferred OS languages", content)
-        self.assertIn("Language-signal exclusions:", content)
-        for exclusion in (
-            "- skill triggers, invocation boilerplate, and default prompts",
-            "- assistant text, tool output, quoted source text, and section templates",
-            "- commands, identifiers, paths, and URLs",
-        ):
-            self.assertIn(exclusion, content)
-
-        self.assertIn("Output language boundaries:", content)
-        self.assertNotIn("Keep section headings from `Briefing Structure` in English", content)
-        for boundary in (
-            "- Write narrative prose in the selected language.",
-            "- Do not translate commands, code, identifiers, branch names, commit hashes, and issue IDs.",
-            "- Do not translate file paths, URLs, package names, tool names, and API names.",
-            "- Do not translate quoted source text, error text, log excerpts, and terminal output.",
-        ):
-            self.assertIn(boundary, content)
+        self.assertIn("read-only command to check the host OS preferred language", content)
+        self.assertIn("when `Language` has no substantive user-language signal", content)
 
 
 if __name__ == "__main__":
