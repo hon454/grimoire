@@ -19,9 +19,9 @@ Grimoire currently publishes these installable plugins:
 
 | Icon | Plugin | Purpose |
 | --- | --- | --- |
-| <img src="plugins/archmage/assets/icon.png" width="36" alt="Archmage icon"> | **Archmage** | Operational workflows for helping coding agents use Grimoire consistently: choosing applicable workflows, loading the right context, and starting from a shared operating model. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="36" alt="Book of Engineering icon"> | **Book&nbsp;of&nbsp;Engineering** | Engineering workflows for preserving work context across sessions, with an emphasis on current-state understanding, durable handoff context, and asynchronous continuity. |
-| <img src="plugins/book-of-git/assets/icon.png" width="36" alt="Book of Git icon"> | **Book&nbsp;of&nbsp;Git** | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, and repository cleanup. |
+| <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | **Archmage** | Operational workflows for helping coding agents use Grimoire consistently: choosing applicable workflows, loading the right context, and starting from a shared operating model. |
+| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | **Book&nbsp;of&nbsp;Engineering** | Engineering workflows for preserving work context across sessions, with an emphasis on current-state understanding, durable handoff context, and asynchronous continuity. |
+| <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | **Book&nbsp;of&nbsp;Git** | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, and repository cleanup. |
 
 ## Contents
 

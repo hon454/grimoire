@@ -19,9 +19,9 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 
 | Icon | Plugin | 설명 |
 | --- | --- | --- |
-| <img src="plugins/archmage/assets/icon.png" width="36" alt="Archmage icon"> | **Archmage** | 코딩 에이전트가 Grimoire를 일관되게 사용하도록 돕는 운영 workflow입니다. 적용 가능한 workflow 선택, 필요한 맥락 로딩, 공유된 작업 모델에서 task를 시작하는 데 초점을 둡니다. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="36" alt="Book of Engineering icon"> | **Book&nbsp;of&nbsp;Engineering** | 세션 사이에서 작업 맥락을 보존하기 위한 engineering workflow입니다. 현재 상태 이해, 오래 유지되는 handoff 맥락, 비동기 agent 실행 간 연속성에 초점을 둡니다. |
-| <img src="plugins/book-of-git/assets/icon.png" width="36" alt="Book of Git icon"> | **Book&nbsp;of&nbsp;Git** | local repository를 이해 가능하고 복구 가능한 상태로 유지하기 위한 Git workflow입니다. workspace hygiene, branch discipline, guarded repository cleanup에 초점을 둡니다. |
+| <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | **Archmage** | 코딩 에이전트가 Grimoire를 일관되게 사용하도록 돕는 운영 workflow입니다. 적용 가능한 workflow 선택, 필요한 맥락 로딩, 공유된 작업 모델에서 task를 시작하는 데 초점을 둡니다. |
+| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | **Book&nbsp;of&nbsp;Engineering** | 세션 사이에서 작업 맥락을 보존하기 위한 engineering workflow입니다. 현재 상태 이해, 오래 유지되는 handoff 맥락, 비동기 agent 실행 간 연속성에 초점을 둡니다. |
+| <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | **Book&nbsp;of&nbsp;Git** | local repository를 이해 가능하고 복구 가능한 상태로 유지하기 위한 Git workflow입니다. workspace hygiene, branch discipline, guarded repository cleanup에 초점을 둡니다. |
 
 ## Contents
 
