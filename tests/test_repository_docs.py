@@ -15,6 +15,23 @@ class RepositoryDocsTests(unittest.TestCase):
 
                 self.assertIn("`assets/book-of/`", content)
 
+    def test_work_briefing_language_selection_ignores_invocation_boilerplate(self) -> None:
+        content = (
+            ROOT / "plugins" / "book-of-engineering" / "skills" / "work-briefing" / "SKILL.md"
+        ).read_text()
+
+        self.assertIn("substantive natural-language user messages", content)
+        self.assertIn("inspect the host locale or preferred OS languages", content)
+        self.assertIn("Language-signal exclusions:", content)
+        self.assertIn("- skill triggers, invocation boilerplate, and default prompts", content)
+        self.assertIn("Output language boundaries:", content)
+        self.assertIn("- Write narrative prose in the selected language.", content)
+        self.assertIn("- Keep section headings from `Briefing Structure` in English.", content)
+        self.assertIn(
+            "- Do not translate commands, code, identifiers, branch names, commit hashes, and issue IDs.",
+            content,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
