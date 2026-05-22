@@ -10,21 +10,13 @@ Create a current-state handoff briefing for the user's future self. The output i
 
 This is not a verification, implementation, or review workflow. Preserve work context; do not improve the work.
 
-## Language
-
-Write user-facing prose in the clearest user language. For bare skill invocations, use the host OS preferred language when readable; otherwise use English.
-
-Ignore triggers, default prompts, commands, paths, identifiers, URLs, templates, logs, and quotes as language signals. Preserve technical text as-is.
-
 ## Invocation
 
 Use this skill only when the user explicitly invokes it. In Codex, the explicit invocation form is `$work-briefing`. In Claude Code-compatible plugin readers, the explicit invocation form is `/book-of-engineering:work-briefing`.
 
 ## Start Message
 
-Before inspecting files or tools, tell the user which sources you will check. Use the language selected by `Language`.
-
-Before the start message, the only allowed inspection is a read-only command to check the host OS preferred language when `Language` has no substantive user-language signal. Do not inspect tracker, repository, git, pull request, or local-change context before the start message.
+Before inspecting files or tools, tell the user which sources you will check. Do not inspect tracker, repository, git, pull request, or local-change context before the start message.
 
 Include these source categories when applicable:
 
@@ -126,6 +118,14 @@ Generated: 2026-05-21 14:30 KST
 Workspace: /path/to/workspace
 Revision: abc1234
 Scope: Current workspace handoff
+
+<!--
+When writing narrative prose for this briefing, use this language priority:
+1. Host OS preferred language, when readable.
+2. Current session language, if the host OS preferred language is unavailable.
+3. English.
+Preserve technical text as-is. Do not include this comment in the generated briefing.
+-->
 
 ## Current State
 
