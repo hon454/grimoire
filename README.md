@@ -10,6 +10,14 @@ Grimoire is the source library maintained by `hon454`. Its installable plugins a
 
 This repository currently exposes the Archmage, Book of Engineering, and Book of Git plugins plus repository-local maintenance policy. It does not promise roadmap contents beyond the skills and policy committed here.
 
+## Plugins
+
+Grimoire currently publishes these installable plugins:
+
+- **Archmage**: Operational workflows for helping coding agents use Grimoire consistently: choosing applicable workflows, loading the right context, and starting from a shared operating model.
+- **Book of Engineering**: Engineering workflows for preserving work context across sessions, with an emphasis on current-state understanding, durable handoff context, and asynchronous continuity.
+- **Book of Git**: Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, and repository cleanup.
+
 ## Contents
 
 - `plugins/archmage/`: the installable Archmage plugin package.
