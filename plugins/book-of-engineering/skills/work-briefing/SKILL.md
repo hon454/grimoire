@@ -112,13 +112,6 @@ Preserve stable identifiers and useful excerpts for commands, file paths, branch
 Use this structure unless the user asks for another format:
 
 ```markdown
-# Work Briefing
-
-Generated: 2026-05-21 14:30 KST
-Workspace: /path/to/workspace
-Revision: abc1234
-Scope: Current workspace handoff
-
 <!--
 When writing narrative prose for this briefing, use this language priority:
 1. Host OS preferred language, when readable.
@@ -126,6 +119,13 @@ When writing narrative prose for this briefing, use this language priority:
 3. English.
 Preserve technical text as-is. Do not include this comment in the generated briefing.
 -->
+
+# Work Briefing
+
+Generated: 2026-05-21 14:30 KST
+Workspace: /path/to/workspace
+Revision: abc1234
+Scope: Current workspace handoff
 
 ## Current State
 
