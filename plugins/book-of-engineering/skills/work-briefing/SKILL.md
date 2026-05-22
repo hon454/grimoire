@@ -18,6 +18,8 @@ Use this skill only when the user explicitly invokes it. In Codex, the explicit 
 
 Before inspecting files or tools, tell the user which sources you will check. Use the language selected by `Briefing Language`.
 
+Before the start message, the only allowed inspection is a read-only command to check the host locale or preferred OS languages when `Briefing Language` has no substantive user-language signal. Do not inspect tracker, repository, git, pull request, or local-change context before the start message.
+
 Include these source categories when applicable:
 
 - available issue tracker work items
@@ -108,11 +110,22 @@ If the target filename already exists, append `-2`, `-3`, and so on instead of o
 Choose the briefing prose language from the first clear signal:
 
 1. Use the language the user explicitly requested for the briefing or session response.
-2. Use the user's natural-language messages in the current session.
-3. Use the host operating system language when already available.
+2. Use substantive natural-language user messages in the current session.
+3. If no substantive user-language signal exists, inspect the host locale or preferred OS languages with a read-only command when available.
 4. Use English.
 
-Ignore skill triggers, default prompts, assistant text, tool output, commands, identifiers, paths, URLs, quoted source text, and section templates when choosing the session language. Section headings may remain in English for scanability.
+Language-signal exclusions:
+
+- skill triggers, invocation boilerplate, and default prompts
+- assistant text, tool output, quoted source text, and section templates
+- commands, identifiers, paths, and URLs
+
+Output language boundaries:
+
+- Write narrative prose in the selected language.
+- Do not translate commands, code, identifiers, branch names, commit hashes, and issue IDs.
+- Do not translate file paths, URLs, package names, tool names, and API names.
+- Do not translate quoted source text, error text, log excerpts, and terminal output.
 
 Preserve stable identifiers and useful excerpts for commands, file paths, branch names, issue IDs, URLs, and error text, but redact sensitive values before writing the briefing. Redact secrets, tokens, credentials, signed URL query strings, private email addresses, and private workspace, customer, or user metadata. When redaction affects evidence, note that redaction occurred in `Evidence` without exposing the original value.
 
