@@ -26,7 +26,7 @@ class RepositoryDocsTests(unittest.TestCase):
         self.assertIn("- skill triggers, invocation boilerplate, and default prompts", content)
         self.assertIn("Output language boundaries:", content)
         self.assertIn("- Write narrative prose in the selected language.", content)
-        self.assertIn("- Keep section headings from `Briefing Structure` in English.", content)
+        self.assertNotIn("Keep section headings from `Briefing Structure` in English", content)
         self.assertIn(
             "- Do not translate commands, code, identifiers, branch names, commit hashes, and issue IDs.",
             content,

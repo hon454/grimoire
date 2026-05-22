@@ -121,7 +121,6 @@ Language-signal exclusions:
 Output language boundaries:
 
 - Write narrative prose in the selected language.
-- Keep section headings from `Briefing Structure` in English.
 - Do not translate commands, code, identifiers, branch names, commit hashes, and issue IDs.
 - Do not translate file paths, URLs, package names, tool names, and API names.
 - Do not translate quoted source text, error text, log excerpts, and terminal output.
