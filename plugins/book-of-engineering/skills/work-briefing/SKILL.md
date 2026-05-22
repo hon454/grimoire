@@ -10,15 +10,21 @@ Create a current-state handoff briefing for the user's future self. The output i
 
 This is not a verification, implementation, or review workflow. Preserve work context; do not improve the work.
 
+## Language
+
+Write user-facing prose in the clearest user language. For bare skill invocations, use the host OS preferred language when readable; otherwise use English.
+
+Ignore triggers, default prompts, commands, paths, identifiers, URLs, templates, logs, and quotes as language signals. Preserve technical text as-is.
+
 ## Invocation
 
 Use this skill only when the user explicitly invokes it. In Codex, the explicit invocation form is `$work-briefing`. In Claude Code-compatible plugin readers, the explicit invocation form is `/book-of-engineering:work-briefing`.
 
 ## Start Message
 
-Before inspecting files or tools, tell the user which sources you will check. Use the language selected by `Briefing Language`.
+Before inspecting files or tools, tell the user which sources you will check. Use the language selected by `Language`.
 
-Before the start message, the only allowed inspection is a read-only command to check the host locale or preferred OS languages when `Briefing Language` has no substantive user-language signal. Do not inspect tracker, repository, git, pull request, or local-change context before the start message.
+Before the start message, the only allowed inspection is a read-only command to check the host OS preferred language when `Language` has no substantive user-language signal. Do not inspect tracker, repository, git, pull request, or local-change context before the start message.
 
 Include these source categories when applicable:
 
@@ -105,27 +111,7 @@ Use the user's local timezone when known. If the workspace has no git hash, use:
 
 If the target filename already exists, append `-2`, `-3`, and so on instead of overwriting.
 
-## Briefing Language
-
-Choose the briefing prose language from the first clear signal:
-
-1. Use the language the user explicitly requested for the briefing or session response.
-2. Use substantive natural-language user messages in the current session.
-3. If no substantive user-language signal exists, inspect the host locale or preferred OS languages with a read-only command when available.
-4. Use English.
-
-Language-signal exclusions:
-
-- skill triggers, invocation boilerplate, and default prompts
-- assistant text, tool output, quoted source text, and section templates
-- commands, identifiers, paths, and URLs
-
-Output language boundaries:
-
-- Write narrative prose in the selected language.
-- Do not translate commands, code, identifiers, branch names, commit hashes, and issue IDs.
-- Do not translate file paths, URLs, package names, tool names, and API names.
-- Do not translate quoted source text, error text, log excerpts, and terminal output.
+## Redaction
 
 Preserve stable identifiers and useful excerpts for commands, file paths, branch names, issue IDs, URLs, and error text, but redact sensitive values before writing the briefing. Redact secrets, tokens, credentials, signed URL query strings, private email addresses, and private workspace, customer, or user metadata. When redaction affects evidence, note that redaction occurred in `Evidence` without exposing the original value.
 

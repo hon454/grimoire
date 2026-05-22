@@ -24,6 +24,16 @@ When adding or updating a source-owned skill:
 
 Keep skills small and readable. Split broad catch-all instructions into narrower workflows when separate trigger criteria or proof obligations would make them easier to use correctly.
 
+When a skill writes user-facing narrative output, such as reports, briefings, summaries, handoffs, or generated documents, include a `## Language` section near the top of that skill, before workflow steps or source inspection rules. Use this baseline unless the skill needs narrower wording:
+
+```markdown
+## Language
+
+Write user-facing prose in the clearest user language. For bare skill invocations, use the host OS preferred language when readable; otherwise use English.
+
+Ignore triggers, default prompts, commands, paths, identifiers, URLs, templates, logs, and quotes as language signals. Preserve technical text as-is.
+```
+
 ## Sidecar Metadata
 
 Skill behavior belongs in `SKILL.md`. Platform-specific metadata belongs in sidecar files or client-specific plugin directories.
