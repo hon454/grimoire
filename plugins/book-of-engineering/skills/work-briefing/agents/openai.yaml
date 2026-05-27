@@ -1,7 +1,0 @@
-interface:
-  display_name: "Work Briefing"
-  short_description: "Write a current-work handoff briefing"
-  default_prompt: "Use $work-briefing to create a handoff briefing for my current work."
-
-policy:
-  allow_implicit_invocation: false

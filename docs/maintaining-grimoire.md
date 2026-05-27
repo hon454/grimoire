@@ -38,7 +38,7 @@ Skill behavior belongs in `SKILL.md`. Platform-specific metadata belongs in side
 
 Some task-oriented skills should run only when a user explicitly calls them. When adding or updating one of these skills:
 
-1. Say in the skill description that it is explicit-invocation-only and name the expected trigger, such as `$work-briefing`.
+1. Say in the skill description that it is explicit-invocation-only and name the expected trigger, such as `$now-what`.
 2. Add Codex sidecar metadata at `agents/openai.yaml` with `policy.allow_implicit_invocation: false`.
 3. Add a Codex `interface.default_prompt` that includes the `$skill-name` trigger.
 4. Add `disable-model-invocation: true` to `SKILL.md` frontmatter for Claude Code-compatible readers.
@@ -64,7 +64,7 @@ Use this boundary when deciding where new maintenance material belongs:
 - Put detailed repository maintenance policy in `docs/maintaining-grimoire.md` when the material governs source ownership, packaging, compatibility, publishing, or documentation maintenance.
 - Put reusable agent workflows in an installable plugin when installed users should be able to invoke the workflow outside this repository.
 - Use Archmage for Grimoire bootstrap, repository-library orientation, skill selection, and other workflows that help agents use or maintain Grimoire as a skill library.
-- Use Book of Engineering for current-work engineering context, handoff, briefing, planning, and execution-support workflows.
+- Use Book of Engineering for current-work engineering context, next-action prioritization, planning, and execution-support workflows.
 - Add a separate plugin only when the workflow has a durable user-facing domain boundary that would make Archmage's responsibility unclear.
 - Keep repository-only operational policy out of installable plugin `skills/` paths.
 

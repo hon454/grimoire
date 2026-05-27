@@ -20,7 +20,7 @@ Grimoire currently publishes these installable plugins:
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
 | <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows for helping coding agents use Grimoire consistently: choosing applicable workflows, loading the right context, and starting from a shared operating model. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for preserving work context across sessions, with an emphasis on current-state understanding, durable handoff context, and asynchronous continuity. |
+| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context and choosing the next action from repository, git, document, GitHub, and Linear signals. |
 | <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, and repository cleanup. |
 
 ## Contents
@@ -28,7 +28,7 @@ Grimoire currently publishes these installable plugins:
 - `plugins/archmage/`: the installable Archmage plugin package.
 - `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
-- `plugins/book-of-engineering/skills/work-briefing/SKILL.md`: the explicit-invocation handoff skill that writes current-state work briefings.
+- `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
 - `plugins/book-of-git/`: the installable Book of Git plugin package.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `assets/readme/`: README-specific visual assets.

@@ -28,7 +28,7 @@
     },
     {
       "name": "book-of-engineering",
-      "description": "Engineering workflow skills for current-state work and handoff context.",
+      "description": "Engineering workflow skills for current-work context and next-action prioritization.",
       "version": "0.1.0",
       "source": "./plugins/book-of-engineering",
       "author": {
@@ -42,7 +42,7 @@
         "skills",
         "workflow",
         "engineering",
-        "handoff",
+        "prioritization",
         "coding-agents"
       ]
     },
