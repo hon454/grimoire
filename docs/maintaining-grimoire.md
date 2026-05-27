@@ -34,11 +34,23 @@ Skill behavior belongs in `SKILL.md`. Platform-specific metadata belongs in side
 - Do not add platform-specific frontmatter fields to shared `SKILL.md` unless the repository has an explicit compatibility rule.
 - If sidecar metadata exists or changes, verify it still matches the shared `SKILL.md`; regenerate it when available tooling supports that.
 
+## Skill Visual Assets
+
+Codex skill icons are optional UI metadata, not shared workflow behavior. When a source-owned skill needs a Codex-specific icon:
+
+- Store icon files under the skill directory's `assets/` folder, such as `plugins/<plugin>/skills/<skill>/assets/`.
+- Reference the files from `plugins/<plugin>/skills/<skill>/agents/openai.yaml` with `interface.icon_small` and `interface.icon_large` using `./assets/...` relative paths.
+- Keep `SKILL.md` frontmatter portable; do not add icon metadata there.
+- Prefer `icon_large.png` as a 256 by 256 pixel RGBA PNG with transparent background and enough transparent padding to survive masked UI surfaces.
+- Prefer `icon_small.png` as a 32 by 32 pixel RGBA PNG or a simple SVG optimized for small-size recognition.
+- Keep skill icons text-free, centered, visually simple, and specific to the skill's durable responsibility.
+- Verify icon dimensions, RGBA transparency, transparent corners, and metadata paths before committing.
+
 ## Explicit Invocation Skills
 
 Some task-oriented skills should run only when a user explicitly calls them. When adding or updating one of these skills:
 
-1. Say in the skill description that it is explicit-invocation-only and name the expected trigger, such as `$work-briefing`.
+1. Keep the skill description focused on the workflow and its negative scope. Do not put trigger syntax in the description when invocation is enforced by sidecar metadata and compatibility frontmatter.
 2. Add Codex sidecar metadata at `agents/openai.yaml` with `policy.allow_implicit_invocation: false`.
 3. Add a Codex `interface.default_prompt` that includes the `$skill-name` trigger.
 4. Add `disable-model-invocation: true` to `SKILL.md` frontmatter for Claude Code-compatible readers.
@@ -64,7 +76,7 @@ Use this boundary when deciding where new maintenance material belongs:
 - Put detailed repository maintenance policy in `docs/maintaining-grimoire.md` when the material governs source ownership, packaging, compatibility, publishing, or documentation maintenance.
 - Put reusable agent workflows in an installable plugin when installed users should be able to invoke the workflow outside this repository.
 - Use Archmage for Grimoire bootstrap, repository-library orientation, skill selection, and other workflows that help agents use or maintain Grimoire as a skill library.
-- Use Book of Engineering for current-work engineering context, handoff, briefing, planning, and execution-support workflows.
+- Use Book of Engineering for current-work engineering context and next-action prioritization workflows.
 - Add a separate plugin only when the workflow has a durable user-facing domain boundary that would make Archmage's responsibility unclear.
 - Keep repository-only operational policy out of installable plugin `skills/` paths.
 

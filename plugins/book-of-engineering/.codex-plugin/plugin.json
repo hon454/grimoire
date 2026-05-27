@@ -1,7 +1,7 @@
 {
   "name": "book-of-engineering",
-  "version": "0.1.0",
-  "description": "Engineering workflow skills for current-state work and handoff context.",
+  "version": "0.2.0",
+  "description": "Engineering workflow skills for current-work context and next-action prioritization.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -13,14 +13,14 @@
     "skills",
     "workflow",
     "engineering",
-    "handoff",
+    "prioritization",
     "coding-agents"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Book of Engineering",
-    "shortDescription": "Engineering handoff and work context skills.",
-    "longDescription": "Book of Engineering packages practical engineering workflow skills for preserving current-state work context and creating handoff-oriented summaries.",
+    "shortDescription": "Engineering context and next-action skills.",
+    "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context and deciding what to do next.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
@@ -28,9 +28,9 @@
     ],
     "websiteURL": "https://github.com/hon454/grimoire",
     "defaultPrompt": [
-      "Use $work-briefing to create a handoff briefing for my current work.",
-      "Use $work-briefing to summarize where this workspace should resume.",
-      "Use $work-briefing to write a current-state engineering handoff."
+      "Use $now-what to inspect this workspace and recommend what to do next.",
+      "Use $now-what to prioritize the current repo and branch context.",
+      "Use $now-what to decide the next current-work action."
     ],
     "brandColor": "#1E3A5F",
     "composerIcon": "./assets/icon.png",

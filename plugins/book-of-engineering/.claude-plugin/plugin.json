@@ -1,7 +1,7 @@
 {
   "name": "book-of-engineering",
-  "description": "Engineering workflow skills for current-state work and handoff context.",
-  "version": "0.1.0",
+  "description": "Engineering workflow skills for current-work context and next-action prioritization.",
+  "version": "0.2.0",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -13,7 +13,7 @@
     "skills",
     "workflow",
     "engineering",
-    "handoff",
+    "prioritization",
     "coding-agents"
   ]
 }
