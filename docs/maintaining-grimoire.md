@@ -34,6 +34,18 @@ Skill behavior belongs in `SKILL.md`. Platform-specific metadata belongs in side
 - Do not add platform-specific frontmatter fields to shared `SKILL.md` unless the repository has an explicit compatibility rule.
 - If sidecar metadata exists or changes, verify it still matches the shared `SKILL.md`; regenerate it when available tooling supports that.
 
+## Skill Visual Assets
+
+Codex skill icons are optional UI metadata, not shared workflow behavior. When a source-owned skill needs a Codex-specific icon:
+
+- Store icon files under the skill directory's `assets/` folder, such as `plugins/<plugin>/skills/<skill>/assets/`.
+- Reference the files from `plugins/<plugin>/skills/<skill>/agents/openai.yaml` with `interface.icon_small` and `interface.icon_large` using `./assets/...` relative paths.
+- Keep `SKILL.md` frontmatter portable; do not add icon metadata there.
+- Prefer `icon_large.png` as a 256 by 256 pixel RGBA PNG with transparent background and enough transparent padding to survive masked UI surfaces.
+- Prefer `icon_small.png` as a 32 by 32 pixel RGBA PNG or a simple SVG optimized for small-size recognition.
+- Keep skill icons text-free, centered, visually simple, and specific to the skill's durable responsibility.
+- Verify icon dimensions, RGBA transparency, transparent corners, and metadata paths before committing.
+
 ## Explicit Invocation Skills
 
 Some task-oriented skills should run only when a user explicitly calls them. When adding or updating one of these skills:

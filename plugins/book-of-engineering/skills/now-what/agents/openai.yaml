@@ -1,6 +1,8 @@
 interface:
   display_name: "Now What"
   short_description: "Recommend the next current-work action"
+  icon_small: "./assets/icon_small.png"
+  icon_large: "./assets/icon_large.png"
   default_prompt: "Use $now-what to inspect this workspace and recommend what to do next."
 
 policy:
