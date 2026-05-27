@@ -38,7 +38,7 @@ Skill behavior belongs in `SKILL.md`. Platform-specific metadata belongs in side
 
 Some task-oriented skills should run only when a user explicitly calls them. When adding or updating one of these skills:
 
-1. Say in the skill description that it is explicit-invocation-only and name the expected trigger, such as `$now-what`.
+1. Keep the skill description focused on the workflow and its negative scope. Do not require trigger syntax in the description when invocation is enforced by sidecar metadata and compatibility frontmatter.
 2. Add Codex sidecar metadata at `agents/openai.yaml` with `policy.allow_implicit_invocation: false`.
 3. Add a Codex `interface.default_prompt` that includes the `$skill-name` trigger.
 4. Add `disable-model-invocation: true` to `SKILL.md` frontmatter for Claude Code-compatible readers.

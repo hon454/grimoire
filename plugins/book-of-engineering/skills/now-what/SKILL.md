@@ -1,6 +1,6 @@
 ---
 name: now-what
-description: Explicit-invocation-only current-work triage for recommending what to do next from workspace, git, document, GitHub, and Linear signals. Use only when the user explicitly invokes $now-what, /book-of-engineering:now-what, or asks to use the now-what skill. Do not use for handoff files or implementation planning.
+description: "Recommend what to do next for current work by inspecting available work signals. Do not use for handoff files, implementation planning, status reports, or broad backlog triage."
 disable-model-invocation: true
 ---
 
@@ -34,6 +34,12 @@ Default boundary: current workspace, current branch, recent commits, local diff,
 Do not search all assigned GitHub issues, all assigned Linear issues, unrelated backlogs, or org-wide priorities unless the user asks for that wider scope.
 
 Optional sources are optional. Continue without GitHub, Linear, repo, or docs when unavailable; mention the gap only if it changes confidence.
+
+## Inputs And Output
+
+Inputs: current workspace; explicit user refs; local repo state; current branch; recent commits; local diff; related docs; connected GitHub or Linear signals when available.
+
+Output: 2-3 current-work options, one recommendation, one first move, and any confidence-changing source gaps. No saved files.
 
 ## Decision Rule
 
