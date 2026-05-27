@@ -6,117 +6,69 @@ disable-model-invocation: true
 
 # Now What
 
-## Overview
+Personal standup for an active workspace: inspect current-work signals, recommend the next action, and stop.
 
-Inspect current-work context, recommend what to do next, and stop. This is a personal standup workflow for deciding the next action, not a handoff, planning, execution, review, or tracker-update workflow.
+Use only when explicitly invoked as `$now-what`, `/book-of-engineering:now-what`, or "use the now-what skill".
 
-## Invocation
+## Language
 
-Use this skill only when the user explicitly invokes it. In Codex, the explicit invocation form is `$now-what`. In Claude Code-compatible plugin readers, the explicit invocation form is `/book-of-engineering:now-what`.
+Use the host OS preferred language for all user-facing prose, including the source notice, headings, and recommendation. If the invocation explicitly requests a language, use that language. If the OS language is unavailable, use English.
 
-## Response Language
+Preserve code, commands, paths, branch names, issue IDs, PR titles, commit subjects, and other technical identifiers as written. Do not infer language from this skill file, repo prose, tool output, tracker text, copied templates, or quoted artifacts.
 
-Use the host OS preferred language for user-facing prose, including the source notice and final recommendation. If the user explicitly requests a response language in the invocation, use that language for prose.
+## First Message
 
-If the host OS preferred language is unavailable or unreadable, use English.
+Before inspecting files, git, trackers, or PRs, send one short source notice in the response language:
 
-Preserve code, commands, paths, branch names, issue IDs, PR titles, commit subjects, and technical identifiers as written. Do not infer the response language from this skill file, repository prose, tool output, tracker text, commit messages, copied templates, or quoted artifacts.
+- which source categories you will check when available
+- that missing or inaccessible sources will be skipped
 
-## Source Notice
-
-Before inspecting work sources such as files, git, trackers, or pull requests, send a short source notice in the response language. Say which source categories will be checked when available and that missing or inaccessible sources will be skipped.
-
-Default source categories:
-
-- explicit issue IDs, PR URLs, branch names, or paths from the user
-- local repo state, current branch, recent commits, local changes, and related docs
-- GitHub issues, PRs, checks, reviews, projects, and milestones detected from current-work references
-- Linear issues, projects, cycles, target dates, due dates, and statuses detected from current-work references
-
-Keep the notice short. It is an orientation message, not a report.
+Default source categories: explicit user refs; local repo state; current branch; recent commits; local changes; related docs; GitHub issues/PRs/checks/reviews/projects/milestones; Linear issues/projects/cycles/statuses/due dates/target dates.
 
 ## Scope
 
-Inspect broad current-work signals, but keep external tracker lookup scoped to the current work.
+Look broadly at current-work signals. Keep external tracker lookup narrow.
 
-Default boundaries are the current workspace, current branch, recent commits, local changes, related docs, and tracker metadata directly detected from the workspace, branch, commits, connected PR, or explicit user references.
+Default boundary: current workspace, current branch, recent commits, local diff, related docs, connected PR, detected issue IDs, detected PR URLs, and explicit user refs.
 
-Do not search all assigned GitHub issues, all assigned Linear issues, unrelated project backlogs, or organization-wide priorities unless the user explicitly asks for that wider scope.
+Do not search all assigned GitHub issues, all assigned Linear issues, unrelated backlogs, or org-wide priorities unless the user asks for that wider scope.
 
-Optional sources are optional. Continue when GitHub, Linear, repository, or document context is unavailable; state the limitation only when it matters to confidence.
+Optional sources are optional. Continue without GitHub, Linear, repo, or docs when unavailable; mention the gap only if it changes confidence.
 
-## Priority Model
+## Decision Rule
 
-Use this order as judgment guidance, not as a rigid scorecard:
+Pick the recommendation by this order:
 
-1. Blocking or time-sensitive work: blocked collaborators, failing CI, stale review requests, due dates, project target dates, milestones, or cycles.
-2. Current-thread continuity: current branch, recent commits, local diff, or the next shippable step from the work just in progress.
-3. External commitment: linked PRs, reviews, assignment, comments, project membership, or status expectations.
-4. Risk reduction: unclear requirements, failed verification, broken build or tests, or work that must be decomposed.
-5. Momentum: small actions that stabilize the workspace or create a useful next decision point.
+1. Blocking or time-sensitive work: failing CI, stale review, blocked collaborator, due date, milestone, project target, or cycle.
+2. Current-thread continuity: branch, commits, local diff, or the next shippable step from active work.
+3. External commitment: linked PR, review, assignment, comment, project membership, or status expectation.
+4. Risk reduction: unclear requirement, failed verification, broken build/test, or work needing decomposition.
+5. Momentum: small action that stabilizes the workspace or creates a useful next decision.
 
-For each option, show concise rationale:
-
-- `Why now`: the main reason this option belongs in the current decision set.
-- `Signals`: urgency, continuity, impact, and size as `low`, `medium`, or `high`; use `small`, `medium`, or `large` for size.
-- `Tradeoff`: what gets delayed or what risk remains if this option is chosen.
+This is judgment guidance, not a scorecard. Prefer the option that best preserves momentum without ignoring urgency.
 
 ## Questions
 
-Ask one concise question before recommending only when missing context would materially change the recommendation. Otherwise, recommend with stated assumptions and put non-blocking questions in the final `Questions` section.
+Ask one concise question before recommending only when the answer would materially change the recommendation.
+
+Otherwise, recommend with assumptions and put non-blocking questions at the end.
 
 ## Output
 
-Write the final response directly in the session as concise Markdown. Do not save it to a file.
+Write concise Markdown directly in the session. Do not save a file.
 
-Use this shape unless the evidence calls for a shorter form:
+Use 2-3 options. Mark one as the recommendation. For each option, include:
 
-```md
-## Based On
+- why now
+- signals: urgency, continuity, impact, size
+- tradeoff
 
-- Git: current branch, recent commits, and local changes when available
-- GitHub: related PR, issue, check, project, or milestone when detected
-- Linear: related issue, project, cycle, due date, or target date when detected
-- Docs: related specs, ADRs, plans, or repository notes when detected
+Then give one first move. Keep it decision-oriented, not a full audit trail.
 
-## Now What
+Omit empty sections. Do not include a "Not Now" section by default; mention deferred work only when it prevents distraction or risk.
 
-**Recommendation:** Fix the failing PR check first.
+## Stop
 
-## Options
+Stop after the recommendation.
 
-1. **Fix the failing PR check**
-   - Why now: it blocks merge and already has reviewer attention
-   - Signals: urgency high, continuity high, impact high, size medium
-   - Tradeoff: delays new feature work
-
-2. **Finish the local issue changes**
-   - Why now: local edits are active and context loss risk is high
-   - Signals: urgency medium, continuity high, impact medium, size small
-   - Tradeoff: does not unblock the PR today
-
-## First Move
-
-- Open the failed check log and identify whether the failure maps to the latest local diff.
-
-## Questions
-
-- Should milestone pressure override the PR check if the linked issue is due today?
-```
-
-Omit unavailable sections or empty bullets. Keep the response focused on the decision, not on a full audit trail.
-
-Do not include a `Not Now` section by default. Mention deferred work only when the user asks, when a tempting lower-priority task is likely to distract from urgent work, or when deferring it avoids meaningful risk.
-
-## Stop Conditions
-
-Stop after the recommendation. Do not write briefing, handoff, or planning files; generate delegate prompts; invoke planning, implementation, review, handoff, or tracker-update skills; create branches, commits, PRs, issues, or Linear updates; run verification commands unless explicitly asked; or start executing the recommended work.
-
-## Common Mistakes
-
-| Mistake | Correction |
-| --- | --- |
-| Treating the workflow as a handoff briefing | Keep the output in-session and decision-oriented. |
-| Searching all assigned work by default | Follow only current repo, branch, commit, PR, issue, and explicit user references. |
-| Asking before every recommendation | Ask first only when the missing answer would materially change the recommendation. |
-| Letting English repo text set the response language | Use the host OS preferred language unless the invocation explicitly requests another language. |
+Do not write briefing, handoff, or planning files. Do not generate delegate prompts. Do not invoke planning, implementation, review, handoff, or tracker-update skills. Do not create branches, commits, PRs, issues, or Linear updates. Do not run verification commands or start the recommended work unless explicitly asked.
