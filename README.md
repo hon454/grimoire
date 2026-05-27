@@ -29,6 +29,7 @@ Grimoire currently publishes these installable plugins:
 - `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
+- Book of Engineering `0.2.0` replaces the previous `$work-briefing` handoff workflow with `$now-what` current-work triage.
 - `plugins/book-of-git/`: the installable Book of Git plugin package.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `assets/readme/`: README-specific visual assets.

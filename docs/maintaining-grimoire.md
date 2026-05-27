@@ -64,7 +64,7 @@ Use this boundary when deciding where new maintenance material belongs:
 - Put detailed repository maintenance policy in `docs/maintaining-grimoire.md` when the material governs source ownership, packaging, compatibility, publishing, or documentation maintenance.
 - Put reusable agent workflows in an installable plugin when installed users should be able to invoke the workflow outside this repository.
 - Use Archmage for Grimoire bootstrap, repository-library orientation, skill selection, and other workflows that help agents use or maintain Grimoire as a skill library.
-- Use Book of Engineering for current-work engineering context, next-action prioritization, planning, and execution-support workflows.
+- Use Book of Engineering for current-work engineering context and next-action prioritization workflows.
 - Add a separate plugin only when the workflow has a durable user-facing domain boundary that would make Archmage's responsibility unclear.
 - Keep repository-only operational policy out of installable plugin `skills/` paths.
 

@@ -29,6 +29,7 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 - `plugins/archmage/skills/using-grimoire/SKILL.md`: 에이전트가 작업 전에 적용 가능한 Grimoire skill을 확인하고 로드하도록 요구하는 설치 가능한 bootstrap skill입니다.
 - `plugins/book-of-engineering/`: 설치 가능한 Book of Engineering plugin package입니다.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: 현재 작업 맥락을 triage하고 다음 행동을 추천하는 명시적 호출 skill입니다.
+- Book of Engineering `0.2.0`은 이전 `$work-briefing` handoff workflow를 `$now-what` current-work triage로 대체합니다.
 - `plugins/book-of-git/`: 설치 가능한 Book of Git plugin package입니다.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: local worktree와 branch를 main만 남기도록 정리한 뒤 main을 최신화하는 명시적 호출 Git cleanup skill입니다.
 - `assets/readme/`: README 전용 visual asset입니다.
