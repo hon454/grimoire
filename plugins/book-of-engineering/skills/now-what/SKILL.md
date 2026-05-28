@@ -175,6 +175,11 @@ candidate.
 Keep closeout-only items capped to 1-2 entries before the candidate lane unless
 the user explicitly asks for closeout triage.
 
+When mentioning an external work item with a known canonical URL, link the
+visible identifier with Markdown. Preserve the original identifier text, such as
+an issue key, pull request number, ticket ID, project name, or review reference.
+Do not invent URLs; leave identifiers unlinked when no URL was observed.
+
 For each option, include a concise rationale. When useful, cover:
 
 - why now
