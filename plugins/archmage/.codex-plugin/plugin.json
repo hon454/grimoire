@@ -1,6 +1,6 @@
 {
   "name": "archmage",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Operational Grimoire workflows for coding agents.",
   "author": {
     "name": "hon454",
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Archmage",
     "shortDescription": "Operational Grimoire workflows for coding agents.",
-    "longDescription": "Archmage packages Grimoire's operational workflow skills for coding agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing.",
+    "longDescription": "Archmage packages Grimoire's operational workflow skills for coding agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing, and an explicit workflow for reporting reusable Grimoire issues upstream.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
