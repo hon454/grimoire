@@ -146,7 +146,7 @@ when they still require user action, such as failing CI, requested changes,
 unresolved review requests, a blocked collaborator waiting on the user, or a
 ready-to-merge item the user owns. Omit completed, merged, passing, answered,
 or reference-only states. Do not include closeout work in the recommendation or
-candidate lanes unless it is the best next action. If the recommendation is also
+candidate options unless it is the best next action. If the recommendation is also
 a closeout-pressure item, explain that pressure in the recommendation rationale
 and do not repeat it under `Closeout / Waiting Items`.
 
@@ -167,12 +167,23 @@ Write concise Markdown directly in the session. Do not save a file.
 
 Use 5-7 total options by default, or 8-12 total options for expanded requests.
 Mark one as the recommendation and do not repeat it in `Next Work Candidates`.
-When a recommended or candidate issue has a known parent issue, name the parent
-issue in the option and treat the work as that parent issue's lane. If sibling
-child issues are also mentioned as part of the same recommendation or candidate,
-show them as a nested numbered list under the parent lane. Do not promote child
-issues with the same known parent into separate top-level options unless they
-represent different decisions.
+When a recommended or candidate issue has a known parent issue, group the
+option under the parent issue instead of writing `{PARENT} lane: {CHILD}`.
+Use the top-level numbered option for the parent issue, formatted as
+`{PARENT_ID} {PARENT_TITLE}`. Under it, list the target child issue or issues as
+nested numbered entries formatted as `{CHILD_ID} {CHILD_TITLE}`.
+
+Do not use the word `lane` in user-facing option titles.
+
+If multiple candidate child issues share the same parent, group them under one
+top-level parent option instead of repeating the parent across separate
+top-level candidates. Count the top-level parent item as one option. Do not
+count each nested child issue as a separate top-level option unless it
+represents a separate decision under a different parent.
+
+If only one child is relevant and the parent meaningfully defines the
+workstream, still show the parent as the top-level option and the child as the
+nested target.
 
 Use visually distinct section headings so the recommendation, candidates, and
 closeout pressure are easy to scan. Keep these default headings in English:
@@ -186,7 +197,7 @@ Keep emoji use limited to section headings. Do not add emoji prefixes to every
 candidate.
 
 Show `Closeout / Waiting Items` only when there are separate user actions that
-are not already included in the recommendation or candidate lanes. Keep
+are not already included in the recommendation or candidate options. Keep
 closeout-only items capped to 1-2 entries unless the user explicitly asks for
 closeout triage. Omit completed, merged, passing, answered, or reference-only
 items.
