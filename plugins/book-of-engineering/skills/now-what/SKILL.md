@@ -132,11 +132,13 @@ Pick the recommendation by this order:
 This is judgment guidance, not a scorecard. Prefer the option that best
 preserves momentum without ignoring urgency.
 
-Separate closeout work from next-work selection. Failing CI, requested changes,
-re-review, blocked collaborator, and ready-to-merge items matter, but they should
-not dominate the answer. Surface at most 1-2 urgent closeout items above or
-inside the recommendation area, then put remaining closeout, waiting, or cleanup
-work in its own lane.
+Separate closeout work from next-work selection. Include closeout items only
+when they still require user action, such as failing CI, requested changes,
+unresolved review requests, a blocked collaborator waiting on the user, or a
+ready-to-merge item the user owns. Omit merely related items that are already
+approved, answered, or otherwise no longer actionable for the user. Surface at
+most 1-2 urgent closeout items above or inside the recommendation area, then put
+remaining user-actionable closeout, waiting, or cleanup work in its own lane.
 
 ## Questions
 
@@ -154,13 +156,21 @@ recommendation can be made without the answer.
 Write concise Markdown directly in the session. Do not save a file.
 
 Use 5-7 options by default, or 8-12 options for expanded requests. Mark one as
-the recommendation. Section the answer so the user can distinguish next focus
-from closeout pressure. Use these sections when they have content:
+the recommendation. Count a parent workstream and its directly dependent child
+issues as one candidate when they represent the same decision lane. Show child
+issues under that candidate only when they clarify sequencing, dependency state,
+or the next concrete entry point.
 
-- Recommendation
-- Next Work Candidates
-- Closeout / Waiting Items
-- Low-Priority Cleanup
+Use visually distinct section headings so the recommendation, candidates, and
+closeout pressure are easy to scan. Default headings:
+
+- 🎯 Recommendation
+- 🧭 Next Work Candidates
+- ⏳ Closeout / Waiting Items
+- 🧹 Low-Priority Cleanup
+
+Keep emoji use limited to section headings. Do not add emoji prefixes to every
+candidate.
 
 Keep closeout-only items capped to 1-2 entries before the candidate lane unless
 the user explicitly asks for closeout triage.
