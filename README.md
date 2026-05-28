@@ -19,7 +19,7 @@ Grimoire currently publishes these installable plugins:
 
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
-| <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows for helping coding agents use Grimoire consistently: choosing applicable workflows, loading the right context, and starting from a shared operating model. |
+| <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows for helping coding agents use and maintain Grimoire consistently: choosing applicable workflows, loading the right context, and reporting reusable Grimoire issues upstream. |
 | <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context and choosing the next action from repository, git, document, GitHub, and Linear signals. |
 | <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, and repository cleanup. |
 
@@ -27,6 +27,8 @@ Grimoire currently publishes these installable plugins:
 
 - `plugins/archmage/`: the installable Archmage plugin package.
 - `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires agents to check and load applicable Grimoire skills before acting.
+- `plugins/archmage/skills/report-grimoire-issue/SKILL.md`: the explicit-invocation issue-reporting skill that drafts upstream Grimoire GitHub issues and posts them only after confirmation.
+- Archmage `0.2.0` adds `$report-grimoire-issue` for reusable Grimoire documentation, skill, plugin packaging, compatibility, and workflow reports.
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
 - Book of Engineering `0.2.0` replaces the previous `$work-briefing` handoff workflow with `$now-what` current-work triage.
