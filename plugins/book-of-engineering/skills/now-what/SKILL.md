@@ -135,10 +135,9 @@ preserves momentum without ignoring urgency.
 Separate closeout work from next-work selection. Include closeout items only
 when they still require user action, such as failing CI, requested changes,
 unresolved review requests, a blocked collaborator waiting on the user, or a
-ready-to-merge item the user owns. Omit merely related items that are already
-approved, answered, or otherwise no longer actionable for the user. Surface at
-most 1-2 urgent closeout items above or inside the recommendation area, then put
-remaining user-actionable closeout, waiting, or cleanup work in its own lane.
+ready-to-merge item the user owns. Omit completed, merged, passing, answered,
+or reference-only states. Do not include closeout work in the recommendation or
+candidate lanes unless it is the best next action.
 
 ## Questions
 
@@ -156,10 +155,11 @@ recommendation can be made without the answer.
 Write concise Markdown directly in the session. Do not save a file.
 
 Use 5-7 options by default, or 8-12 options for expanded requests. Mark one as
-the recommendation. Count a parent workstream and its directly dependent child
-issues as one candidate when they represent the same decision lane. Show child
-issues under that candidate only when they clarify sequencing, dependency state,
-or the next concrete entry point.
+the recommendation. Group directly dependent child issues under the same parent
+issue, project, or umbrella as one candidate lane when they represent the same
+decision lane. Show child issues under that candidate only when they clarify
+sequencing, dependency state, or the next concrete entry point. If sequencing is
+important, number them inside the lane as `2-1`, `2-2`, and so on.
 
 Use visually distinct section headings so the recommendation, candidates, and
 closeout pressure are easy to scan. Default headings:
@@ -172,8 +172,11 @@ closeout pressure are easy to scan. Default headings:
 Keep emoji use limited to section headings. Do not add emoji prefixes to every
 candidate.
 
-Keep closeout-only items capped to 1-2 entries before the candidate lane unless
-the user explicitly asks for closeout triage.
+Show `Closeout / Waiting Items` only when there are separate user actions that
+are not already included in the recommendation or candidate lanes. Keep
+closeout-only items capped to 1-2 entries unless the user explicitly asks for
+closeout triage. Omit completed, merged, passing, answered, or reference-only
+items.
 
 When mentioning an external work item with a known canonical URL, link the
 visible identifier with Markdown. Preserve the original identifier text, such as
