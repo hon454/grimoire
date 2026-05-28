@@ -1,9 +1,6 @@
 ---
 name: now-what
-description: >
-  Recommend what to do next for current work by inspecting available work
-  signals. Do not use for handoff files, implementation planning, status
-  reports, or broad backlog triage.
+description: Recommend what to do next for current work by inspecting available work signals. Do not use for handoff files, implementation planning, status reports, or broad backlog triage.
 disable-model-invocation: true
 ---
 
