@@ -14,10 +14,20 @@ or "use the now-what skill".
 
 ## Language
 
-Use the host OS preferred language for all user-facing prose, including the
-source notice, headings, and recommendation. If the invocation explicitly
-requests a language, use that language. If the OS language is unavailable, use
-English.
+Choose the output prose language in this order:
+
+1. explicit user language request
+2. host OS preferred language
+3. English fallback when neither is available
+
+Include one short output-language notice before the source notice. State whether
+the language was chosen from the host OS preferred language, an explicit user
+request, or fallback, and include the observed language tag when available. If
+the host supports interim messages, send it before inspection; otherwise make it
+the first line of the final response.
+
+Use the chosen language for user-facing prose, including notices and
+recommendation rationale. Keep section headings in English.
 
 Preserve code, commands, paths, branch names, issue IDs, PR titles, commit
 subjects, and other technical identifiers as written after applying the
@@ -38,9 +48,9 @@ command output.
 
 ## Source Notice
 
-Include one short source notice near the top of the response. If the host
-supports interim messages, send it before inspection; otherwise make it the first
-line of the final response.
+Include one short source notice after the output-language notice. If the host
+supports interim messages, send it before inspection; otherwise include it near
+the top of the final response.
 
 The notice should state:
 
@@ -107,10 +117,12 @@ When checking Linear signals, follow `guides/linear-signals.md`.
 
 Inputs are available current-work signals from the default boundary.
 
-Return 5-7 user-actionable current-work options by default, one recommendation,
-one first move, and any confidence-changing source gaps. If the user asks for an
-expanded view, return 8-12 user-actionable current-work options. Do not save
-files.
+Return one recommendation, enough alternate candidates to reach the requested
+option count, one first move, and any confidence-changing source gaps. Count the
+recommendation as one option: default is 1 recommendation plus 4-6 alternate
+candidates, for 5-7 total actionable options. If the user asks for an expanded
+view, return 1 recommendation plus 7-11 alternate candidates, for 8-12 total
+actionable options. Do not save files.
 
 ## Decision Rule
 
@@ -134,7 +146,9 @@ when they still require user action, such as failing CI, requested changes,
 unresolved review requests, a blocked collaborator waiting on the user, or a
 ready-to-merge item the user owns. Omit completed, merged, passing, answered,
 or reference-only states. Do not include closeout work in the recommendation or
-candidate lanes unless it is the best next action.
+candidate lanes unless it is the best next action. If the recommendation is also
+a closeout-pressure item, explain that pressure in the recommendation rationale
+and do not repeat it under `Closeout / Waiting Items`.
 
 ## Questions
 
@@ -151,15 +165,17 @@ recommendation can be made without the answer.
 
 Write concise Markdown directly in the session. Do not save a file.
 
-Use 5-7 options by default, or 8-12 options for expanded requests. Mark one as
-the recommendation. Group directly dependent child issues under the same parent
-issue, project, or umbrella as one candidate lane when they represent the same
-decision lane. Show child issues under that candidate only when they clarify
-sequencing, dependency state, or the next concrete entry point. If sequencing is
-important, number them inside the lane as `2-1`, `2-2`, and so on.
+Use 5-7 total options by default, or 8-12 total options for expanded requests.
+Mark one as the recommendation and do not repeat it in `Next Work Candidates`.
+When a recommended or candidate issue has a known parent issue, name the parent
+issue in the option and treat the work as that parent issue's lane. If sibling
+child issues are also mentioned as part of the same recommendation or candidate,
+show them as a nested numbered list under the parent lane. Do not promote child
+issues with the same known parent into separate top-level options unless they
+represent different decisions.
 
 Use visually distinct section headings so the recommendation, candidates, and
-closeout pressure are easy to scan. Default headings:
+closeout pressure are easy to scan. Keep these default headings in English:
 
 - 🎯 Recommendation
 - 🧭 Next Work Candidates
