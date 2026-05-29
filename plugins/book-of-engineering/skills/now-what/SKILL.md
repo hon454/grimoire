@@ -187,8 +187,6 @@ request, use the PR as the visible work item. Do not convert it into a Linear
 parent/child candidate unless the linked issue itself is assigned to the user or
 is part of the current branch, local diff, explicit refs, or authored work.
 
-Do not use the word `lane` in user-facing option titles.
-
 If multiple candidate child issues share the same parent, group them under one
 top-level parent option instead of repeating the parent across separate
 top-level candidates. Count the top-level parent item as one option. Do not
