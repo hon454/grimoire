@@ -176,11 +176,11 @@ Write concise Markdown directly in the session. Do not save a file.
 
 Mark one option as the recommendation and do not repeat it in
 `Next Work Candidates`. When an issue is the primary next-work object and has a
-known parent, group it under the parent issue instead of writing
-`{PARENT} lane: {CHILD}`. Format the parent as a top-level numbered option
-`{PARENT_ID} {PARENT_TITLE}`. Format nested target children as indented child
-labels like `{PARENT_INDEX}-{CHILD_INDEX}. {CHILD_ID} {CHILD_TITLE}`. Do not use
-Markdown ordered sublists such as `1.` under a top-level `1.` item.
+known parent, group it under the parent issue. Format the parent as a top-level
+numbered option `{PARENT_ID} {PARENT_TITLE}`. Format nested target children as
+indented child labels like
+`{PARENT_INDEX}-{CHILD_INDEX}. {CHILD_ID} {CHILD_TITLE}`. Do not use Markdown
+ordered sublists such as `1.` under a top-level `1.` item.
 
 When the primary reason an item is relevant is a GitHub PR, especially a review
 request, use the PR as the visible work item. Do not convert it into a Linear
