@@ -71,11 +71,11 @@ refs, authored PRs, assigned issues or tickets, review requests directed at the
 user, recent PR activity that needs the user's action, and branch or issue IDs
 connected to the current workspace flow.
 
-Apply a user-action filter before including external work. A candidate or
-closeout item must have a clear next action for the user: owned, authored,
-assigned, directly review-requested, explicitly mentioned for action, blocking
-or unblocking user-owned work, or tied to the current branch, local diff,
-commits, explicit refs, or current thread.
+Apply a user-action filter before including external work. A candidate must
+have a clear next action for the user: owned, authored, assigned, directly
+review-requested, explicitly mentioned for action, blocking or unblocking
+user-owned work, or tied to the current branch, local diff, commits, explicit
+refs, or current thread.
 
 Default answer should help the user choose what to work on next, not only what
 is closest to done.
@@ -146,18 +146,8 @@ Pick the recommendation by this order:
 5. Momentum: small action that stabilizes the workspace or creates a useful next decision.
 
 This is judgment guidance, not a scorecard. Prefer the option that best
-preserves momentum without ignoring urgency.
-
-Separate closeout work from next-work selection. Include closeout items only
-when they pass the user-action filter and still require action, such as failing
-CI, requested changes, unresolved review requests, a blocked collaborator
-waiting on the user, or a ready-to-merge item the user owns. Omit completed,
-merged, passing, answered, or reference-only states. Do not include closeout
-work in the recommendation or candidate options unless it is the best next
-action. Treat someone else's PR as closeout or waiting work by default, not as a
-next implementation candidate. If the recommendation is also a closeout-pressure
-item, explain that pressure there and do not repeat it under
-`Closeout / Waiting Items`.
+preserves momentum without ignoring urgency. Omit completed, merged, passing,
+answered, reference-only, or merely nice-to-have states.
 
 ## Questions
 
@@ -197,22 +187,14 @@ If only one child is relevant and the parent meaningfully defines the
 workstream, still show the parent as the top-level option and the child as the
 nested target.
 
-Use visually distinct section headings so the recommendation, candidates, and
-closeout pressure are easy to scan. Keep these default headings in English:
+Use visually distinct section headings so the recommendation and candidates are
+easy to scan. Keep these default headings in English:
 
 - 🎯 Recommendation
 - 🧭 Next Work Candidates
-- ⏳ Closeout / Waiting Items
-- 🧹 Low-Priority Cleanup
 
 Keep emoji use limited to section headings. Do not add emoji prefixes to every
 candidate.
-
-Show `Closeout / Waiting Items` only when there are separate user actions that
-are not already included in the recommendation or candidate options. Keep
-closeout-only items capped to 1-2 entries unless the user explicitly asks for
-closeout triage. Omit completed, merged, passing, answered, or reference-only
-items.
 
 When mentioning an external work item with a known canonical URL, link the
 visible identifier with Markdown. Preserve the original identifier text, such as
@@ -230,8 +212,7 @@ filler.
 
 Then give one first move. Keep it decision-oriented, not a full audit trail.
 
-Omit empty sections. Do not include a "Not Now" section by default; mention
-deferred work only when it prevents distraction or risk.
+Omit empty sections.
 
 ## Stop
 
