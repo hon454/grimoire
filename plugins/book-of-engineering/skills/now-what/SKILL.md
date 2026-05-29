@@ -67,10 +67,15 @@ Look broadly at current-work signals tied to the user. Keep external tracker loo
 
 Default boundary: current workspace, current branch, recent commits, local diff,
 related docs, connected PR, detected issue IDs, detected PR URLs, explicit user
-refs, authored PRs, assigned issues or tickets, review-requested PRs directly
-requesting the user's review or response, recently pushed or commented PRs that
-need the user's action, and branch or issue IDs connected to the current
-workspace flow.
+refs, authored PRs, assigned issues or tickets, review requests directed at the
+user, recent PR activity that needs the user's action, and branch or issue IDs
+connected to the current workspace flow.
+
+Apply a user-action filter before including external work. A candidate or
+closeout item must have a clear next action for the user: owned, authored,
+assigned, directly review-requested, explicitly mentioned for action, blocking
+or unblocking user-owned work, or tied to the current branch, local diff,
+commits, explicit refs, or current thread.
 
 Default answer should help the user choose what to work on next, not only what
 is closest to done.
@@ -78,7 +83,7 @@ is closest to done.
 Expanded scope means more user-actionable candidates, not broader unrelated repo
 triage. When the user asks for a wider view, first expand within authored,
 assigned, review-requested, recently-active, and current-workflow-linked items
-that have a clear user action.
+that pass the user-action filter.
 Do not search unrelated open PRs, unrelated backlogs, org-wide priorities, or
 team-wide triage unless the user explicitly asks for repo-wide or team-wide
 triage.
@@ -119,15 +124,12 @@ When checking Linear signals, follow `guides/linear-signals.md`.
 
 Inputs are available current-work signals from the default boundary.
 
-Return one recommendation, enough alternate candidates to reach the requested
-option count when they are meaningfully user-actionable, one first move, and any
-confidence-changing source gaps. Count the recommendation as one option: default
-is 1 recommendation plus 4-6 alternate candidates, for 5-7 total actionable
-options. If the user asks for an expanded view, return 1 recommendation plus
-7-11 alternate candidates, for 8-12 total actionable options. Do not pad the
-answer with weakly related tracker items, linked issues, review requests, or
-backlog entries just to hit the target count; return fewer options when fewer
-real next actions are available. Do not save files.
+Return one recommendation, alternate candidates that pass the user-action
+filter, one first move, and any confidence-changing source gaps. Count the
+recommendation as one option. Aim for 5-7 total options by default or 8-12 for
+expanded requests, but return fewer when fewer real next actions exist. Do not
+pad with weakly related tracker items, linked issues, review requests, or
+backlog entries. Do not save files.
 
 ## Decision Rule
 
@@ -147,18 +149,15 @@ This is judgment guidance, not a scorecard. Prefer the option that best
 preserves momentum without ignoring urgency.
 
 Separate closeout work from next-work selection. Include closeout items only
-when they still require user action, such as failing CI, requested changes,
-unresolved review requests, a blocked collaborator waiting on the user, or a
-ready-to-merge item the user owns. Omit completed, merged, passing, answered,
-or reference-only states. Do not include closeout work in the recommendation or
-candidate options unless it is the best next action. Include PRs authored by
-someone else only when they are directly user-related, such as a review request
-targeting the user, an unresolved thread awaiting the user's response, a user
-mention that asks for action, or a user-owned dependency that the PR blocks or
-unblocks. Treat those PRs as closeout or waiting work by default, not as next
-implementation candidates. If the recommendation is also a closeout-pressure
-item, explain that pressure in the recommendation rationale and do not repeat it
-under `Closeout / Waiting Items`.
+when they pass the user-action filter and still require action, such as failing
+CI, requested changes, unresolved review requests, a blocked collaborator
+waiting on the user, or a ready-to-merge item the user owns. Omit completed,
+merged, passing, answered, or reference-only states. Do not include closeout
+work in the recommendation or candidate options unless it is the best next
+action. Treat someone else's PR as closeout or waiting work by default, not as a
+next implementation candidate. If the recommendation is also a closeout-pressure
+item, explain that pressure there and do not repeat it under
+`Closeout / Waiting Items`.
 
 ## Questions
 
@@ -175,18 +174,13 @@ recommendation can be made without the answer.
 
 Write concise Markdown directly in the session. Do not save a file.
 
-Aim for 5-7 total options by default, or 8-12 total options for expanded
-requests, while following the contract rule against padding with weakly related
-items. Mark one as the recommendation and do not repeat it in
-`Next Work Candidates`.
-When a recommended or candidate issue has a known parent issue and the issue is
-the primary next-work object, group the option under the parent issue instead of
-writing `{PARENT} lane: {CHILD}`. Use the top-level numbered option for the
-parent issue, formatted as `{PARENT_ID} {PARENT_TITLE}`. Under it, list the
-target child issue or issues as indented child labels formatted as
-`{PARENT_INDEX}-{CHILD_INDEX}. {CHILD_ID} {CHILD_TITLE}`. Do not use Markdown
-ordered sublists such as `1.` under a top-level `1.` item, because they obscure
-the parent-child relationship.
+Mark one option as the recommendation and do not repeat it in
+`Next Work Candidates`. When an issue is the primary next-work object and has a
+known parent, group it under the parent issue instead of writing
+`{PARENT} lane: {CHILD}`. Format the parent as a top-level numbered option
+`{PARENT_ID} {PARENT_TITLE}`. Format nested target children as indented child
+labels like `{PARENT_INDEX}-{CHILD_INDEX}. {CHILD_ID} {CHILD_TITLE}`. Do not use
+Markdown ordered sublists such as `1.` under a top-level `1.` item.
 
 When the primary reason an item is relevant is a GitHub PR, especially a review
 request, use the PR as the visible work item. Do not convert it into a Linear
