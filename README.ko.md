@@ -20,7 +20,7 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 | Icon | Plugin | 설명 |
 | --- | :---: | --- |
 | <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | 코딩 에이전트가 Grimoire를 일관되게 사용하고 유지보수하도록 돕는 운영 workflow입니다. 적용 가능한 workflow 선택, 필요한 맥락 로딩, 재사용 가능한 Grimoire 이슈의 upstream 보고에 초점을 둡니다. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | repository, git, 문서, GitHub, Linear 신호를 바탕으로 현재 작업 맥락을 이해하고 다음 행동을 고르는 engineering workflow입니다. |
+| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | 현재 작업 맥락을 이해하고 다음 행동을 고르며, 구현 전 issue 유효성을 감사하는 engineering workflow입니다. |
 | <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | local repository를 이해 가능하고 복구 가능한 상태로 유지하기 위한 Git workflow입니다. workspace hygiene, branch discipline, guarded repository cleanup에 초점을 둡니다. |
 
 ## Contents
@@ -31,7 +31,8 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 - Archmage `0.2.0`은 재사용 가능한 Grimoire 문서, skill, plugin packaging, 호환성, workflow 보고를 위한 `$report-grimoire-issue`를 추가합니다.
 - `plugins/book-of-engineering/`: 설치 가능한 Book of Engineering plugin package입니다.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: 현재 작업 맥락을 triage하고 다음 행동을 추천하는 명시적 호출 skill입니다.
-- Book of Engineering `0.2.0`은 이전 `$work-briefing` handoff workflow를 `$now-what` current-work triage로 대체합니다.
+- `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: tracker를 변경하지 않고 구현 전 issue validity verdict를 초안화하는 명시적 호출 skill입니다.
+- Book of Engineering `0.3.0`은 구현 전 issue, PR, branch-scoped work의 유효성을 확인하는 `$issue-preflight`를 추가합니다.
 - `plugins/book-of-git/`: 설치 가능한 Book of Git plugin package입니다.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: local worktree와 branch를 main만 남기도록 정리한 뒤 main을 최신화하는 명시적 호출 Git cleanup skill입니다.
 - `assets/readme/`: README 전용 visual asset입니다.

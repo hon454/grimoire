@@ -1,7 +1,7 @@
 {
   "name": "book-of-engineering",
-  "version": "0.2.0",
-  "description": "Engineering workflow skills for current-work context and next-action prioritization.",
+  "version": "0.3.0",
+  "description": "Engineering workflow skills for current-work context, next-action prioritization, and issue preflight audits.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Book of Engineering",
     "shortDescription": "Engineering context and next-action skills.",
-    "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context and deciding what to do next.",
+    "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context, deciding what to do next, and auditing issue validity before implementation.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
@@ -30,7 +30,8 @@
     "defaultPrompt": [
       "Use $now-what to inspect this workspace and recommend what to do next.",
       "Use $now-what to prioritize the current repo and branch context.",
-      "Use $now-what to decide the next current-work action."
+      "Use $now-what to decide the next current-work action.",
+      "Use $issue-preflight to audit whether this issue is still valid before implementing."
     ],
     "brandColor": "#1E3A5F",
     "composerIcon": "./assets/icon.png",

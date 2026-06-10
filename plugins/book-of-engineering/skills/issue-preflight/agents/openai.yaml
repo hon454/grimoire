@@ -1,0 +1,7 @@
+interface:
+  display_name: "Issue Preflight"
+  short_description: "Audit issue validity before implementation"
+  default_prompt: "Use $issue-preflight to audit whether this issue is still valid before implementing."
+
+policy:
+  allow_implicit_invocation: false
