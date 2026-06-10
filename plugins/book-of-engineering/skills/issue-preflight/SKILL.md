@@ -1,6 +1,6 @@
 ---
 name: issue-preflight
-description: Explicit-invocation-only workflow for auditing whether a GitHub or Linear issue, linked PR, or branch-scoped issue reference is still valid before implementation. Use only when the user explicitly invokes $issue-preflight, /book-of-engineering:issue-preflight, or asks to use the issue-preflight skill.
+description: Explicit-invocation-only workflow for auditing whether a GitHub or Linear issue, linked PR, or branch-scoped issue reference is still valid before implementation; not for implementation, broad backlog triage, or tracker mutation.
 disable-model-invocation: true
 ---
 

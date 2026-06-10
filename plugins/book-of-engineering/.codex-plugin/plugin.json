@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Book of Engineering",
-    "shortDescription": "Engineering context and next-action skills.",
+    "shortDescription": "Engineering context, next-action, and issue preflight skills.",
     "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context, deciding what to do next, and auditing issue validity before implementation.",
     "developerName": "hon454",
     "category": "Productivity",
