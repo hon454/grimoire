@@ -1,6 +1,6 @@
 ---
 name: git-workspace-cleanup
-description: Explicit-invocation-only Git cleanup workflow that keeps only the main worktree and local main branch, then updates main. Use only when the user explicitly invokes $git-workspace-cleanup, /book-of-git:git-workspace-cleanup, or asks to use the git-workspace-cleanup skill.
+description: Explicit-invocation-only destructive Git cleanup workflow that keeps only the main worktree and local main branch, then updates main; not for routine status checks, partial cleanup, or implicit repository hygiene.
 disable-model-invocation: true
 ---
 
