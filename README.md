@@ -20,7 +20,7 @@ Grimoire currently publishes these installable plugins:
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
 | <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows for helping coding agents use and maintain Grimoire consistently: choosing applicable workflows, loading the right context, and reporting reusable Grimoire issues upstream. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context, choosing the next action, and auditing issue validity before implementation. |
+| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context, choosing the next action, and auditing work-item validity before implementation. |
 | <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, and repository cleanup. |
 
 ## Contents
@@ -31,8 +31,8 @@ Grimoire currently publishes these installable plugins:
 - Archmage `0.2.0` adds `$report-grimoire-issue` for reusable Grimoire documentation, skill, plugin packaging, compatibility, and workflow reports.
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
-- `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: the explicit-invocation issue validity audit skill that drafts a pre-implementation verdict without changing trackers.
-- Book of Engineering `0.3.0` adds `$issue-preflight` for validating issue, PR, and branch-scoped work before implementation.
+- `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: the explicit-invocation pre-implementation audit skill that validates tracker issues, linked changes, and branch-scoped work references without changing trackers.
+- Book of Engineering `0.3.0` adds `$issue-preflight` for validating tracker issues, linked changes, and branch-scoped work references before implementation.
 - `plugins/book-of-git/`: the installable Book of Git plugin package.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `assets/readme/`: README-specific visual assets.

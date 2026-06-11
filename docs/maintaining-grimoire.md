@@ -20,7 +20,8 @@ When adding or updating a source-owned skill:
 4. Make `description` concrete enough for agents to decide when to use the skill.
 5. Keep the body focused on operational instructions, not roadmap notes or promised future work.
 6. Prefer platform-neutral capability names in shared instructions, such as "native shell", "native plan tool", or "host skill mechanism", instead of client-specific tool names.
-7. Add bundled resources only when they directly support the skill.
+7. Use progressive disclosure when a skill has source-specific, platform-specific, framework-specific, or otherwise conditional details. Keep `SKILL.md` focused on the core workflow and selection rules, then link directly to bundled guide or reference files that should be loaded only when their conditions apply.
+8. Add bundled resources only when they directly support the skill.
 
 Keep skills small and readable. Split broad catch-all instructions into narrower workflows when separate trigger criteria or proof obligations would make them easier to use correctly.
 
