@@ -28,7 +28,7 @@
     },
     {
       "name": "book-of-engineering",
-      "description": "Engineering workflow skills for current-work context, next-action prioritization, and issue preflight audits.",
+      "description": "Engineering workflow skills for current-work context, next-action prioritization, and work-item preflight audits.",
       "version": "0.3.0",
       "source": "./plugins/book-of-engineering",
       "author": {
