@@ -7,9 +7,16 @@ description: Resolve Git merge, rebase, cherry-pick, or PR branch conflicts agai
 
 Use this as a safety protocol for risky Git conflict resolution. Do not use it as a general guide to interpreting code conflicts.
 
+## Resource Paths
+
+Resolve bundled resources relative to this `SKILL.md`:
+
+- `scripts/git_conflict_preflight.py`
+- `references/interview-gate.md`
+
 ## Required Protocol
 
-1. Collect Git state with the bundled read-only script. Treat it as the deterministic source for conflict-state collection.
+1. Collect Git state with `scripts/git_conflict_preflight.py`. Treat it as the deterministic source for conflict-state collection.
 
    ```bash
    <python> <skill-dir>/scripts/git_conflict_preflight.py --repo .
