@@ -1,7 +1,7 @@
 {
   "name": "book-of-git",
-  "description": "Git workflow skills for repository hygiene and workspace cleanup.",
-  "version": "0.1.0",
+  "description": "Git workflow skills for repository hygiene, workspace cleanup, and conflict resolution.",
+  "version": "0.2.0",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
