@@ -30,7 +30,3 @@ Before creating or updating a pull request:
 ## Maintenance Policy
 
 Read `docs/maintaining-grimoire.md` before changing skills, plugin manifests, repository instructions, hooks, sidecar metadata, publishing checks, or README content.
-
-## Codex-Only Notes
-
-Codex is the only supported authoring and runtime target. Do not preserve Claude Code or other coding-agent compatibility when Codex-specific instructions, metadata, hooks, or tool behavior are clearer.
