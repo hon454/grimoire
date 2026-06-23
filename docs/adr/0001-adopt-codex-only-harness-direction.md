@@ -1,4 +1,4 @@
-# ADR 0001: Adopt Codex-Only Harness Direction
+# ADR 0001: Adopt Codex Harness Direction
 
 ## Status
 
@@ -6,15 +6,15 @@ Accepted
 
 ## Context
 
-Grimoire started as a reusable workflow skill library for coding agents, with Codex as the primary target and Claude Code compatibility maintained where the Markdown skill format overlapped.
+Grimoire started as a reusable workflow skill library with runtime-neutral language in shared Markdown skill files.
 
-That compatibility goal has created ongoing maintenance costs. Shared wording must avoid Codex-specific behavior, compatibility metadata needs to stay aligned across clients, and repository policy has to describe more than the environment where Grimoire is actually used.
+That neutral framing has created ongoing maintenance costs. Shared wording avoids Codex-specific behavior, repository policy describes environments outside the owner's daily use, and new Codex capabilities require extra explanation before they can be used directly.
 
 The repository owner uses Grimoire in Codex. Future Grimoire work should be able to use Codex-specific skills, plugins, hooks, app connectors, tool discovery, Desktop behavior, and repository automation directly.
 
 ## Decision
 
-Grimoire will become a Codex-only harnessing repository.
+Grimoire will become a Codex harnessing repository.
 
 The repository may contain more than standalone skills. Its durable scope includes:
 
@@ -26,33 +26,28 @@ The repository may contain more than standalone skills. Its durable scope includ
 - Codex Desktop-oriented repository operations.
 - Reusable components that help Codex agents work predictably.
 
-Claude Code and other coding-agent compatibility are no longer supported repository goals.
-
 ## Alternatives Considered
 
-### Continue Claude/Codex compatibility
+### Keep the Runtime-Neutral Library Shape
 
-This preserves portability, but keeps the repository constrained by the lowest common behavior between clients and requires continued compatibility documentation and metadata maintenance.
+This preserves the original repository shape, but keeps Codex-specific behavior indirect and makes each new harness feature harder to document cleanly.
 
-### Codex-first with cheap portability
+### Keep Skills as the Primary Unit
 
-This keeps optional portability when it is inexpensive, but leaves ambiguity about when compatibility work is required and when Codex-specific behavior can be used freely.
+This keeps the repository narrow, but does not fit hooks, app connector guidance, Desktop workflows, or other harness components that should live with the skills they support.
 
-### Codex-only harnessing repository
+### Codex Harnessing Repository
 
-This matches the owner's real usage and makes Codex behavior the only compatibility target.
+This matches the owner's real usage and gives Codex behavior a clear home across skills, plugins, hooks, workflow instructions, and tool integrations.
 
 ## Consequences
 
 - `CLAUDE.md` is removed instead of being maintained as a symlink to `AGENTS.md`.
-- New repository policy, README content, and maintenance guidance should describe Grimoire as Codex-only.
+- New repository policy, README content, and maintenance guidance should describe Grimoire as a Codex harnessing repository.
 - New skills, plugins, hooks, and workflow assets may use Codex-specific terminology and assumptions directly.
-- Existing skills and legacy compatibility artifacts do not have to be migrated in this change. They should be tracked separately and updated intentionally.
-- Claude Code and other agent compatibility tests, documentation promises, and support policy are discontinued.
+- Existing skills and older packaging artifacts do not have to be migrated in this change. They should be tracked separately and updated intentionally.
 
 ## Non-Goals
 
-- Preserve Claude Code compatibility.
-- Keep agent-neutral wording when Codex-specific wording is clearer.
 - Migrate every existing skill in this decision change.
-- Maintain shared runtime assumptions across multiple coding agents.
+- Redesign plugin package boundaries in this decision change.

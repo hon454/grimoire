@@ -3,7 +3,7 @@
     <img src="assets/readme/hero.png" width="960" alt="Archmage reading a glowing code grimoire in a magical library">
   </p>
   <h1>Grimoire</h1>
-  <p><strong>재사용 가능한 에이전트 workflow를 위한 Codex 전용 harnessing asset입니다.</strong></p>
+  <p><strong>재사용 가능한 에이전트 workflow를 위한 Codex harnessing asset입니다.</strong></p>
   <p><a href="README.md">English</a></p>
 </div>
 
@@ -11,7 +11,7 @@ Grimoire는 `hon454`가 유지보수하는 개인 Codex harnessing repository입
 
 ## Status
 
-이 저장소는 현재 Archmage, Book of Engineering, Book of Git plugin 및 repository-local maintenance policy를 노출합니다. Claude Code나 다른 coding-agent 호환성은 지원하지 않으며, 여기 commit된 Codex asset과 policy를 넘어선 roadmap content는 약속하지 않습니다.
+이 저장소는 현재 Archmage, Book of Engineering, Book of Git plugin 및 repository-local maintenance policy를 노출합니다. 여기 commit된 Codex asset과 policy를 넘어선 roadmap content는 약속하지 않습니다.
 
 ## Plugins
 
@@ -39,7 +39,7 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 - Book of Git `0.2.0`은 자동 push 없이 merge, rebase, cherry-pick, PR branch conflict를 해결하기 위한 `$git-resolve-conflicts`를 추가합니다.
 - `assets/readme/`: README 전용 visual asset입니다.
 - `assets/book-of/`: `book-of-*` plugin scaffolding에 쓰는 승인된 기본 book-family visual asset입니다.
-- `docs/adr/0001-adopt-codex-only-harness-direction.md`: Grimoire의 유일한 지원 대상을 Codex로 정한 decision record입니다.
+- `docs/adr/0001-adopt-codex-only-harness-direction.md`: Grimoire를 Codex harnessing repository로 정의한 decision record입니다.
 - `docs/maintaining-grimoire.md`: Grimoire skill, plugin packaging, Codex harness asset, 문서, publishing check를 변경할 때 쓰는 repository-local policy입니다.
 - `.agents/plugins/marketplace.json`: `./plugins/` 아래 local plugin을 노출하는 Codex marketplace catalog입니다.
 - `AGENTS.md`: 이 저장소의 source-of-truth agent protocol입니다.
@@ -60,8 +60,6 @@ codex
 ```
 
 Codex marketplace catalog는 `./plugins/` 아래 local plugin path들을 가리킵니다. 각 plugin의 `.codex-plugin/plugin.json`은 설치 가능한 skill directory를 가리킵니다.
-
-Legacy non-Codex compatibility artifact는 별도 cleanup issue에서 제거하거나 다시 작성할 때까지 남아 있을 수 있습니다. 이는 지원 약속이 아닙니다.
 
 `docs/maintaining-grimoire.md`는 이 저장소에서 작업하는 contributor와 Codex agent를 위한 repo-local policy입니다. 설치 가능한 user workflow가 아닙니다.
 

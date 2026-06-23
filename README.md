@@ -3,7 +3,7 @@
     <img src="assets/readme/hero.png" width="960" alt="Archmage reading a glowing code grimoire in a magical library">
   </p>
   <h1>Grimoire</h1>
-  <p><strong>Codex-only harnessing assets for reusable agent workflows.</strong></p>
+  <p><strong>Codex harnessing assets for reusable agent workflows.</strong></p>
   <p><a href="README.ko.md">한국어</a></p>
 </div>
 
@@ -11,7 +11,7 @@ Grimoire is the personal Codex harnessing repository maintained by `hon454`. It 
 
 ## Status
 
-This repository currently exposes the Archmage, Book of Engineering, and Book of Git plugins plus repository-local maintenance policy. It does not support Claude Code or other coding-agent compatibility, and it does not promise roadmap contents beyond the Codex assets and policy committed here.
+This repository currently exposes the Archmage, Book of Engineering, and Book of Git plugins plus repository-local maintenance policy. It does not promise roadmap contents beyond the Codex assets and policy committed here.
 
 ## Plugins
 
@@ -39,7 +39,7 @@ Grimoire currently publishes these installable plugins:
 - Book of Git `0.2.0` adds `$git-resolve-conflicts` for resolving merge, rebase, cherry-pick, and PR branch conflicts without pushing automatically.
 - `assets/readme/`: README-specific visual assets.
 - `assets/book-of/`: approved default book-family visual assets for `book-of-*` plugin scaffolding.
-- `docs/adr/0001-adopt-codex-only-harness-direction.md`: the decision record that makes Codex the only supported target for Grimoire.
+- `docs/adr/0001-adopt-codex-only-harness-direction.md`: the decision record that defines Grimoire as a Codex harnessing repository.
 - `docs/maintaining-grimoire.md`: repository-local policy for changing Grimoire skills, plugin packaging, Codex harness assets, documentation, and publishing checks.
 - `.agents/plugins/marketplace.json`: the Codex marketplace catalog that exposes local plugins from `./plugins/`.
 - `AGENTS.md`: the source-of-truth agent protocol for this repository.
@@ -60,8 +60,6 @@ codex
 ```
 
 The Codex marketplace catalog points to local plugin paths under `./plugins/`. Each plugin's `.codex-plugin/plugin.json` points to its installable skill directory.
-
-Legacy non-Codex compatibility artifacts may remain until a dedicated cleanup issue removes or rewrites them. They are not a support promise.
 
 `docs/maintaining-grimoire.md` is repo-local policy for contributors and Codex agents working in this repository. It is not an installable user workflow.
 

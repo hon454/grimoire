@@ -32,7 +32,7 @@ Skill behavior belongs in `SKILL.md`. Codex-specific metadata belongs in sidecar
 - Keep `SKILL.md` frontmatter minimal unless Codex requires additional metadata.
 - Use `name` and `description` as the baseline fields.
 - Add Codex sidecars such as `agents/openai.yaml` only when they directly support a skill.
-- Do not add non-Codex compatibility frontmatter fields.
+- Add frontmatter fields only when they serve Codex behavior directly.
 - If sidecar metadata exists or changes, verify it still matches the source `SKILL.md`; regenerate it when available tooling supports that.
 
 ## Explicit Invocation Skills
@@ -46,15 +46,14 @@ Some task-oriented skills should run only when a user explicitly calls them. Whe
 
 Keep explicit-invocation metadata limited to skills that are intentionally user-invoked workflows.
 
-## Codex-Only Policy
+## Codex Policy
 
-Maintain Codex-only packaging and documentation:
+Maintain Codex-focused packaging and documentation:
 
 - `AGENTS.md` is the source of truth for repository instructions.
-- `CLAUDE.md` is not maintained.
-- Codex behavior is the only supported compatibility target.
+- Codex behavior is the primary design target.
 - Codex-specific metadata belongs in sidecar files or Codex plugin directories, not in unrelated repository policy.
-- Legacy non-Codex compatibility artifacts may remain until a dedicated cleanup issue removes or rewrites them, but they are not a support promise.
+- Older packaging artifacts may remain until a dedicated cleanup issue removes or rewrites them.
 - Plugin manifests should describe package identity and installation behavior without duplicating repository policy.
 
 ## Instruction And Plugin Placement
