@@ -1,15 +1,15 @@
 # Grimoire Agent Protocol
 
-This file is the source of truth for agents working in this repository. `CLAUDE.md` is a symbolic link to this file so Claude Code and Codex use the same instructions.
+This file is the source of truth for Codex agents working in this repository.
 
 ## Repository Intent
 
-Grimoire is a personal, public skill library for reusable coding-agent workflows. Keep the repository practical and source-owned.
+Grimoire is a personal Codex harnessing repository for reusable skills, plugins, hooks, workflow instructions, and tool integrations. Keep the repository practical and source-owned.
 
 ## Working Rules
 
 - Prefer small, readable skills over broad catch-all instructions.
-- Keep skill names stable and literal so different clients can trigger them predictably.
+- Keep skill names stable and literal so Codex can trigger them predictably.
 - Do not add roadmap lists or promised future spells until there is a real skill to commit.
 - Use Conventional Commits for commit messages.
 - Choose commit and pull request scopes by the smallest durable responsibility affected by the change, not by the broadest package, repository area, or file path.
@@ -29,8 +29,8 @@ Before creating or updating a pull request:
 
 ## Maintenance Policy
 
-Read `docs/maintaining-grimoire.md` before changing skills, plugin manifests, repository instructions, compatibility files, sidecar metadata, publishing checks, or README content.
+Read `docs/maintaining-grimoire.md` before changing skills, plugin manifests, repository instructions, hooks, sidecar metadata, publishing checks, or README content.
 
-## Compatibility Notes
+## Codex-Only Notes
 
-Codex is the primary authoring target. Claude Code compatibility is maintained by keeping shared instructions in Markdown skill files and by exposing the same repository protocol through the `CLAUDE.md` symlink.
+Codex is the only supported authoring and runtime target. Do not preserve Claude Code or other coding-agent compatibility when Codex-specific instructions, metadata, hooks, or tool behavior are clearer.
