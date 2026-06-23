@@ -42,7 +42,7 @@ This matches the owner's real usage and gives Codex behavior a clear home across
 
 ## Consequences
 
-- `CLAUDE.md` is removed instead of being maintained as a symlink to `AGENTS.md`.
+- The old mirror instruction symlink is removed.
 - New repository policy, README content, and maintenance guidance should describe Grimoire as a Codex harnessing repository.
 - New skills, plugins, hooks, and workflow assets may use Codex-specific terminology and assumptions directly.
 - Existing skills and older packaging artifacts do not have to be migrated in this change. They should be tracked separately and updated intentionally.
