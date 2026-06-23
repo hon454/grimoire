@@ -21,10 +21,7 @@ Within those constraints, user instructions define what to do. Grimoire skills d
 
 ## Loading Skills
 
-Use the host environment's native skill mechanism.
-
-- Codex: inspect the available skill names and descriptions, then read each applicable skill's `SKILL.md` when available.
-- Claude Code: use Claude Code's skill mechanism to load each applicable skill.
+Inspect the available Codex skill names and descriptions, then read each applicable skill's `SKILL.md` when available.
 
 ## Skill Use Announcement
 

@@ -37,7 +37,7 @@ body:
       placeholder: |
         - Update the affected documentation.
         - Keep English and Korean docs consistent when both are affected.
-        - Preserve existing repository compatibility rules.
+        - Keep Codex-facing documentation and packaging aligned.
     validations:
       required: true
 

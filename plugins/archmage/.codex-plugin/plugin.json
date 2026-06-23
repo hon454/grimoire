@@ -1,7 +1,7 @@
 {
   "name": "archmage",
   "version": "0.2.0",
-  "description": "Operational Grimoire workflows for coding agents.",
+  "description": "Operational Grimoire workflows for Codex agents.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -13,14 +13,13 @@
     "skills",
     "workflow",
     "codex",
-    "claude-code",
-    "coding-agents"
+    "codex-agents"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Archmage",
-    "shortDescription": "Operational Grimoire workflows for coding agents.",
-    "longDescription": "Archmage packages Grimoire's operational workflow skills for coding agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing, and an explicit workflow for reporting reusable Grimoire issues upstream.",
+    "shortDescription": "Operational Grimoire workflows for Codex agents.",
+    "longDescription": "Archmage packages Grimoire's operational workflow skills for Codex agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing, and an explicit workflow for reporting reusable Grimoire issues upstream.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [

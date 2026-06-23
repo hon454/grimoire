@@ -20,7 +20,7 @@
 
 ## Risk
 
-<!-- Note breaking changes, plugin or marketplace impact, compatibility concerns, or required follow-up. -->
+<!-- Note breaking changes, plugin or marketplace impact, Codex workflow impact, or required follow-up. -->
 
 - Breaking change:
 - Plugin or marketplace impact:
