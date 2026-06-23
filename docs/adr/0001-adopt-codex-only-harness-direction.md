@@ -6,9 +6,9 @@ Accepted
 
 ## Context
 
-Grimoire started as a reusable workflow skill library with runtime-neutral language in shared Markdown skill files.
+Grimoire started as a reusable workflow skill library with broadly phrased shared Markdown skill files.
 
-That neutral framing has created ongoing maintenance costs. Shared wording avoids Codex-specific behavior, repository policy describes environments outside the owner's daily use, and new Codex capabilities require extra explanation before they can be used directly.
+That broad framing has created ongoing maintenance costs. Shared wording avoids Codex-specific behavior, repository policy describes environments outside the owner's daily use, and new Codex capabilities require extra explanation before they can be used directly.
 
 The repository owner uses Grimoire in Codex. Future Grimoire work should be able to use Codex-specific skills, plugins, hooks, app connectors, tool discovery, Desktop behavior, and repository automation directly.
 
@@ -28,7 +28,7 @@ The repository may contain more than standalone skills. Its durable scope includ
 
 ## Alternatives Considered
 
-### Keep the Runtime-Neutral Library Shape
+### Keep the Broad Library Shape
 
 This preserves the original repository shape, but keeps Codex-specific behavior indirect and makes each new harness feature harder to document cleanly.
 

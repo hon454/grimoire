@@ -1,7 +1,6 @@
 ---
 name: now-what
 description: Recommend what to do next for current work by inspecting available work signals. Do not use for handoff files, implementation planning, status reports, or broad backlog triage.
-disable-model-invocation: true
 ---
 
 # Now What
@@ -9,8 +8,7 @@ disable-model-invocation: true
 Personal standup for an active workspace: inspect current-work signals, recommend
 the next action, and stop.
 
-Use only when explicitly invoked as `$now-what`, `/book-of-engineering:now-what`,
-or "use the now-what skill".
+Use only when explicitly invoked as `$now-what` or "use the now-what skill".
 
 ## Language
 

@@ -1,14 +1,13 @@
 ---
 name: report-grimoire-issue
-description: Draft and optionally file a GitHub issue for a Grimoire documentation, skill, plugin packaging, compatibility, or workflow change. Use when a user wants to report a reusable Grimoire problem or improvement upstream.
-disable-model-invocation: true
+description: Draft and optionally file a GitHub issue for a Grimoire documentation, skill, plugin packaging, Codex harness, or workflow change. Use when a user wants to report a reusable Grimoire problem or improvement upstream.
 ---
 
 # Report Grimoire Issue
 
 Use this skill when the user wants to report a reusable problem, ambiguity, or improvement for Grimoire itself.
 
-This is an explicit-invocation workflow. In Claude Code-compatible environments, invoke it as `/archmage:report-grimoire-issue`.
+This is an explicit-invocation workflow. In Codex, invoke it as `$report-grimoire-issue`.
 
 The upstream GitHub repository for issue search and posting is `hon454/grimoire`.
 
@@ -22,7 +21,7 @@ Use this skill for Grimoire-side changes:
 
 - skills under `plugins/*/skills/`
 - plugin manifests and packaging metadata
-- Codex and Claude Code compatibility behavior
+- Codex harness behavior
 - repository instructions and maintenance policy
 - README or install guidance
 - validation scripts, publishing checks, or issue templates

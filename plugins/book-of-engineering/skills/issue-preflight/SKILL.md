@@ -1,7 +1,6 @@
 ---
 name: issue-preflight
 description: Explicit-invocation-only workflow for auditing whether a tracker issue, linked change, or branch-scoped work reference is still valid before implementation; not for implementation, broad backlog triage, or tracker mutation.
-disable-model-invocation: true
 ---
 
 # Issue Preflight
@@ -10,8 +9,7 @@ Audit work-item validity before implementation, then stop. The goal is to
 prevent unnecessary or mis-scoped implementation by grounding tracker claims in
 current code, docs, tests, linked changes, and branch freshness.
 
-Use only when explicitly invoked as `$issue-preflight`,
-`/book-of-engineering:issue-preflight`, or "use the issue-preflight skill".
+Use only when explicitly invoked as `$issue-preflight` or "use the issue-preflight skill".
 
 ## Language
 
