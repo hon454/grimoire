@@ -33,9 +33,9 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 - `plugins/book-of-engineering/`: 설치 가능한 Book of Engineering plugin package입니다.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: 현재 작업 맥락을 triage하고 다음 행동을 추천하는 명시적 호출 skill입니다.
 - `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: tracker를 변경하지 않고 구현 전 tracker issue, linked change, branch-scoped work reference를 검증하는 명시적 호출 skill입니다.
-- `plugins/book-of-engineering/skills/merge-readiness-sync/SKILL.md`: change request를 병합하지 않고 병합 준비가 된 git-hosted change request를 issue tracker 맥락과 정합화하는 병합 전 명시적 호출 workflow입니다.
+- `plugins/book-of-engineering/skills/pre-merge-tracker-sync/SKILL.md`: change request를 병합하지 않고 병합 준비가 된 git-hosted change request를 issue tracker 맥락과 정합화하는 병합 전 명시적 호출 workflow입니다.
 - Book of Engineering `0.3.0`은 구현 전 tracker issue, linked change, branch-scoped work reference의 유효성을 확인하는 `$issue-preflight`를 추가합니다.
-- Book of Engineering `0.4.0`은 병합 전 change request를 tracker 맥락과 정합화하는 `$merge-readiness-sync`를 추가합니다.
+- Book of Engineering `0.4.0`은 병합 전 change request를 tracker 맥락과 정합화하는 `$pre-merge-tracker-sync`를 추가합니다.
 - `plugins/book-of-git/`: 설치 가능한 Book of Git plugin package입니다.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: local worktree와 branch를 main만 남기도록 정리한 뒤 main을 최신화하는 명시적 호출 Git cleanup skill입니다.
 - `plugins/book-of-git/skills/git-resolve-conflicts/SKILL.md`: fetched remote base를 기준으로 conflict가 있는 branch나 PR을 merge 가능하게 만드는 guarded Git conflict resolution skill입니다.

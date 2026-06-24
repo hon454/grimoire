@@ -1,7 +1,7 @@
 {
   "name": "book-of-engineering",
   "version": "0.4.0",
-  "description": "Engineering workflow skills for current-work context, next-action prioritization, work-item preflight audits, and merge-readiness tracker sync.",
+  "description": "Engineering workflow skills for current-work context, next-action prioritization, work-item preflight audits, and pre-merge tracker sync.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Book of Engineering",
-    "shortDescription": "Engineering context, next-action, preflight, and merge sync skills.",
+    "shortDescription": "Engineering context, next-action, preflight, and pre-merge tracker sync skills.",
     "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context, deciding what to do next, auditing work-item validity before implementation, and reconciling merge-ready change requests with tracker context.",
     "developerName": "hon454",
     "category": "Productivity",
@@ -32,7 +32,7 @@
       "Use $now-what to prioritize the current repo and branch context.",
       "Use $now-what to decide the next current-work action.",
       "Use $issue-preflight to audit whether this work item is still valid before implementing.",
-      "Use $merge-readiness-sync to reconcile a merge-ready change request with tracker issues before merge."
+      "Use $pre-merge-tracker-sync to reconcile a merge-ready change request with tracker issues before merge."
     ],
     "brandColor": "#1E3A5F",
     "composerIcon": "./assets/icon.png",

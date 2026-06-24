@@ -33,9 +33,9 @@ Grimoire currently publishes these installable plugins:
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
 - `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: the explicit-invocation pre-implementation audit skill that validates tracker issues, linked changes, and branch-scoped work references without changing trackers.
-- `plugins/book-of-engineering/skills/merge-readiness-sync/SKILL.md`: the explicit-invocation pre-merge workflow that reconciles merge-ready git-hosted change requests with issue tracker context without merging the change.
+- `plugins/book-of-engineering/skills/pre-merge-tracker-sync/SKILL.md`: the explicit-invocation pre-merge workflow that reconciles merge-ready git-hosted change requests with issue tracker context without merging the change.
 - Book of Engineering `0.3.0` adds `$issue-preflight` for validating tracker issues, linked changes, and branch-scoped work references before implementation.
-- Book of Engineering `0.4.0` adds `$merge-readiness-sync` for reconciling merge-ready change requests with tracker context before merge.
+- Book of Engineering `0.4.0` adds `$pre-merge-tracker-sync` for reconciling merge-ready change requests with tracker context before merge.
 - `plugins/book-of-git/`: the installable Book of Git plugin package.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `plugins/book-of-git/skills/git-resolve-conflicts/SKILL.md`: the guarded Git conflict resolution skill for making conflicted branches or PRs mergeable against a fetched remote base.
