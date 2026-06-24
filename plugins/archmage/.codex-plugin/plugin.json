@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Archmage",
     "shortDescription": "Operational Grimoire workflows for Codex agents.",
-    "longDescription": "Archmage packages Grimoire's operational workflow skills for Codex agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing, and an explicit workflow for reporting reusable Grimoire issues upstream.",
+    "longDescription": "Archmage packages Grimoire's operational workflow skills for Codex agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing, an explicit workflow for reporting reusable Grimoire issues upstream, and a reference for writing predictable skills.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
