@@ -1,6 +1,6 @@
 ---
 name: pre-merge-tracker-sync
-description: 명시 호출 전용 워크플로우. Git hosting의 change request가 사람 승인과 필수 체크를 통과해 병합 후보가 되었을 때, 병합 전에 실제 변경 결과와 issue tracker의 work item, 부모 이슈, 형제 이슈, 다음 이슈 맥락을 대조하고 필요한 최소 업데이트를 수행한다. PR/MR 병합, 코드 구현, 일반 백로그 정리에는 사용하지 않는다.
+description: 명시 호출 전용 워크플로우. Git hosting의 change request가 사람 승인과 필수 체크를 통과해 병합 후보가 되었을 때, 병합 전에 실제 변경 결과와 issue tracker의 work item, 부모 이슈, 형제 이슈 맥락을 대조하고 필요한 최소 업데이트를 수행한다. PR/MR 병합, 코드 구현, 일반 백로그 정리에는 사용하지 않는다.
 ---
 
 # Pre-Merge Tracker Sync
@@ -46,7 +46,6 @@ Git hosting connector, issue tracker connector, provider CLI, 로컬 git, repo s
 - Change request snapshot auditor: PR/MR metadata, body, linked issues, branch, commits, changed files, diff summary, reviews/approvals, checks, labels, discussion, mergeability를 읽고 요약한다.
 - Tracker relation auditor: change request body refs, branch/title/commit issue keys, tracker linkback comments, tracker issue links, duplicate candidates, parent, siblings를 찾는다.
 - Diff evidence auditor: changed files, commits, tests, docs evidence를 change request 결과 중심으로 요약한다.
-- Next issue preflight auditor: 다음 sibling issue가 명확할 때 구현 준비도만 읽기 전용으로 점검한다.
 
 서브에이전트에게 금지할 작업:
 
@@ -164,34 +163,14 @@ Coverage table 형식:
 
 수정이 필요 없으면 변경하지 않는다. 결정이 아직 unknown이면 body나 comment에 open question으로 남기고 임의로 결론 내리지 않는다.
 
-### 7. Next-issue preflight
-
-parent issue와 sibling ordering으로 다음 sibling issue가 명확할 때만 preflight를 수행한다.
-
-다음 항목을 확인한다.
-
-- clear problem statement
-- implementation-ready scope
-- explicit out-of-scope boundaries
-- required product / architecture decisions
-- dependencies and blockers
-- acceptance criteria
-- test or validation expectations
-- enough context links for an implementer to start
-
-구현 준비가 안 되어 있으면 `<!-- next-issue-preflight -->` marker comment를 남긴다. factual하고 evidence-supported인 보정만 issue body에 반영하고 human-review label을 추가한다. 판단이 필요한 결정은 open question으로 남긴다.
-
 ## Idempotency
 
 다음 marker를 사용해 기존 동기화 산출물을 재사용한다.
 
 - `<!-- pre-merge-tracker-sync -->`
 - `<!-- issue-body-sync -->`
-- `<!-- next-issue-preflight -->`
 
 동일 marker comment를 찾을 수 있고 API가 update를 지원하면 갱신한다. update가 불가능하면 같은 marker가 이미 있는지 확인한 뒤 중복 댓글을 피한다. label은 이미 있으면 다시 추가하지 않는다. Change request body association과 issue links도 중복 삽입하지 않는다.
-
-Legacy marker `<!-- merge-readiness-sync -->`가 이미 있으면 새 marker의 기존 산출물처럼 취급하고, 갱신 시 `<!-- pre-merge-tracker-sync -->`로 교체한다.
 
 ## Final Output
 
@@ -207,7 +186,6 @@ Legacy marker `<!-- merge-readiness-sync -->`가 이미 있으면 새 marker의 
 - Related issues found or created:
 - Issue/change alignment verdict:
 - Parent and sibling updates:
-- Next issue preflight:
 - Labels added for human review:
 
 ## Manual Review
