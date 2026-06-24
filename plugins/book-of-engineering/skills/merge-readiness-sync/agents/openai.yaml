@@ -1,0 +1,7 @@
+interface:
+  display_name: "Merge Readiness Sync"
+  short_description: "Reconcile merge-ready changes with trackers"
+  default_prompt: "Use $merge-readiness-sync to reconcile this merge-ready change request with its tracker issues before merge."
+
+policy:
+  allow_implicit_invocation: false

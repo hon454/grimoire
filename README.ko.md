@@ -20,7 +20,7 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 | Icon | Plugin | 설명 |
 | --- | :---: | --- |
 | <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Codex agent가 Grimoire를 일관되게 사용하고 유지보수하도록 돕는 운영 workflow입니다. 적용 가능한 workflow 선택, 필요한 맥락 로딩, 재사용 가능한 Grimoire 이슈의 upstream 보고, skill 개선에 초점을 둡니다. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | 현재 작업 맥락을 이해하고 다음 행동을 고르며, 구현 전 work item 유효성을 감사하는 engineering workflow입니다. |
+| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | 현재 작업 맥락을 이해하고 다음 행동을 고르며, 구현 전 work item 유효성을 감사하고, 병합 준비가 된 change request를 tracker 맥락과 정합화하는 engineering workflow입니다. |
 | <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | local repository를 이해 가능하고 복구 가능한 상태로 유지하기 위한 Git workflow입니다. workspace hygiene, branch discipline, guarded repository cleanup, conflict resolution에 초점을 둡니다. |
 
 ## Contents
@@ -33,7 +33,9 @@ Grimoire는 현재 다음 설치 가능한 plugin을 제공합니다.
 - `plugins/book-of-engineering/`: 설치 가능한 Book of Engineering plugin package입니다.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: 현재 작업 맥락을 triage하고 다음 행동을 추천하는 명시적 호출 skill입니다.
 - `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: tracker를 변경하지 않고 구현 전 tracker issue, linked change, branch-scoped work reference를 검증하는 명시적 호출 skill입니다.
+- `plugins/book-of-engineering/skills/merge-readiness-sync/SKILL.md`: change request를 병합하지 않고 병합 준비가 된 git-hosted change request를 issue tracker 맥락과 정합화하는 병합 전 명시적 호출 workflow입니다.
 - Book of Engineering `0.3.0`은 구현 전 tracker issue, linked change, branch-scoped work reference의 유효성을 확인하는 `$issue-preflight`를 추가합니다.
+- Book of Engineering `0.4.0`은 병합 전 change request를 tracker 맥락과 정합화하는 `$merge-readiness-sync`를 추가합니다.
 - `plugins/book-of-git/`: 설치 가능한 Book of Git plugin package입니다.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: local worktree와 branch를 main만 남기도록 정리한 뒤 main을 최신화하는 명시적 호출 Git cleanup skill입니다.
 - `plugins/book-of-git/skills/git-resolve-conflicts/SKILL.md`: fetched remote base를 기준으로 conflict가 있는 branch나 PR을 merge 가능하게 만드는 guarded Git conflict resolution skill입니다.

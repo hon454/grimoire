@@ -20,7 +20,7 @@ Grimoire currently publishes these installable plugins:
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
 | <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows for helping Codex agents use and maintain Grimoire consistently: choosing applicable workflows, loading the right context, reporting reusable Grimoire issues upstream, and improving skills. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context, choosing the next action, and auditing work-item validity before implementation. |
+| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context, choosing the next action, auditing work-item validity before implementation, and reconciling merge-ready change requests with tracker context. |
 | <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, repository cleanup, and conflict resolution. |
 
 ## Contents
@@ -33,7 +33,9 @@ Grimoire currently publishes these installable plugins:
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
 - `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: the explicit-invocation pre-implementation audit skill that validates tracker issues, linked changes, and branch-scoped work references without changing trackers.
+- `plugins/book-of-engineering/skills/merge-readiness-sync/SKILL.md`: the explicit-invocation pre-merge workflow that reconciles merge-ready git-hosted change requests with issue tracker context without merging the change.
 - Book of Engineering `0.3.0` adds `$issue-preflight` for validating tracker issues, linked changes, and branch-scoped work references before implementation.
+- Book of Engineering `0.4.0` adds `$merge-readiness-sync` for reconciling merge-ready change requests with tracker context before merge.
 - `plugins/book-of-git/`: the installable Book of Git plugin package.
 - `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `plugins/book-of-git/skills/git-resolve-conflicts/SKILL.md`: the guarded Git conflict resolution skill for making conflicted branches or PRs mergeable against a fetched remote base.
