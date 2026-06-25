@@ -85,10 +85,10 @@ primary = "github" # "github", "linear", or "none"
 issue_patterns = ["#\\d+", "[A-Z]+-\\d+"]
 
 [tracker.github]
-repo = "hon454/grimoire"
+repo = "{owner}/{repo}"
 
 [tracker.linear]
-team_identifier = "ENG"
+team_identifier = "{TEAM}"
 ```
 
 `docs/maintaining-grimoire.md` is repo-local policy for contributors and Codex agents working in this repository. It is not an installable user workflow.
