@@ -11,10 +11,10 @@ from typing import Optional, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "plugins" / "archmage" / "hooks" / "resolve_grimoire_context.py"
+SCRIPT = ROOT / "plugins" / "archmage" / "hooks" / "resolve_grimoire_config.py"
 
 
-spec = importlib.util.spec_from_file_location("resolve_grimoire_context", SCRIPT)
+spec = importlib.util.spec_from_file_location("resolve_grimoire_config", SCRIPT)
 assert spec is not None
 module = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
@@ -26,7 +26,7 @@ def empty_runner(command: Sequence[str]) -> Optional[str]:
     return None
 
 
-class ResolveGrimoireContextTests(unittest.TestCase):
+class ResolveGrimoireConfigTests(unittest.TestCase):
     def test_normalizes_locale_tags(self) -> None:
         self.assertEqual("ko-KR", module.normalize_locale("ko_KR.UTF-8"))
         self.assertEqual("zh-Hant-TW", module.normalize_locale("zh_Hant_TW"))
@@ -68,7 +68,7 @@ class ResolveGrimoireContextTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = module.resolve_context(
+            result = module.resolve_config(
                 cwd=tmp,
                 user_config=user_config,
                 project_config=project_config,
@@ -93,7 +93,7 @@ class ResolveGrimoireContextTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = module.resolve_context(
+            result = module.resolve_config(
                 cwd=tmp,
                 user_config=user_config,
                 project_config=tmp / "missing.toml",
@@ -113,7 +113,7 @@ class ResolveGrimoireContextTests(unittest.TestCase):
             tmp = Path(tmpdir)
             user_config = tmp / "user" / "config.toml"
 
-            result = module.resolve_context(
+            result = module.resolve_config(
                 cwd=tmp,
                 user_config=user_config,
                 project_config=tmp / "missing.toml",

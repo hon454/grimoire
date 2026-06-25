@@ -595,7 +595,7 @@ def make_session_config(
     return session
 
 
-def resolve_context(
+def resolve_config(
     cwd: Path,
     user_config: Optional[Path] = None,
     project_config: Optional[Path] = None,
@@ -710,7 +710,7 @@ def print_text(data: Mapping[str, Any]) -> None:
     tracker = data["tracker"]
     session = data["session"]
     print(
-        "Grimoire context: "
+        "Grimoire config: "
         f"locale={output['locale']} "
         f"source={output['locale_source']} "
         f"tracker={tracker.get('primary', 'none')} "
@@ -718,7 +718,7 @@ def print_text(data: Mapping[str, Any]) -> None:
     )
     warnings = session.get("warnings", [])
     for warning in warnings:
-        print("Grimoire context warning: " + warning, file=sys.stderr)
+        print("Grimoire config warning: " + warning, file=sys.stderr)
 
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -748,7 +748,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 def main(argv: Sequence[str]) -> int:
     args = parse_args(argv)
-    data = resolve_context(
+    data = resolve_config(
         cwd=Path(args.cwd).resolve(),
         user_config=Path(args.user_config).expanduser() if args.user_config else None,
         project_config=Path(args.project_config).expanduser() if args.project_config else None,

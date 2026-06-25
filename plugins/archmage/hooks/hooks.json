@@ -6,9 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${PLUGIN_ROOT}/hooks/resolve_grimoire_context.py --bootstrap-user-config --cache --format text",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/resolve_grimoire_config.py --bootstrap-user-config --cache --format text",
             "timeout": 10,
-            "statusMessage": "Resolving Grimoire context"
+            "statusMessage": "Resolving Grimoire config"
           }
         ]
       }

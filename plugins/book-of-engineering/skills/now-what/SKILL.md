@@ -22,7 +22,7 @@ host OS preferred locale with deterministic local signals and note the missing
 session config only if it changes confidence.
 
 If the user explicitly requests a final-output locale, pass it as an explicit
-override to the Grimoire context resolver when available. This is the only
+override to the Grimoire config resolver when available. This is the only
 override. Do not infer the final-output locale from conversation prose, tracker
 text, this skill file, repository prose, tool output, copied templates, or
 quoted artifacts.
