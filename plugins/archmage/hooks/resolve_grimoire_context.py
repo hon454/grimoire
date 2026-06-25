@@ -30,8 +30,7 @@ FALLBACK_LOCALE = "en-US"
 IGNORED_LOCALES = {"", "C", "POSIX", "C.UTF-8"}
 ALLOWED_TOP_LEVEL = {"schema_version", "output", "tracker"}
 ALLOWED_OUTPUT_KEYS = {"locale"}
-ALLOWED_TRACKER_KEYS = {"primary", "issue_patterns", "github", "linear"}
-ALLOWED_GITHUB_KEYS = {"repo"}
+ALLOWED_TRACKER_KEYS = {"primary", "linear"}
 ALLOWED_LINEAR_KEYS = {"team_identifier"}
 TRACKER_PRIMARY_VALUES = {"none", "github", "linear"}
 
@@ -422,31 +421,6 @@ def validate_config(data: dict[str, Any], source: ConfigSource) -> list[str]:
                 f"{prefix}: tracker.primary must be one of "
                 + ", ".join(sorted(TRACKER_PRIMARY_VALUES))
             )
-        issue_patterns = tracker.get("issue_patterns")
-        if issue_patterns is not None:
-            if not isinstance(issue_patterns, list) or not all(
-                isinstance(item, str) for item in issue_patterns
-            ):
-                errors.append(f"{prefix}: tracker.issue_patterns must be a list of strings")
-            else:
-                for pattern in issue_patterns:
-                    try:
-                        re.compile(pattern)
-                    except re.error as error:
-                        errors.append(f"{prefix}: invalid issue pattern {pattern!r}: {error}")
-
-        github = require_table(tracker.get("github"), f"{prefix}: tracker.github", errors)
-        if github is not None:
-            for key in github:
-                if key not in ALLOWED_GITHUB_KEYS:
-                    errors.append(f"{prefix}: tracker.github.{key} is not supported")
-            repo = github.get("repo")
-            if repo is not None:
-                if not isinstance(repo, str) or not re.fullmatch(
-                    r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo
-                ):
-                    errors.append(f"{prefix}: tracker.github.repo must be owner/name")
-
         linear = require_table(tracker.get("linear"), f"{prefix}: tracker.linear", errors)
         if linear is not None:
             for key in linear:

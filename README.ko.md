@@ -82,10 +82,6 @@ locale = "auto" # 또는 "ko-KR" 같은 locale tag
 
 [tracker]
 primary = "github" # "github", "linear", "none" 중 하나
-issue_patterns = ["#\\d+", "[A-Z]+-\\d+"]
-
-[tracker.github]
-repo = "{owner}/{repo}"
 
 [tracker.linear]
 team_identifier = "{TEAM}"

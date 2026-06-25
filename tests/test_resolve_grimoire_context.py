@@ -47,9 +47,6 @@ class ResolveGrimoireContextTests(unittest.TestCase):
                         'locale = "ja-JP"',
                         "[tracker]",
                         'primary = "github"',
-                        'issue_patterns = ["#\\\\d+"]',
-                        "[tracker.github]",
-                        'repo = "hon454/grimoire"',
                     ]
                 )
                 + "\n",
@@ -85,7 +82,6 @@ class ResolveGrimoireContextTests(unittest.TestCase):
             self.assertEqual("ko-KR", result["output"]["locale"])
             self.assertEqual("config:project", result["output"]["locale_source"])
             self.assertEqual("linear", result["tracker"]["primary"])
-            self.assertEqual("hon454/grimoire", result["tracker"]["github"]["repo"])
             self.assertEqual("ENG", result["tracker"]["linear"]["team_identifier"])
 
     def test_auto_locale_uses_os_preference(self) -> None:
@@ -212,6 +208,45 @@ class ResolveGrimoireContextTests(unittest.TestCase):
 
             self.assertEqual(2, result.returncode)
             self.assertIn("tracker.linear.team_id is not supported", result.stderr)
+
+    def test_issue_patterns_and_github_repo_are_not_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            user_config = tmp / "config.toml"
+            user_config.write_text(
+                "\n".join(
+                    [
+                        "schema_version = 1",
+                        "[tracker]",
+                        'issue_patterns = ["#\\\\d+"]',
+                        "[tracker.github]",
+                        'repo = "{owner}/{repo}"',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--cwd",
+                    str(tmp),
+                    "--user-config",
+                    str(user_config),
+                    "--project-config",
+                    str(tmp / "missing.toml"),
+                    "--strict",
+                ],
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(2, result.returncode)
+            self.assertIn("tracker.issue_patterns is not supported", result.stderr)
+            self.assertIn("tracker.github is not supported", result.stderr)
 
 
 if __name__ == "__main__":
