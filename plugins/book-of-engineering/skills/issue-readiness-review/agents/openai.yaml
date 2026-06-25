@@ -1,0 +1,7 @@
+interface:
+  display_name: "Issue Readiness Review"
+  short_description: "Review issue readiness"
+  default_prompt: "Use $issue-readiness-review to review this work item for implementation readiness and draft the appropriate tracker update."
+
+policy:
+  allow_implicit_invocation: false
