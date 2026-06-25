@@ -27,11 +27,50 @@ def empty_runner(command: Sequence[str]) -> Optional[str]:
 
 
 class ResolveGrimoireConfigTests(unittest.TestCase):
-    def test_normalizes_locale_tags(self) -> None:
-        self.assertEqual("ko-KR", module.normalize_locale("ko_KR.UTF-8"))
-        self.assertEqual("zh-Hant-TW", module.normalize_locale("zh_Hant_TW"))
-        self.assertIsNone(module.normalize_locale("C.UTF-8"))
-        self.assertIsNone(module.normalize_locale("POSIX"))
+    def test_normalizes_detected_locale_tags(self) -> None:
+        self.assertEqual("ko-KR", module.normalize_detected_locale("ko_KR.UTF-8"))
+        self.assertEqual("zh-Hant-TW", module.normalize_detected_locale("zh_Hant_TW"))
+        self.assertIsNone(module.normalize_detected_locale("C.UTF-8"))
+        self.assertIsNone(module.normalize_detected_locale("POSIX"))
+
+    def test_strict_locale_tags_reject_host_locale_forms(self) -> None:
+        self.assertEqual("ko-KR", module.normalize_strict_locale_tag("ko-KR"))
+        self.assertEqual("zh-Hant-TW", module.normalize_strict_locale_tag("zh-hant-tw"))
+        self.assertIsNone(module.normalize_strict_locale_tag("ko_KR.UTF-8"))
+        self.assertIsNone(module.normalize_strict_locale_tag("Korean"))
+
+    def test_detect_python_locale_uses_getlocale_only(self) -> None:
+        class FakeLocale:
+            def getlocale(self) -> tuple[str, str]:
+                return ("ko_KR", "UTF-8")
+
+            def getdefaultlocale(self) -> tuple[str, str]:  # pragma: no cover - must not be called.
+                raise AssertionError("getdefaultlocale should not be used")
+
+        original_locale = module.python_locale
+        try:
+            module.python_locale = FakeLocale()
+            result = module.detect_python_locale()
+        finally:
+            module.python_locale = original_locale
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual("ko-KR", result.locale)
+        self.assertEqual("python:locale", result.source)
+
+    def test_detect_python_locale_ignores_missing_getlocale(self) -> None:
+        class FakeLocale:
+            pass
+
+        original_locale = module.python_locale
+        try:
+            module.python_locale = FakeLocale()
+            result = module.detect_python_locale()
+        finally:
+            module.python_locale = original_locale
+
+        self.assertIsNone(result)
 
     def test_project_config_overlays_user_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -160,6 +199,33 @@ class ResolveGrimoireConfigTests(unittest.TestCase):
             self.assertEqual(2, result.returncode)
             self.assertIn("output.locale must be a valid locale tag", result.stderr)
 
+    def test_config_locale_must_be_strict_locale_tag(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            user_config = tmp / "config.toml"
+            user_config.write_text(
+                "schema_version = 1\n[output]\nlocale = \"ko_KR.UTF-8\"\n",
+                encoding="utf-8",
+            )
+
+            result = module.resolve_config(
+                cwd=tmp,
+                user_config=user_config,
+                project_config=tmp / "missing.toml",
+                cache_path=tmp / "cache.toml",
+                environ={"LANG": "fr_FR.UTF-8"},
+                system_name="Linux",
+                runner=empty_runner,
+            )
+
+            self.assertEqual("fr-FR", result["output"]["locale"])
+            self.assertEqual("env:LANG", result["output"]["locale_source"])
+            self.assertIn("warnings", result["session"])
+            self.assertEqual(
+                [f"{user_config}: output.locale must be a valid locale tag"],
+                result["session"]["warnings"],
+            )
+
     def test_valid_explicit_locale_tag_overrides_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
@@ -182,7 +248,28 @@ class ResolveGrimoireConfigTests(unittest.TestCase):
 
             self.assertEqual("ko-KR", result["output"]["locale"])
             self.assertEqual("explicit", result["output"]["locale_source"])
-            self.assertEqual([], result.get("errors", []))
+            self.assertIn("warnings", result["session"])
+            self.assertEqual([], result["session"]["warnings"])
+
+    def test_invalid_explicit_host_locale_form_falls_back_silently(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+
+            result = module.resolve_config(
+                cwd=tmp,
+                user_config=tmp / "missing-user.toml",
+                project_config=tmp / "missing-project.toml",
+                cache_path=tmp / "cache.toml",
+                explicit_locale="ko_KR.UTF-8",
+                environ={"LANG": "fr_FR.UTF-8"},
+                system_name="Linux",
+                runner=empty_runner,
+            )
+
+            self.assertEqual("fr-FR", result["output"]["locale"])
+            self.assertEqual("env:LANG", result["output"]["locale_source"])
+            self.assertIn("warnings", result["session"])
+            self.assertEqual([], result["session"]["warnings"])
 
     def test_invalid_explicit_locale_falls_back_to_os_preference(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -201,7 +288,8 @@ class ResolveGrimoireConfigTests(unittest.TestCase):
 
             self.assertEqual("fr-FR", result["output"]["locale"])
             self.assertEqual("env:LANG", result["output"]["locale_source"])
-            self.assertEqual([], result.get("errors", []))
+            self.assertIn("warnings", result["session"])
+            self.assertEqual([], result["session"]["warnings"])
 
     def test_cli_writes_cache_as_toml(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -269,6 +357,72 @@ class ResolveGrimoireConfigTests(unittest.TestCase):
 
             self.assertEqual(2, result.returncode)
             self.assertIn("tracker.primary", result.stderr)
+
+    def test_resolve_config_reports_invalid_config_as_session_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            user_config = tmp / "config.toml"
+            user_config.write_text(
+                "schema_version = 1\n[tracker]\nprimary = \"jira\"\n",
+                encoding="utf-8",
+            )
+
+            result = module.resolve_config(
+                cwd=tmp,
+                user_config=user_config,
+                project_config=tmp / "missing.toml",
+                cache_path=tmp / "cache.toml",
+                environ={"LANG": "fr_FR.UTF-8"},
+                system_name="Linux",
+                runner=empty_runner,
+            )
+
+            self.assertIn("warnings", result["session"])
+            self.assertEqual(
+                [
+                    f"{user_config}: tracker.primary must be one of "
+                    "github, linear, none"
+                ],
+                result["session"]["warnings"],
+            )
+
+    def test_locale_source_uses_loaded_config_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            user_config = tmp / "config.toml"
+            user_config.write_text(
+                "schema_version = 1\n[output]\nlocale = \"ko-KR\"\n",
+                encoding="utf-8",
+            )
+
+            config, loaded_sources, errors = module.read_sources(
+                [module.ConfigSource("user", user_config, True)]
+            )
+            user_config.write_text("schema_version = 1\n", encoding="utf-8")
+            result = module.locale_from_config(config, loaded_sources)
+
+            self.assertEqual([], errors)
+            self.assertIsNotNone(result)
+            assert result is not None
+            self.assertEqual("ko-KR", result.locale)
+            self.assertEqual("config:user", result.source)
+
+    def test_load_toml_requires_parser(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            config = tmp / "config.toml"
+            config.write_text("schema_version = 1\n", encoding="utf-8")
+
+            original_tomllib = module.tomllib
+            try:
+                module.tomllib = None
+                with self.assertRaisesRegex(
+                    module.ConfigError,
+                    "TOML parser unavailable; use Python 3.11\\+ or install tomli",
+                ):
+                    module.load_toml_file(config)
+            finally:
+                module.tomllib = original_tomllib
 
     def test_linear_team_id_is_not_supported(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

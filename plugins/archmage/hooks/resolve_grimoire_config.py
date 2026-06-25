@@ -16,6 +16,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Optional, Sequence
 
+VENDOR_PATH = Path(__file__).resolve().parent / "vendor"
+if VENDOR_PATH.exists():
+    sys.path.insert(0, str(VENDOR_PATH))
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback.
@@ -52,11 +56,18 @@ class ConfigSource:
     exists: bool
 
 
+@dataclass(frozen=True)
+class LoadedConfigSource:
+    scope: str
+    path: Path
+    data: dict[str, Any]
+
+
 class ConfigError(ValueError):
     pass
 
 
-def normalize_locale(value: str) -> Optional[str]:
+def normalize_detected_locale(value: str) -> Optional[str]:
     raw = value.strip().strip("\"'")
     if not raw:
         return None
@@ -87,7 +98,7 @@ def normalize_locale(value: str) -> Optional[str]:
     return "-".join(normalized)
 
 
-def normalize_explicit_locale_tag(value: str) -> Optional[str]:
+def normalize_strict_locale_tag(value: str) -> Optional[str]:
     raw = value.strip().strip("\"'")
     if not raw or "_" in raw or raw.upper() in IGNORED_LOCALES:
         return None
@@ -132,7 +143,7 @@ def parse_apple_languages(output: str) -> Optional[LocaleResult]:
     pattern = r'"([^"]+)"|([A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*)'
     for match in re.finditer(pattern, output):
         raw = match.group(1) or match.group(2)
-        normalized = normalize_locale(raw)
+        normalized = normalize_detected_locale(raw)
         if normalized:
             return LocaleResult(normalized, "os:macos:AppleLanguages", raw)
     return None
@@ -147,7 +158,7 @@ def detect_macos_locale(runner: CommandRunner) -> Optional[LocaleResult]:
 
     apple_locale = runner(["defaults", "read", "-g", "AppleLocale"])
     if apple_locale:
-        normalized = normalize_locale(apple_locale)
+        normalized = normalize_detected_locale(apple_locale)
         if normalized:
             return LocaleResult(normalized, "os:macos:AppleLocale", apple_locale)
 
@@ -164,7 +175,7 @@ def detect_windows_locale(runner: CommandRunner) -> Optional[LocaleResult]:
         raw = runner(command)
         if not raw:
             continue
-        normalized = normalize_locale(raw)
+        normalized = normalize_detected_locale(raw)
         if normalized:
             return LocaleResult(normalized, "os:windows:Get-Culture", raw)
     return None
@@ -173,29 +184,23 @@ def detect_windows_locale(runner: CommandRunner) -> Optional[LocaleResult]:
 def detect_env_locale(environ: Mapping[str, str]) -> Optional[LocaleResult]:
     for key in ("LC_ALL", "LC_MESSAGES", "LANG"):
         raw = environ.get(key, "")
-        normalized = normalize_locale(raw)
+        normalized = normalize_detected_locale(raw)
         if normalized:
             return LocaleResult(normalized, "env:" + key, raw)
     return None
 
 
 def detect_python_locale() -> Optional[LocaleResult]:
-    candidates = []
     try:
-        candidates.append(python_locale.getlocale()[0])
-    except ValueError:
-        pass
-    try:
-        candidates.append(python_locale.getdefaultlocale()[0])
-    except ValueError:
-        pass
+        raw = python_locale.getlocale()[0]
+    except (ValueError, AttributeError):
+        return None
 
-    for raw in candidates:
-        if not raw:
-            continue
-        normalized = normalize_locale(raw)
-        if normalized:
-            return LocaleResult(normalized, "python:locale", raw)
+    if not raw:
+        return None
+    normalized = normalize_detected_locale(raw)
+    if normalized:
+        return LocaleResult(normalized, "python:locale", raw)
     return None
 
 
@@ -265,9 +270,8 @@ def default_cache_path(project_root: Optional[Path], user_home: Path) -> Path:
 def load_toml_file(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    text = path.read_text(encoding="utf-8")
     if tomllib is None:
-        return parse_simple_toml(text, path)
+        raise ConfigError("TOML parser unavailable; use Python 3.11+ or install tomli")
     try:
         with path.open("rb") as handle:
             parsed = tomllib.load(handle)
@@ -301,101 +305,6 @@ def strip_toml_comment(line: str) -> str:
     return line
 
 
-def split_array_items(raw: str) -> list[str]:
-    items: list[str] = []
-    current: list[str] = []
-    in_single = False
-    in_double = False
-    escaped = False
-
-    for char in raw:
-        if in_double and escaped:
-            current.append(char)
-            escaped = False
-            continue
-        if in_double and char == "\\":
-            current.append(char)
-            escaped = True
-            continue
-        if char == '"' and not in_single:
-            in_double = not in_double
-            current.append(char)
-            continue
-        if char == "'" and not in_double:
-            in_single = not in_single
-            current.append(char)
-            continue
-        if char == "," and not in_single and not in_double:
-            item = "".join(current).strip()
-            if item:
-                items.append(item)
-            current = []
-            continue
-        current.append(char)
-
-    item = "".join(current).strip()
-    if item:
-        items.append(item)
-    return items
-
-
-def parse_simple_toml_value(raw: str, path: Path, line_number: int) -> Any:
-    value = raw.strip()
-    if not value:
-        raise ConfigError(f"{path}:{line_number}: empty value")
-    if value.startswith('"') and value.endswith('"'):
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError as error:
-            raise ConfigError(f"{path}:{line_number}: invalid string: {error}") from error
-    if value.startswith("'") and value.endswith("'"):
-        return value[1:-1]
-    if value.startswith("[") and value.endswith("]"):
-        inner = value[1:-1].strip()
-        if not inner:
-            return []
-        return [parse_simple_toml_value(item, path, line_number) for item in split_array_items(inner)]
-    if value in {"true", "false"}:
-        return value == "true"
-    if re.fullmatch(r"[+-]?\d+", value):
-        return int(value)
-    raise ConfigError(f"{path}:{line_number}: unsupported TOML value {value!r}")
-
-
-def parse_simple_toml(text: str, path: Path) -> dict[str, Any]:
-    root: dict[str, Any] = {}
-    current = root
-
-    for line_number, raw_line in enumerate(text.splitlines(), start=1):
-        line = strip_toml_comment(raw_line).strip()
-        if not line:
-            continue
-        if line.startswith("[") and line.endswith("]"):
-            section_name = line[1:-1].strip()
-            if not section_name:
-                raise ConfigError(f"{path}:{line_number}: empty section name")
-            current = root
-            for part in section_name.split("."):
-                if not re.fullmatch(r"[A-Za-z0-9_-]+", part):
-                    raise ConfigError(f"{path}:{line_number}: invalid section name {section_name!r}")
-                current = current.setdefault(part, {})
-                if not isinstance(current, dict):
-                    raise ConfigError(f"{path}:{line_number}: section conflicts with scalar value")
-            continue
-
-        key, separator, raw_value = line.partition("=")
-        if separator != "=":
-            raise ConfigError(f"{path}:{line_number}: expected key = value")
-        key = key.strip()
-        if not re.fullmatch(r"[A-Za-z0-9_-]+", key):
-            raise ConfigError(f"{path}:{line_number}: invalid key {key!r}")
-        if key in current:
-            raise ConfigError(f"{path}:{line_number}: duplicate key {key!r}")
-        current[key] = parse_simple_toml_value(raw_value, path, line_number)
-
-    return root
-
-
 def require_table(value: Any, name: str, errors: list[str]) -> Optional[dict[str, Any]]:
     if value is None:
         return None
@@ -409,7 +318,7 @@ def validate_locale(value: Any, name: str, errors: list[str]) -> None:
     if not isinstance(value, str):
         errors.append(f"{name} must be a string")
         return
-    if normalize_locale(value) is None:
+    if normalize_strict_locale_tag(value) is None:
         errors.append(f"{name} must be a valid locale tag")
 
 
@@ -481,9 +390,11 @@ def empty_config() -> dict[str, Any]:
     }
 
 
-def read_sources(sources: Sequence[ConfigSource]) -> tuple[dict[str, Any], list[dict[str, str]], list[str]]:
+def read_sources(
+    sources: Sequence[ConfigSource],
+) -> tuple[dict[str, Any], list[LoadedConfigSource], list[str]]:
     config = empty_config()
-    loaded: list[dict[str, str]] = []
+    loaded: list[LoadedConfigSource] = []
     errors: list[str] = []
 
     for source in sources:
@@ -499,29 +410,28 @@ def read_sources(sources: Sequence[ConfigSource]) -> tuple[dict[str, Any], list[
             errors.extend(source_errors)
             continue
         config = merge_dict(config, data)
-        loaded.append({"scope": source.scope, "path": str(source.path)})
+        loaded.append(LoadedConfigSource(source.scope, source.path, data))
 
     return config, loaded, errors
 
 
-def locale_from_config(config: dict[str, Any], loaded_sources: Sequence[dict[str, str]]) -> Optional[LocaleResult]:
+def locale_from_config(
+    config: dict[str, Any],
+    loaded_sources: Sequence[LoadedConfigSource],
+) -> Optional[LocaleResult]:
     configured = config.get("output", {}).get("locale")
     if configured is None:
         return None
 
-    normalized = normalize_locale(configured)
+    normalized = normalize_strict_locale_tag(configured)
     if not normalized:
         return None
 
     source = "config"
     for loaded in reversed(loaded_sources):
-        try:
-            data = load_toml_file(Path(loaded["path"]))
-        except ConfigError:
-            continue
-        output = data.get("output", {})
+        output = loaded.data.get("output", {})
         if isinstance(output, dict) and "locale" in output:
-            source = "config:" + loaded["scope"]
+            source = "config:" + loaded.scope
             break
 
     return LocaleResult(normalized, source, configured)
@@ -591,7 +501,7 @@ def bootstrap_user_locale_config(
 
 def make_session_config(
     config: dict[str, Any],
-    loaded_sources: Sequence[dict[str, str]],
+    loaded_sources: Sequence[LoadedConfigSource],
     errors: Sequence[str],
     cache_path: Path,
     project_root: Optional[Path],
@@ -605,7 +515,7 @@ def make_session_config(
             "generated_at": generated,
             "cache_path": str(cache_path),
             "project_root": str(project_root) if project_root else "",
-            "sources": [loaded["scope"] + ":" + loaded["path"] for loaded in loaded_sources],
+            "sources": [loaded.scope + ":" + str(loaded.path) for loaded in loaded_sources],
             "warnings": list(errors),
         },
         "output": {
@@ -644,7 +554,7 @@ def resolve_config(
 
     explicit_locale_result: Optional[LocaleResult] = None
     if explicit_locale:
-        normalized = normalize_explicit_locale_tag(explicit_locale)
+        normalized = normalize_strict_locale_tag(explicit_locale)
         if normalized:
             explicit_locale_result = LocaleResult(normalized, "explicit", explicit_locale)
 

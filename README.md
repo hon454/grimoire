@@ -87,6 +87,8 @@ primary = "github" # "github", "linear", or "none"
 team_identifier = "{TEAM}"
 ```
 
+`output.locale` must be a valid locale tag such as `ko-KR`, `en-US`, or `zh-TW`. Natural-language names and host-style locale forms such as `ko_KR.UTF-8` are not accepted in config; OS preferred-locale detection may still normalize host and environment values into canonical tags.
+
 `docs/maintaining-grimoire.md` is repo-local policy for contributors and Codex agents working in this repository. It is not an installable user workflow.
 
 ## License
