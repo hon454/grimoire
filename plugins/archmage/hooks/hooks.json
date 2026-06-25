@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/resolve_grimoire_context.py --cache --format text",
+            "timeout": 10,
+            "statusMessage": "Resolving Grimoire context"
+          }
+        ]
+      }
+    ]
+  }
+}

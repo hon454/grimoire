@@ -13,28 +13,35 @@ Use only when explicitly invoked as `$issue-preflight` or "use the issue-preflig
 
 ## Output Locale
 
-Resolve the final-output locale before inspecting sources. Use the bundled
-script as the single entry point:
+Resolve the final-output locale before inspecting sources. Prefer the Grimoire
+session config produced by Archmage's `SessionStart` hook. When the hook has
+run, use `output.locale` from the session config cache and include
+`output.locale_source` in the locale notice.
 
-```bash
-<python> <skill-dir>/scripts/detect_os_preferred_locale.py --format json
-```
+If no Grimoire session config is available, continue by directly observing the
+host OS preferred locale with deterministic local signals and note the missing
+session config only if it changes confidence.
 
 If the user explicitly requests a final-output locale, pass it as
-`--explicit-locale <locale-tag>`. This is the only override. Do not infer the
-final-output locale from conversation prose, tracker text, this skill file,
-repository prose, tool output, copied templates, or quoted artifacts.
+an explicit override to the Grimoire context resolver when available. This is
+the only override. Do not infer the final-output locale from conversation prose,
+tracker text, this skill file, repository prose, tool output, copied templates,
+or quoted artifacts.
 
 Include one short locale notice before the source notice. State the resolved
-locale and the source reported by the script. If the host supports interim
-messages, send it before inspection; otherwise make it the first line of the
-final response.
+locale and whether it came from session config, explicit override, or direct OS
+observation. If the host supports interim messages, send it before inspection;
+otherwise make it the first line of the final response.
 
 Use the resolved locale for user-facing prose, including notices, section
 headings, labels, rationale, evidence summaries, next action, and the tracker
 draft. Preserve issue IDs, PR numbers, branch names, commands, paths, and code
 identifiers as written after applying the data-handling rules below. Preserve
 decision taxonomy values as stable code values.
+
+Use `tracker` values from the Grimoire session config as default tracker hints
+only. Explicit user refs and directly observed branch, PR, issue, or local diff
+signals still take precedence.
 
 ## Data Handling
 

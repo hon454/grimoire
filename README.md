@@ -19,7 +19,7 @@ Grimoire currently publishes these installable plugins:
 
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
-| <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows for helping Codex agents use and maintain Grimoire consistently: choosing applicable workflows, loading the right context, reporting reusable Grimoire issues upstream, and improving skills. |
+| <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows and hooks for helping Codex agents use and maintain Grimoire consistently: choosing applicable workflows, loading Grimoire context, reporting reusable Grimoire issues upstream, and improving skills. |
 | <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context, choosing the next action, and auditing work-item validity before implementation. |
 | <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, repository cleanup, and conflict resolution. |
 
@@ -29,7 +29,8 @@ Grimoire currently publishes these installable plugins:
 - `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires Codex agents to check and load applicable Grimoire skills before acting.
 - `plugins/archmage/skills/report-grimoire-issue/SKILL.md`: the explicit-invocation issue-reporting skill that drafts upstream Grimoire GitHub issues and posts them only after confirmation.
 - `plugins/archmage/skills/writing-great-skills/SKILL.md`: the explicit-invocation reference for writing and editing predictable Codex skills.
-- Archmage `0.2.0` adds `$report-grimoire-issue` for reusable Grimoire documentation, skill, plugin packaging, Codex harness, and workflow reports.
+- `plugins/archmage/hooks/resolve_grimoire_context.py`: the SessionStart hook resolver that merges user and project `.grimoire/config.toml` files into a validated session config cache.
+- Archmage `0.3.0` adds the Grimoire session context hook for output localization and issue-tracker defaults.
 - `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
 - `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
 - `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: the explicit-invocation pre-implementation audit skill that validates tracker issues, linked changes, and branch-scoped work references without changing trackers.
@@ -61,6 +62,34 @@ codex
 ```
 
 The Codex marketplace catalog points to local plugin paths under `./plugins/`. Each plugin's `.codex-plugin/plugin.json` points to its installable skill directory.
+
+Archmage bundles a Codex SessionStart hook. After installing or updating the plugin, review and trust the hook in Codex before relying on its generated Grimoire session config.
+
+## Grimoire Config
+
+Archmage reads optional user and project config files, then writes a validated session config cache when the SessionStart hook runs:
+
+- user config: `~/.grimoire/config.toml`
+- project config: `<repo>/.grimoire/config.toml`
+
+Supported keys are intentionally narrow:
+
+```toml
+schema_version = 1
+
+[output]
+locale = "auto" # or a locale tag such as "ko-KR"
+
+[tracker]
+primary = "github" # "github", "linear", or "none"
+issue_patterns = ["#\\d+", "[A-Z]+-\\d+"]
+
+[tracker.github]
+repo = "hon454/grimoire"
+
+[tracker.linear]
+team_keys = ["ENG"]
+```
 
 `docs/maintaining-grimoire.md` is repo-local policy for contributors and Codex agents working in this repository. It is not an installable user workflow.
 
