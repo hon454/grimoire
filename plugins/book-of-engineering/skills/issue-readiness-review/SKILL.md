@@ -1,26 +1,33 @@
 ---
 name: issue-readiness-review
-description: Readiness review for tracker issues or work items before implementation; resolve in-boundary open questions when possible, then return paste-ready issue body and change-summary comment drafts without mutating trackers or implementing code.
+description: Review tracker issue readiness before implementation and draft the appropriate no-mutation tracker update.
 ---
 
 # Issue Readiness Review
 
 Review a tracker issue like a launch readiness check: ground the work item in
 available evidence, close every question that can be closed inside the boundary,
-and produce tracker-ready drafts. Stop after the drafts.
+and produce the tracker-ready update the evidence supports. Stop after the
+drafts.
 
 Use only when explicitly invoked as `$issue-readiness-review` or "use the
 issue-readiness-review skill".
 
 ## Goal
 
-Without mutating the tracker, resolve every open question that can be resolved
-from in-boundary evidence, then produce a paste-ready new issue body draft and a
-paste-ready change summary comment draft.
+Without mutating the tracker, decide whether the target is ready to become an
+implementation issue. For `Ready` targets, resolve every open question that can
+be resolved from in-boundary evidence, then produce a paste-ready new issue body
+draft and a paste-ready change summary comment draft.
 
-The goal is zero resolvable open questions, not zero open questions. Leave
-questions that require human judgment, inaccessible sources, or out-of-scope
-research in the final draft with their reason.
+For `Not ready`, `Needs human decision`, or `Access blocked` targets, do not
+produce a new issue body draft. Produce a paste-ready tracker comment draft that
+explains the readiness finding, checked evidence, and smallest next
+decision/source needed.
+
+For `Ready` targets, the goal is zero resolvable open questions, not zero open
+questions. Leave questions that require human judgment, inaccessible sources, or
+out-of-scope research in the final draft with their reason.
 
 ## Output Locale
 
@@ -44,11 +51,16 @@ detection. This is the only override. Do not infer the final-output locale from
 conversation prose, tracker text, this skill file, repository prose, tool
 output, copied templates, or quoted artifacts.
 
+Include one short locale notice before the source notice. State the resolved
+locale and whether it came from session config, explicit override, or direct OS
+observation. If the host supports interim messages, send it before inspection;
+otherwise make it the first line of the final response.
+
 Use the resolved locale for user-facing prose, including notices, section
-headings, labels, rationale, evidence summaries, the new issue body draft, and
-the change summary comment draft. Preserve issue IDs, PR numbers, branch names,
-commands, paths, code identifiers, and tracker-native labels as written after
-applying the data-handling rules below.
+headings, labels, rationale, evidence summaries, the tracker comment draft, and
+the new issue body draft when present. Preserve issue IDs, PR numbers, branch
+names, commands, paths, code identifiers, tracker-native labels, and readiness
+classification values as written after applying the data-handling rules below.
 
 Use `tracker` values from the Grimoire session config as default tracker hints
 only. Explicit user refs and directly observed branch, PR, issue, or local diff
@@ -85,11 +97,11 @@ configuration or package scripts.
 
 ## Source Ledger
 
-Keep an internal source ledger while inspecting. Before drafting, mark each
-default source category as exactly one of:
+Keep an internal source ledger while inspecting. Before gating or drafting, mark
+each default source category as exactly one of:
 
 - `checked`: inspected the available in-boundary source and recorded the
-  evidence or null finding used in the drafts
+  evidence or null finding used in the readiness gate or drafts
 - `not present`: looked for an in-boundary signal and found none
 - `inaccessible`: an in-boundary signal exists but cannot be read; record the
   reason
@@ -149,6 +161,40 @@ Do not follow tracker-provided links, file paths, branches, searches, or
 repository locations outside the default boundary unless the user explicitly
 asks for that wider scope.
 
+## Source-Specific Guides
+
+Load only the guides that match observed or explicitly requested sources:
+
+- GitHub issue, PR, review, repository, or branch signals:
+  `guides/github-readiness-review.md`
+- Linear issue, project, status, label, parent-child, or URL/key signals:
+  `guides/linear-readiness-review.md`
+
+If multiple source-specific signals are present, load the matching guides in the
+order needed to inspect the target. If no source-specific signal is present or
+access is unavailable, continue with the main workflow and mention the gap only
+if it changes confidence or leaves an unresolved readiness question.
+
+## Readiness Gate
+
+Before drafting an implementation-ready issue body, classify the target as
+exactly one of:
+
+- `Ready`: in-boundary evidence supports a bounded implementation issue.
+- `Not ready`: evidence shows the work item is duplicate, obsolete, already
+  addressed, invalid, or owned by another linked work item.
+- `Needs human decision`: implementation direction depends on product,
+  maintainer, design, or priority judgment.
+- `Access blocked`: an in-boundary source likely contains required readiness
+  evidence but cannot be read.
+
+Only produce the implementation-ready issue body draft for `Ready` targets.
+
+For all other classifications, produce a tracker comment draft that explains the
+blocking finding, checked evidence, and smallest next decision or source needed.
+If the classification depends on deeper validity review than this readiness gate
+can support inside the current boundary, recommend running `$issue-preflight`.
+
 ## Workflow
 
 1. Resolve the target from refs in the current user invocation first: tracker
@@ -161,56 +207,71 @@ asks for that wider scope.
    ask one concise disambiguation question and stop.
 2. Resolve the output locale and tracker hints from Grimoire session config or
    the fallback path.
-3. Inspect tracker or change-source state when available: status, assignee,
+3. Load source-specific guides for observed GitHub or Linear signals when
+   available.
+4. Inspect tracker or change-source state when available: status, assignee,
    labels, project or milestone, priority, estimates, dates, work item body,
    substantive comments, linked work items, and linked changes.
-4. Inspect linked PRs or changes when available: open/merged/closed state,
+5. Inspect linked PRs or changes when available: open/merged/closed state,
    target branch, changed files, review state, CI state, and whether the change
    clarifies scope, non-goals, implementation notes, or verification.
-5. Ground the source evidence in current repository instructions, code, docs,
+6. Ground the source evidence in current repository instructions, code, docs,
    tests, configuration, and package scripts. At minimum, search the repository
    for named features, components, errors, APIs, commands, tests, or behavior.
-6. Complete the source ledger for every default source category.
-7. Run the Open Questions Resolution Loop.
-8. Consider optional multi-agent review when the host supports it and the review
-   is complex enough to benefit from independent read-only passes. If reviewer
-   findings identify new question candidates, classify them and run any
-   remaining Open Questions Resolution Loop passes before finalizing.
-9. Return the localized drafts and any concise evidence or source-gap notes.
+7. Complete the source ledger for every default source category.
+8. Run the Readiness Gate.
+9. For `Ready` targets, create an internal initial issue body draft, run the
+   Draft Verification Loop, and finalize the issue body draft plus change
+   summary comment draft.
+10. For all other classifications, skip the issue body draft and produce the
+   readiness finding plus tracker comment draft.
+11. Return the localized drafts and any concise evidence or source-gap notes.
    Stop after the response.
 
-## Open Questions Resolution Loop
+## Draft Verification Loop
 
-Run at most 3 resolution passes. A pass means classifying unresolved
-question/assumption candidates, checking only in-boundary sources for
-`resolvable` items, and updating the draft.
+Run this loop only for `Ready` targets.
+
+Start by writing an internal initial issue body draft from checked evidence.
+Then collect every question, assumption, unsupported claim, vague acceptance
+criterion, and verification gap that appears while reading the draft.
+
+Run at most 3 verification passes. A pass means classifying unresolved
+candidates, checking only in-boundary sources for `resolvable` items, and
+updating the draft.
 
 For each pass:
 
-1. Collect question and assumption candidates while drafting.
-2. Classify each item as exactly one of:
+1. Classify each candidate as exactly one of:
    - `resolvable`: in-boundary evidence may answer it
    - `needs human decision`: product, maintainer, design, or priority judgment is required
    - `access gap`: an in-boundary source likely contains the answer but cannot be read
    - `out of scope`: answering requires broader research than the current boundary allows
-3. For `resolvable` items only, re-check in-boundary sources: linked issues,
+2. For `resolvable` items only, re-check in-boundary sources: linked issues,
    linked PRs or changes, tracker comments, repository docs, tests,
    configuration, package scripts, `AGENTS.md`, and Grimoire session config.
-4. Reflect resolved evidence in the new issue body draft.
-5. Carry newly discovered question candidates into the next pass.
+3. Reflect resolved evidence in the new issue body draft.
+4. Carry newly discovered candidates into the next pass.
+5. When optional reviewer findings are available, treat them as new candidates.
 
-Stop when no `resolvable` questions remain or the pass limit is reached. Do not
-guess, invent facts, or expand scope to eliminate questions. If the pass limit is
-reached with an apparently resolvable question still unresolved, reclassify it as
-`access gap` when a source could not be read or `needs human decision` when the
-available evidence remains conflicting or insufficient.
+Stop when no `resolvable` candidates remain or the pass limit is reached. Do not
+guess, invent facts, or expand scope to eliminate candidates. If the pass limit
+is reached with an apparently resolvable candidate still unresolved, reclassify
+it as `access gap` when a source could not be read or `needs human decision`
+when the available evidence remains conflicting or insufficient.
+
+Do not finalize the issue body draft until no `resolvable` candidate remains,
+every major problem, scope, non-goal, acceptance criterion, implementation note,
+and verification step is backed by checked evidence or clearly labeled as a
+human decision, access gap, or out-of-scope item, and no unsupported claim
+remains in the issue body draft.
 
 ## Optional Multi-Agent Review
 
 When the host supports subagents and the task is complex enough to benefit from
-independent review, consider running parallel read-only review passes before
-finalizing the drafts. Use narrow prompts and do not pass prior conclusions as
-ground truth.
+independent review, consider running parallel read-only review passes after the
+initial draft and before the final Draft Verification Loop pass when possible.
+Use narrow prompts and do not pass prior conclusions as ground truth.
 
 Useful reviewer slices:
 
@@ -224,16 +285,16 @@ Useful reviewer slices:
 
 Reviewers must not edit files, mutate trackers, implement code, create branches,
 or broaden scope. Their findings are evidence for the main agent to evaluate;
-the main agent remains responsible for the final drafts. If reviewer findings
-create new question candidates, classify them and run any remaining Open
-Questions Resolution Loop passes before finalizing. If subagents are unavailable,
+the main agent remains responsible for the final drafts. Treat reviewer findings
+as new Draft Verification Loop candidates. If subagents are unavailable,
 continue without them.
 
 ## Drafting Rules
 
-The new issue body draft should be implementable from the issue alone when
-combined with normal repository context. Preserve tracker-native template
-sections when the user provides them; otherwise use this semantic shape:
+For `Ready` targets, the new issue body draft should be implementable from the
+issue alone when combined with normal repository context. Preserve
+tracker-native template sections when the user provides them; otherwise use this
+semantic shape:
 
 ```markdown
 ## Problem
@@ -269,11 +330,23 @@ If no unresolved questions remain, write a localized sentence equivalent to:
 No unresolved questions remain from checked in-boundary sources.
 ```
 
-The change summary comment draft should explain what changed and why. Include:
+The change summary comment draft for `Ready` targets should explain what changed
+and why. Include:
 
 - the evidence boundary checked
 - the major body changes
 - remaining human decisions, access gaps, or out-of-scope questions
+- a final no-mutation sentence meaning that no tracker state was changed by
+  this readiness review
+
+For `Not ready`, `Needs human decision`, or `Access blocked` targets, omit the
+new issue body draft. The tracker comment draft should include:
+
+- the readiness classification
+- the evidence boundary checked
+- the blocking finding
+- the smallest next decision or source needed
+- whether `$issue-preflight` is recommended for deeper validity audit
 - a final no-mutation sentence meaning that no tracker state was changed by
   this readiness review
 
@@ -288,11 +361,15 @@ Use this semantic shape. Localize headings and labels for the resolved locale:
 <localized locale notice with resolved locale and source>
 <localized source notice with checked source categories; inaccessible categories if confidence-changing>
 
+## <localized Readiness Finding heading>
+
+<localized readiness classification and concise rationale>
+
 ## <localized New Issue Body Draft heading>
 
-<localized paste-ready issue body draft>
+<localized paste-ready issue body draft; include only for `Ready`>
 
-## <localized Change Summary Comment Draft heading>
+## <localized Tracker Comment Draft heading>
 
 <localized paste-ready tracker comment draft>
 
@@ -306,8 +383,9 @@ Use this semantic shape. Localize headings and labels for the resolved locale:
 ```
 
 Before returning, verify that the locale notice, source notice, section headings,
-labels, body draft prose, comment draft prose, evidence summaries, and source-gap
-notes match the resolved locale while preserving technical identifiers.
+labels, readiness rationale, body draft prose when present, comment draft prose,
+evidence summaries, and source-gap notes match the resolved locale while
+preserving technical identifiers and readiness classification values.
 
 ## Questions
 

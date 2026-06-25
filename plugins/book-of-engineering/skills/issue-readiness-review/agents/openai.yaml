@@ -1,7 +1,7 @@
 interface:
   display_name: "Issue Readiness Review"
-  short_description: "Draft implementation-ready issue bodies"
-  default_prompt: "Use $issue-readiness-review to review this work item and draft an implementation-ready issue body plus a change summary comment."
+  short_description: "Review issue readiness"
+  default_prompt: "Use $issue-readiness-review to review this work item for implementation readiness and draft the appropriate tracker update."
 
 policy:
   allow_implicit_invocation: false
