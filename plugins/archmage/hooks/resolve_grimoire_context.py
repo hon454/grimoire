@@ -32,7 +32,7 @@ ALLOWED_TOP_LEVEL = {"schema_version", "output", "tracker"}
 ALLOWED_OUTPUT_KEYS = {"locale"}
 ALLOWED_TRACKER_KEYS = {"primary", "issue_patterns", "github", "linear"}
 ALLOWED_GITHUB_KEYS = {"repo"}
-ALLOWED_LINEAR_KEYS = {"team_keys"}
+ALLOWED_LINEAR_KEYS = {"team_identifier"}
 TRACKER_PRIMARY_VALUES = {"none", "github", "linear"}
 
 
@@ -452,16 +452,14 @@ def validate_config(data: dict[str, Any], source: ConfigSource) -> list[str]:
             for key in linear:
                 if key not in ALLOWED_LINEAR_KEYS:
                     errors.append(f"{prefix}: tracker.linear.{key} is not supported")
-            team_keys = linear.get("team_keys")
-            if team_keys is not None:
-                if not isinstance(team_keys, list) or not all(
-                    isinstance(item, str) for item in team_keys
-                ):
-                    errors.append(f"{prefix}: tracker.linear.team_keys must be a list of strings")
-                else:
-                    for key in team_keys:
-                        if not re.fullmatch(r"[A-Z][A-Z0-9]{1,9}", key):
-                            errors.append(f"{prefix}: invalid Linear team key {key!r}")
+            team_identifier = linear.get("team_identifier")
+            if team_identifier is not None:
+                if not isinstance(team_identifier, str):
+                    errors.append(f"{prefix}: tracker.linear.team_identifier must be a string")
+                elif not re.fullmatch(r"[A-Z][A-Z0-9]{1,9}", team_identifier):
+                    errors.append(
+                        f"{prefix}: invalid Linear team identifier {team_identifier!r}"
+                    )
 
     return errors
 

@@ -88,7 +88,7 @@ issue_patterns = ["#\\d+", "[A-Z]+-\\d+"]
 repo = "hon454/grimoire"
 
 [tracker.linear]
-team_keys = ["ENG"]
+team_identifier = "ENG"
 ```
 
 `docs/maintaining-grimoire.md` is repo-local policy for contributors and Codex agents working in this repository. It is not an installable user workflow.
