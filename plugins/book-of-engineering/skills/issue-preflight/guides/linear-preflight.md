@@ -17,13 +17,13 @@ explicitly asks.
   PRs or external changes.
 - Issue body, substantive comments, updates, acceptance criteria, maintainer or
   product decisions, and blocker updates.
-- Linear URLs or issue-key patterns detected in the user request, current
-  branch, commits, local diff, linked PR, or current thread.
+- Linear URLs or issue-key patterns detected in the current user invocation,
+  current branch, commits, local diff, or linked PR.
 
 ## Boundaries
 
-- Prefer explicit user refs and Linear keys connected to the current branch,
-  local diff, commits, linked PR, or current thread.
+- Prefer refs in the current user invocation and Linear keys connected to the
+  current branch, local diff, commits, or linked PR.
 - Use parent-child relationships only when they clarify ownership, slicing,
   duplication, or whether the target issue is still the right work item.
 - Do not search all assigned issues, all team cycles, broad project lists, or

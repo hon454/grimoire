@@ -18,12 +18,12 @@ explicitly asks.
 - PR target branch, merge status, review state, CI status, and whether merged
   work appears to cover the requested issue.
 - Branch references, issue numbers, PR numbers, and owner/repo refs detected in
-  the user request, current branch, commits, local diff, or current thread.
+  the current user invocation, current branch, commits, local diff, or linked PR.
 
 ## Boundaries
 
-- Prefer explicit user refs, current repository remotes, and refs connected to
-  the current branch or local diff.
+- Prefer refs in the current user invocation, current repository remotes, and
+  refs connected to the current branch or local diff.
 - Keep PR review requests as PR evidence unless the linked issue itself is the
   preflight target.
 - Do not broaden into unrelated open issues, all repo PRs, or repo-wide
