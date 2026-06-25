@@ -39,7 +39,7 @@ Skill behavior belongs in `SKILL.md`. Codex-specific metadata belongs in sidecar
 
 Some task-oriented skills should run only when a user explicitly calls them. When adding or updating one of these skills:
 
-1. Keep the skill description focused on the workflow and its negative scope. The description may say that the workflow is explicit-invocation-only when that helps Codex select it correctly.
+1. Keep the skill description focused on the workflow and its negative scope. Do not use the description to restate explicit-invocation policy that belongs in sidecar metadata.
 2. Add Codex sidecar metadata at `agents/openai.yaml` with `policy.allow_implicit_invocation: false`.
 3. Add a Codex `interface.default_prompt` that includes the `$skill-name` trigger.
 4. Document the Codex explicit invocation form in the skill body when it improves discoverability.
