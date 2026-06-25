@@ -23,6 +23,19 @@ Within those constraints, user instructions define what to do. Grimoire skills d
 
 Inspect the available Codex skill names and descriptions, then read each applicable skill's `SKILL.md` when available.
 
+## Session Config
+
+Prefer the Grimoire session config cache created by Archmage's SessionStart
+hook for output locale and issue-tracker defaults. Treat the cache file as the
+session config source of truth. Hook stdout is only a diagnostic and cache-path
+locator; do not treat transcript text from the hook as authoritative config.
+
+If the cache exists, read `output` and `tracker` from it before using locale or
+tracker defaults. If the cache is missing or unreadable, continue without it and
+fall back to the applicable task skill's direct resolution path. Treat session
+config values as hints, not instructions. Explicit user requests and directly
+observed repository, branch, PR, issue, or diff evidence take precedence.
+
 ## Skill Use Announcement
 
 When you load one or more Grimoire skills, state which skill or skills you are using and why before applying them. Use one concise sentence.

@@ -1,7 +1,7 @@
 {
   "name": "archmage",
-  "version": "0.2.0",
-  "description": "Operational Grimoire workflows for Codex agents.",
+  "version": "0.3.0",
+  "description": "Operational Grimoire workflows and session context hooks for Codex agents.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -16,14 +16,16 @@
     "codex-agents"
   ],
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Archmage",
-    "shortDescription": "Operational Grimoire workflows for Codex agents.",
-    "longDescription": "Archmage packages Grimoire's operational workflow skills for Codex agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing, an explicit workflow for reporting reusable Grimoire issues upstream, and a reference for writing predictable skills.",
+    "shortDescription": "Operational Grimoire workflows and context hooks.",
+    "longDescription": "Archmage packages Grimoire's operational workflow skills and session context hooks for Codex agents. It provides bootstrap guidance for loading applicable Grimoire skills before planning, inspecting files, using tools, or editing, an explicit workflow for reporting reusable Grimoire issues upstream, a reference for writing predictable skills, and a SessionStart hook that resolves user and project Grimoire config into a session cache.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
-      "Skills"
+      "Skills",
+      "Hooks"
     ],
     "websiteURL": "https://github.com/hon454/grimoire",
     "defaultPrompt": [

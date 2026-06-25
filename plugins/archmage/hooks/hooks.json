@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/resolve_grimoire_config.py --bootstrap-user-config --cache --format text",
+            "timeout": 10,
+            "statusMessage": "Resolving Grimoire config"
+          }
+        ]
+      }
+    ]
+  }
+}

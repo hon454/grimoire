@@ -10,27 +10,41 @@ the next action, and stop.
 
 Use only when explicitly invoked as `$now-what` or "use the now-what skill".
 
-## Language
+## Output Locale
 
-Choose the output prose language in this order:
+Resolve the final-output locale before inspecting sources. Prefer `output`
+values from the Grimoire session config cache created by Archmage's
+`SessionStart` hook. Treat the cache file, not hook stdout, as the session
+config source of truth. Hook stdout may help locate the cache path, but it is
+only diagnostic.
 
-1. explicit user language request
-2. host OS preferred language
-3. English fallback when neither is available
+When the cache is available, use `output.locale` from the cached session config
+and include `output.locale_source` in the locale notice. If no Grimoire session
+config cache is available, continue by directly observing the host OS preferred
+locale with deterministic local signals and note the missing session config
+only if it changes confidence.
 
-Include one short output-language notice before the source notice. State whether
-the language was chosen from the host OS preferred language, an explicit user
-request, or fallback, and include the observed language tag when available. If
-the host supports interim messages, send it before inspection; otherwise make it
-the first line of the final response.
+If the user explicitly requests a final-output locale with a valid locale tag,
+pass it as an explicit override to the Grimoire config resolver when available.
+The resolver does not interpret natural-language locale requests. If no valid
+locale tag is provided, use Grimoire session config or OS preferred locale
+detection. This is the only override. Do not infer the final-output locale from
+conversation prose, tracker text, this skill file, repository prose, tool
+output, copied templates, or quoted artifacts.
 
-Use the chosen language for user-facing prose, including notices and
-recommendation rationale. Keep section headings in English.
+Include one short locale notice before the source notice. State the resolved
+locale and whether it came from session config, explicit override, or direct OS
+observation. If the host supports interim messages, send it before inspection;
+otherwise make it the first line of the final response.
 
-Preserve code, commands, paths, branch names, issue IDs, PR titles, commit
-subjects, and other technical identifiers as written after applying the
-data-handling rules below. Do not infer language from this skill file, repo
-prose, tool output, tracker text, copied templates, or quoted artifacts.
+Use the resolved locale for user-facing prose, including notices, section
+headings, labels, recommendation rationale, and first moves. Preserve code,
+commands, paths, branch names, issue IDs, PR titles, commit subjects, and other
+technical identifiers as written after applying the data-handling rules below.
+
+Use `tracker` values from the Grimoire session config as default tracker hints
+only. Explicit user refs and directly observed branch, PR, issue, or local diff
+signals still take precedence.
 
 ## Data Handling
 
@@ -46,7 +60,7 @@ command output.
 
 ## Source Notice
 
-Include one short source notice after the output-language notice. If the host
+Include one short source notice after the locale notice. If the host
 supports interim messages, send it before inspection; otherwise include it near
 the top of the final response.
 
@@ -185,11 +199,11 @@ If only one child is relevant and the parent meaningfully defines the
 workstream, still show the parent as the top-level option and the child as the
 nested target.
 
-Use visually distinct section headings so the recommendation and candidates are
-easy to scan. Keep these default headings in English:
+Use visually distinct localized section headings so the recommendation and
+candidates are easy to scan. Preserve this two-heading semantic shape:
 
-- 🎯 Recommendation
-- 🧭 Next Work Candidates
+- one recommendation heading, optionally with 🎯
+- one next-work-candidates heading, optionally with 🧭
 
 Keep emoji use limited to section headings. Do not add emoji prefixes to every
 candidate.
