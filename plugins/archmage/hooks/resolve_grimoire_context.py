@@ -386,8 +386,8 @@ def validate_locale(value: Any, name: str, errors: list[str]) -> None:
     if not isinstance(value, str):
         errors.append(f"{name} must be a string")
         return
-    if value != "auto" and normalize_locale(value) is None:
-        errors.append(f"{name} must be 'auto' or a valid locale tag")
+    if normalize_locale(value) is None:
+        errors.append(f"{name} must be a valid locale tag")
 
 
 def validate_config(data: dict[str, Any], source: ConfigSource) -> list[str]:
@@ -453,7 +453,7 @@ def merge_dict(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
 def empty_config() -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
-        "output": {"locale": "auto"},
+        "output": {},
         "tracker": {"primary": "none"},
     }
 
@@ -482,8 +482,8 @@ def read_sources(sources: Sequence[ConfigSource]) -> tuple[dict[str, Any], list[
 
 
 def locale_from_config(config: dict[str, Any], loaded_sources: Sequence[dict[str, str]]) -> Optional[LocaleResult]:
-    configured = config.get("output", {}).get("locale", "auto")
-    if configured == "auto":
+    configured = config.get("output", {}).get("locale")
+    if configured is None:
         return None
 
     normalized = normalize_locale(configured)
@@ -502,6 +502,68 @@ def locale_from_config(config: dict[str, Any], loaded_sources: Sequence[dict[str
             break
 
     return LocaleResult(normalized, source, configured)
+
+
+def insert_output_locale(text: str, locale_tag: str) -> str:
+    line = f"locale = {toml_value(locale_tag)}"
+    lines = text.splitlines()
+
+    for index, raw_line in enumerate(lines):
+        if strip_toml_comment(raw_line).strip() == "[output]":
+            updated = lines[: index + 1] + [line] + lines[index + 1 :]
+            return "\n".join(updated).rstrip() + "\n"
+
+    if text.strip():
+        return text.rstrip() + "\n\n[output]\n" + line + "\n"
+    return "[output]\n" + line + "\n"
+
+
+def create_user_config(locale_tag: str) -> str:
+    return "\n".join(
+        [
+            f"schema_version = {SCHEMA_VERSION}",
+            "",
+            "[output]",
+            f"locale = {toml_value(locale_tag)}",
+            "",
+        ]
+    )
+
+
+def bootstrap_user_locale_config(
+    path: Path,
+    detect_locale: Callable[[], LocaleResult],
+) -> tuple[Optional[LocaleResult], list[str]]:
+    if path.exists():
+        try:
+            data = load_toml_file(path)
+        except ConfigError as error:
+            return None, [f"{path}: cannot bootstrap output.locale: {error}"]
+
+        source = ConfigSource("user", path, True)
+        errors = validate_config(data, source)
+        if errors:
+            return None, [
+                f"{path}: cannot bootstrap output.locale until user config is valid"
+            ]
+
+        output = data.get("output", {})
+        if isinstance(output, dict) and "locale" in output:
+            return None, []
+
+    locale_result = detect_locale()
+    try:
+        if path.exists():
+            text = path.read_text(encoding="utf-8")
+            updated = insert_output_locale(text, locale_result.locale)
+            path.write_text(updated, encoding="utf-8")
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(create_user_config(locale_result.locale), encoding="utf-8")
+    except OSError as error:
+        return locale_result, [f"{path}: cannot bootstrap output.locale: {error}"]
+
+    return locale_result, []
 
 
 def make_session_config(
@@ -526,7 +588,7 @@ def make_session_config(
         "output": {
             "locale": locale_result.locale,
             "locale_source": locale_result.source,
-            "configured_locale": config.get("output", {}).get("locale", "auto"),
+            "configured_locale": config.get("output", {}).get("locale", ""),
         },
         "tracker": deepcopy(config.get("tracker", {"primary": "none"})),
     }
@@ -539,6 +601,7 @@ def resolve_context(
     project_config: Optional[Path] = None,
     cache_path: Optional[Path] = None,
     explicit_locale: Optional[str] = None,
+    bootstrap_user_config: bool = False,
     environ: Optional[Mapping[str, str]] = None,
     system_name: Optional[str] = None,
     runner: Optional[CommandRunner] = None,
@@ -556,7 +619,21 @@ def resolve_context(
     if project_path is not None:
         sources.append(ConfigSource("project", project_path, project_path.exists()))
 
+    bootstrap_locale: Optional[LocaleResult] = None
+    bootstrap_errors: list[str] = []
+    if bootstrap_user_config and not explicit_locale:
+        bootstrap_locale, bootstrap_errors = bootstrap_user_locale_config(
+            user_path,
+            lambda: detect_os_preferred_locale(
+                environ=active_environ,
+                system_name=system_name,
+                runner=runner,
+            ),
+        )
+        sources[0] = ConfigSource("user", user_path, user_path.exists())
+
     config, loaded_sources, errors = read_sources(sources)
+    errors = bootstrap_errors + errors
 
     if explicit_locale:
         normalized = normalize_locale(explicit_locale)
@@ -566,10 +643,14 @@ def resolve_context(
         else:
             locale_result = LocaleResult(normalized, "explicit", explicit_locale)
     else:
-        locale_result = locale_from_config(config, loaded_sources) or detect_os_preferred_locale(
-            environ=active_environ,
-            system_name=system_name,
-            runner=runner,
+        locale_result = (
+            locale_from_config(config, loaded_sources)
+            or bootstrap_locale
+            or detect_os_preferred_locale(
+                environ=active_environ,
+                system_name=system_name,
+                runner=runner,
+            )
         )
 
     resolved_cache_path = cache_path or default_cache_path(project_root, user_home)
@@ -649,6 +730,11 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--project-config", help="Override the project .grimoire/config.toml path.")
     parser.add_argument("--cache-path", help="Override the session config cache path.")
     parser.add_argument("--explicit-locale", help="Explicit final-output locale tag.")
+    parser.add_argument(
+        "--bootstrap-user-config",
+        action="store_true",
+        help="Write detected output.locale to the user config when it is unset.",
+    )
     parser.add_argument("--cache", action="store_true", help="Write the resolved session config.")
     parser.add_argument("--strict", action="store_true", help="Exit non-zero when config is invalid.")
     parser.add_argument(
@@ -668,6 +754,7 @@ def main(argv: Sequence[str]) -> int:
         project_config=Path(args.project_config).expanduser() if args.project_config else None,
         cache_path=Path(args.cache_path).expanduser() if args.cache_path else None,
         explicit_locale=args.explicit_locale,
+        bootstrap_user_config=args.bootstrap_user_config,
     )
 
     warnings = data["session"].get("warnings", [])

@@ -84,12 +84,12 @@ class ResolveGrimoireContextTests(unittest.TestCase):
             self.assertEqual("linear", result["tracker"]["primary"])
             self.assertEqual("ENG", result["tracker"]["linear"]["team_identifier"])
 
-    def test_auto_locale_uses_os_preference(self) -> None:
+    def test_missing_user_locale_bootstraps_os_preference(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             user_config = tmp / "user.toml"
             user_config.write_text(
-                "schema_version = 1\n[output]\nlocale = \"auto\"\n",
+                "schema_version = 1\n[tracker]\nprimary = \"github\"\n",
                 encoding="utf-8",
             )
 
@@ -98,13 +98,67 @@ class ResolveGrimoireContextTests(unittest.TestCase):
                 user_config=user_config,
                 project_config=tmp / "missing.toml",
                 cache_path=tmp / "cache.toml",
+                bootstrap_user_config=True,
                 environ={"LC_ALL": "C", "LC_MESSAGES": "POSIX", "LANG": "fr_FR.UTF-8"},
                 system_name="Linux",
                 runner=empty_runner,
             )
 
             self.assertEqual("fr-FR", result["output"]["locale"])
-            self.assertEqual("env:LANG", result["output"]["locale_source"])
+            self.assertEqual("config:user", result["output"]["locale_source"])
+            self.assertIn('locale = "fr-FR"', user_config.read_text(encoding="utf-8"))
+
+    def test_bootstrap_creates_missing_user_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            user_config = tmp / "user" / "config.toml"
+
+            result = module.resolve_context(
+                cwd=tmp,
+                user_config=user_config,
+                project_config=tmp / "missing.toml",
+                cache_path=tmp / "cache.toml",
+                bootstrap_user_config=True,
+                environ={"LANG": "ja_JP.UTF-8"},
+                system_name="Linux",
+                runner=empty_runner,
+            )
+
+            self.assertEqual("ja-JP", result["output"]["locale"])
+            self.assertEqual("config:user", result["output"]["locale_source"])
+            self.assertTrue(user_config.exists())
+            text = user_config.read_text(encoding="utf-8")
+            self.assertIn("schema_version = 1", text)
+            self.assertIn('locale = "ja-JP"', text)
+
+    def test_auto_locale_value_is_not_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            user_config = tmp / "config.toml"
+            user_config.write_text(
+                "schema_version = 1\n[output]\nlocale = \"auto\"\n",
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--cwd",
+                    str(tmp),
+                    "--user-config",
+                    str(user_config),
+                    "--project-config",
+                    str(tmp / "missing.toml"),
+                    "--strict",
+                ],
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(2, result.returncode)
+            self.assertIn("output.locale must be a valid locale tag", result.stderr)
 
     def test_cli_writes_cache_as_toml(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

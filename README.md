@@ -67,7 +67,7 @@ Archmage bundles a Codex SessionStart hook. After installing or updating the plu
 
 ## Grimoire Config
 
-Archmage reads optional user and project config files, then writes a validated session config cache when the SessionStart hook runs:
+Archmage reads optional user and project config files, bootstraps a missing user `output.locale` from the OS preferred locale, then writes a validated session config cache when the SessionStart hook runs:
 
 - user config: `~/.grimoire/config.toml`
 - project config: `<repo>/.grimoire/config.toml`
@@ -78,7 +78,7 @@ Supported keys are intentionally narrow:
 schema_version = 1
 
 [output]
-locale = "auto" # or a locale tag such as "ko-KR"
+locale = "{locale}" # for example, "ko-KR"
 
 [tracker]
 primary = "github" # "github", "linear", or "none"
