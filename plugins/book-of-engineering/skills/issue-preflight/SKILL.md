@@ -1,6 +1,6 @@
 ---
 name: issue-preflight
-description: Explicit-invocation-only workflow for auditing whether a tracker issue, linked change, or branch-scoped work reference is still valid before implementation; not for implementation, broad backlog triage, or tracker mutation.
+description: Preflight a tracker issue, linked change, or branch-scoped work reference before implementation; stop with a tracker draft and do not implement or mutate trackers.
 ---
 
 # Issue Preflight
@@ -11,18 +11,30 @@ current code, docs, tests, linked changes, and branch freshness.
 
 Use only when explicitly invoked as `$issue-preflight` or "use the issue-preflight skill".
 
-## Language
+## Output Locale
 
-Choose the output prose language in this order:
+Resolve the final-output locale before inspecting sources. Use the bundled
+script as the single entry point:
 
-1. explicit user language request
-2. host OS preferred language
-3. English fallback when neither is available
+```bash
+<python> <skill-dir>/scripts/detect_os_preferred_locale.py --format json
+```
 
-Include one short output-language notice before the source notice. Use the
-chosen language for user-facing prose. Preserve issue IDs, PR numbers, branch
-names, commands, paths, and code identifiers as written after applying the
-data-handling rules below.
+If the user explicitly requests a final-output locale, pass it as
+`--explicit-locale <locale-tag>`. This is the only override. Do not infer the
+final-output locale from conversation prose, tracker text, this skill file,
+repository prose, tool output, copied templates, or quoted artifacts.
+
+Include one short locale notice before the source notice. State the resolved
+locale and the source reported by the script. If the host supports interim
+messages, send it before inspection; otherwise make it the first line of the
+final response.
+
+Use the resolved locale for user-facing prose, including notices, section
+headings, labels, rationale, evidence summaries, next action, and the tracker
+draft. Preserve issue IDs, PR numbers, branch names, commands, paths, and code
+identifiers as written after applying the data-handling rules below. Preserve
+decision taxonomy values as stable code values.
 
 ## Data Handling
 
@@ -37,7 +49,7 @@ concise paraphrases over copying issue bodies, comments, logs, or command output
 
 ## Source Notice
 
-Include one short source notice after the output-language notice. If the host
+Include one short source notice after the locale notice. If the host
 supports interim messages, send it before inspection; otherwise include it near
 the top of the final response.
 
@@ -174,33 +186,37 @@ live trackers.
 Write concise Markdown directly in the session. Omit empty sections. Keep raw
 quotes short and use paraphrase by default.
 
-Use this shape:
+Use this semantic shape. Localize headings and labels for the resolved locale:
 
 ```markdown
-Language: <chosen language and reason>
-Sources: <checked source categories; inaccessible categories if confidence-changing>
+<localized locale notice with resolved locale and script source>
+<localized source notice with checked source categories; inaccessible categories if confidence-changing>
 
-## Verdict
-Decision: <taxonomy value>
-Confidence: <High | Medium | Low>
+## <localized verdict heading>
+<localized decision label>: <taxonomy value>
+<localized confidence label>: <High | Medium | Low>
 
-<one-paragraph rationale>
+<localized one-paragraph rationale>
 
-## Evidence
-- <tracker or linked-change evidence>
-- <code/docs/tests grounding>
-- <branch freshness or source gap, if relevant>
+## <localized evidence heading>
+- <localized tracker or linked-change evidence>
+- <localized code/docs/tests grounding>
+- <localized branch freshness or source gap, if relevant>
 
-## Next Action
-<one concrete next move>
+## <localized next-action heading>
+<localized one concrete next move>
 
-## Tracker Draft
-<comment/report draft suitable for pasting into the tracker or change source>
+## <localized tracker-draft heading>
+<localized comment/report draft suitable for pasting into the tracker or change source>
 ```
 
-The tracker draft should include the decision, confidence, checked sources,
-grounded finding, suggested next action, suggested slices when relevant, and the
-sentence: "No tracker state was changed by this preflight."
+The tracker draft is localized user-facing prose. Localize it for the resolved
+locale, except for preserved identifiers and exact decision taxonomy values.
+Include the decision, confidence, checked sources, grounded finding, suggested
+next action, suggested slices when relevant, and a final no-mutation sentence
+meaning that no tracker state was changed by this preflight. Before returning,
+verify that the rationale, evidence summaries, next action, section headings,
+labels, and tracker draft prose match the resolved locale.
 
 ## Questions
 
