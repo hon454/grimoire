@@ -87,6 +87,29 @@ def normalize_locale(value: str) -> Optional[str]:
     return "-".join(normalized)
 
 
+def normalize_explicit_locale_tag(value: str) -> Optional[str]:
+    raw = value.strip().strip("\"'")
+    if not raw or "_" in raw or raw.upper() in IGNORED_LOCALES:
+        return None
+
+    parts = raw.split("-")
+    if not parts or not re.fullmatch(r"[A-Za-z]{2,3}", parts[0]):
+        return None
+
+    normalized = [parts[0].lower()]
+    for part in parts[1:]:
+        if re.fullmatch(r"[A-Za-z]{4}", part):
+            normalized.append(part.title())
+        elif re.fullmatch(r"[A-Za-z]{2}|[0-9]{3}", part):
+            normalized.append(part.upper())
+        elif re.fullmatch(r"[A-Za-z0-9]{5,8}|[0-9][A-Za-z0-9]{3}", part):
+            normalized.append(part.lower())
+        else:
+            return None
+
+    return "-".join(normalized)
+
+
 def command_stdout(command: Sequence[str], cwd: Optional[Path] = None) -> Optional[str]:
     try:
         result = subprocess.run(
@@ -619,9 +642,15 @@ def resolve_config(
     if project_path is not None:
         sources.append(ConfigSource("project", project_path, project_path.exists()))
 
+    explicit_locale_result: Optional[LocaleResult] = None
+    if explicit_locale:
+        normalized = normalize_explicit_locale_tag(explicit_locale)
+        if normalized:
+            explicit_locale_result = LocaleResult(normalized, "explicit", explicit_locale)
+
     bootstrap_locale: Optional[LocaleResult] = None
     bootstrap_errors: list[str] = []
-    if bootstrap_user_config and not explicit_locale:
+    if bootstrap_user_config and explicit_locale_result is None:
         bootstrap_locale, bootstrap_errors = bootstrap_user_locale_config(
             user_path,
             lambda: detect_os_preferred_locale(
@@ -635,23 +664,16 @@ def resolve_config(
     config, loaded_sources, errors = read_sources(sources)
     errors = bootstrap_errors + errors
 
-    if explicit_locale:
-        normalized = normalize_locale(explicit_locale)
-        if not normalized:
-            errors.append("explicit locale must be a valid locale tag")
-            locale_result = LocaleResult(FALLBACK_LOCALE, "fallback", FALLBACK_LOCALE)
-        else:
-            locale_result = LocaleResult(normalized, "explicit", explicit_locale)
-    else:
-        locale_result = (
-            locale_from_config(config, loaded_sources)
-            or bootstrap_locale
-            or detect_os_preferred_locale(
-                environ=active_environ,
-                system_name=system_name,
-                runner=runner,
-            )
+    locale_result = (
+        explicit_locale_result
+        or locale_from_config(config, loaded_sources)
+        or bootstrap_locale
+        or detect_os_preferred_locale(
+            environ=active_environ,
+            system_name=system_name,
+            runner=runner,
         )
+    )
 
     resolved_cache_path = cache_path or default_cache_path(project_root, user_home)
     return make_session_config(

@@ -160,6 +160,49 @@ class ResolveGrimoireConfigTests(unittest.TestCase):
             self.assertEqual(2, result.returncode)
             self.assertIn("output.locale must be a valid locale tag", result.stderr)
 
+    def test_valid_explicit_locale_tag_overrides_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            user_config = tmp / "config.toml"
+            user_config.write_text(
+                "schema_version = 1\n[output]\nlocale = \"ja-JP\"\n",
+                encoding="utf-8",
+            )
+
+            result = module.resolve_config(
+                cwd=tmp,
+                user_config=user_config,
+                project_config=tmp / "missing.toml",
+                cache_path=tmp / "cache.toml",
+                explicit_locale="ko-kr",
+                environ={"LANG": "fr_FR.UTF-8"},
+                system_name="Linux",
+                runner=empty_runner,
+            )
+
+            self.assertEqual("ko-KR", result["output"]["locale"])
+            self.assertEqual("explicit", result["output"]["locale_source"])
+            self.assertEqual([], result.get("errors", []))
+
+    def test_invalid_explicit_locale_falls_back_to_os_preference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+
+            result = module.resolve_config(
+                cwd=tmp,
+                user_config=tmp / "missing-user.toml",
+                project_config=tmp / "missing-project.toml",
+                cache_path=tmp / "cache.toml",
+                explicit_locale="Please answer in Korean",
+                environ={"LANG": "fr_FR.UTF-8"},
+                system_name="Linux",
+                runner=empty_runner,
+            )
+
+            self.assertEqual("fr-FR", result["output"]["locale"])
+            self.assertEqual("env:LANG", result["output"]["locale_source"])
+            self.assertEqual([], result.get("errors", []))
+
     def test_cli_writes_cache_as_toml(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
