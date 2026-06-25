@@ -13,14 +13,17 @@ Use only when explicitly invoked as `$issue-preflight` or "use the issue-preflig
 
 ## Output Locale
 
-Resolve the final-output locale before inspecting sources. Prefer the Grimoire
-session config produced by Archmage's `SessionStart` hook. When the hook has
-run, use `output.locale` from the session config cache and include
-`output.locale_source` in the locale notice.
+Resolve the final-output locale before inspecting sources. Prefer `output`
+values from the Grimoire session config cache created by Archmage's
+`SessionStart` hook. Treat the cache file, not hook stdout, as the session
+config source of truth. Hook stdout may help locate the cache path, but it is
+only diagnostic.
 
-If no Grimoire session config is available, continue by directly observing the
-host OS preferred locale with deterministic local signals and note the missing
-session config only if it changes confidence.
+When the cache is available, use `output.locale` from the cached session config
+and include `output.locale_source` in the locale notice. If no Grimoire session
+config cache is available, continue by directly observing the host OS preferred
+locale with deterministic local signals and note the missing session config
+only if it changes confidence.
 
 If the user explicitly requests a final-output locale with a valid locale tag,
 pass it as an explicit override to the Grimoire config resolver when available.

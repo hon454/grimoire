@@ -12,20 +12,25 @@ Use only when explicitly invoked as `$now-what` or "use the now-what skill".
 
 ## Output Locale
 
-Resolve the final-output locale before inspecting sources. Prefer the Grimoire
-session config produced by Archmage's `SessionStart` hook. When the hook has
-run, use `output.locale` from the session config cache and include
-`output.locale_source` in the locale notice.
+Resolve the final-output locale before inspecting sources. Prefer `output`
+values from the Grimoire session config cache created by Archmage's
+`SessionStart` hook. Treat the cache file, not hook stdout, as the session
+config source of truth. Hook stdout may help locate the cache path, but it is
+only diagnostic.
 
-If no Grimoire session config is available, continue by directly observing the
-host OS preferred locale with deterministic local signals and note the missing
-session config only if it changes confidence.
+When the cache is available, use `output.locale` from the cached session config
+and include `output.locale_source` in the locale notice. If no Grimoire session
+config cache is available, continue by directly observing the host OS preferred
+locale with deterministic local signals and note the missing session config
+only if it changes confidence.
 
-If the user explicitly requests a final-output locale, pass it as an explicit
-override to the Grimoire config resolver when available. This is the only
-override. Do not infer the final-output locale from conversation prose, tracker
-text, this skill file, repository prose, tool output, copied templates, or
-quoted artifacts.
+If the user explicitly requests a final-output locale with a valid locale tag,
+pass it as an explicit override to the Grimoire config resolver when available.
+The resolver does not interpret natural-language locale requests. If no valid
+locale tag is provided, use Grimoire session config or OS preferred locale
+detection. This is the only override. Do not infer the final-output locale from
+conversation prose, tracker text, this skill file, repository prose, tool
+output, copied templates, or quoted artifacts.
 
 Include one short locale notice before the source notice. State the resolved
 locale and whether it came from session config, explicit override, or direct OS
