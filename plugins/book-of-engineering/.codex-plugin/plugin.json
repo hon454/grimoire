@@ -1,7 +1,7 @@
 {
   "name": "book-of-engineering",
-  "version": "0.4.0",
-  "description": "Engineering workflow skills for current-work context, next-action prioritization, work-item preflight audits, and readiness-aware issue updates.",
+  "version": "0.5.0",
+  "description": "Engineering workflow skills for current-work context, next-action prioritization, work-item preflight audits, readiness-aware issue updates, and locale-grounded translation.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Book of Engineering",
-    "shortDescription": "Engineering context, next-action, preflight, and readiness skills.",
-    "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context, deciding what to do next, auditing work-item validity before implementation, and drafting readiness-aware tracker updates.",
+    "shortDescription": "Engineering context, preflight, readiness, and translation skills.",
+    "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context, deciding what to do next, auditing work-item validity before implementation, drafting readiness-aware tracker updates, and translating user-facing text with the Grimoire session locale.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
@@ -32,7 +32,8 @@
       "Use $now-what to prioritize the current repo and branch context.",
       "Use $now-what to decide the next current-work action.",
       "Use $issue-preflight to audit whether this work item is still valid before implementing.",
-      "Use $issue-readiness-review to review this work item for implementation readiness and draft the appropriate tracker update."
+      "Use $issue-readiness-review to review this work item for implementation readiness and draft the appropriate tracker update.",
+      "Use $magical-translation to translate this into my configured Grimoire locale."
     ],
     "brandColor": "#1E3A5F",
     "composerIcon": "./assets/icon.png",
