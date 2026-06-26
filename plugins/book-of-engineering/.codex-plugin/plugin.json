@@ -1,7 +1,7 @@
 {
   "name": "book-of-engineering",
-  "version": "0.5.0",
-  "description": "Engineering workflow skills for current-work context, next-action prioritization, work-item preflight audits, readiness-aware issue updates, and locale-grounded translation.",
+  "version": "0.6.0",
+  "description": "Engineering workflow skills for current-work context, next-action prioritization, work-item preflight audits, readiness-aware issue updates, locale-grounded translation, and review response workflows.",
   "author": {
     "name": "hon454",
     "url": "https://github.com/hon454"
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Book of Engineering",
-    "shortDescription": "Engineering context, preflight, readiness, and translation skills.",
-    "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context, deciding what to do next, auditing work-item validity before implementation, drafting readiness-aware tracker updates, and translating user-facing text with the Grimoire session locale.",
+    "shortDescription": "Engineering context, preflight, translation, and review response skills.",
+    "longDescription": "Book of Engineering packages practical engineering workflow skills for inspecting current work context, deciding what to do next, auditing work-item validity before implementation, drafting readiness-aware tracker updates, translating user-facing text with the Grimoire session locale, and translating, deciding, implementing, and answering code review feedback.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
@@ -33,7 +33,8 @@
       "Use $now-what to decide the next current-work action.",
       "Use $issue-preflight to audit whether this work item is still valid before implementing.",
       "Use $issue-readiness-review to review this work item for implementation readiness and draft the appropriate tracker update.",
-      "Use $magical-translation to translate this into my configured Grimoire locale."
+      "Use $magical-translation to translate this into my configured Grimoire locale.",
+      "Use $magical-review-response to translate and handle this PR review feedback end to end."
     ],
     "brandColor": "#1E3A5F",
     "composerIcon": "./assets/icon.png",
