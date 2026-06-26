@@ -1,53 +1,44 @@
 <div align="center">
   <p>
-    <img src="assets/readme/hero.png" width="960" alt="Archmage reading a glowing code grimoire in a magical library">
+    <img src="assets/readme/hero.png" width="960" alt="Grimoire figure reading a glowing code grimoire in a magical library">
   </p>
   <h1>Grimoire</h1>
   <p><strong>Codex harnessing assets for reusable agent workflows.</strong></p>
   <p><a href="README.ko.md">한국어</a></p>
 </div>
 
-Grimoire is the personal Codex harnessing repository maintained by `hon454`. It packages reusable Codex skills, plugins, hooks, workflow instructions, and tool integration guidance for the owner's Codex environment.
+Grimoire is the personal Codex harnessing repository maintained by `hon454`. It packages reusable Codex skills, a plugin, hooks, workflow instructions, and tool integration guidance for the owner's Codex environment.
 
 ## Status
 
-This repository currently exposes the Archmage, Book of Engineering, and Book of Git plugins plus repository-local maintenance policy. It does not promise roadmap contents beyond the Codex assets and policy committed here.
+This repository currently exposes one installable Grimoire plugin plus repository-local maintenance policy. It does not promise roadmap contents beyond the Codex assets and policy committed here.
 
-## Plugins
+## Plugin
 
-Grimoire currently publishes these installable plugins:
+Grimoire currently publishes one installable harness plugin:
 
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
-| <img src="plugins/archmage/assets/icon.png" width="72" alt="Archmage icon"> | [**Archmage**](plugins/archmage/) | Operational workflows and hooks for helping Codex agents use and maintain Grimoire consistently: choosing applicable workflows, loading Grimoire config, reporting reusable Grimoire issues upstream, and improving skills. |
-| <img src="plugins/book-of-engineering/assets/icon.png" width="72" alt="Book of Engineering icon"> | [**Book&nbsp;of&nbsp;Engineering**](plugins/book-of-engineering/) | Engineering workflows for understanding current work context, choosing the next action, auditing work-item validity, translating with the Grimoire session locale, and responding to code review feedback. |
-| <img src="plugins/book-of-git/assets/icon.png" width="72" alt="Book of Git icon"> | [**Book&nbsp;of&nbsp;Git**](plugins/book-of-git/) | Git workflows for keeping local repositories understandable and recoverable, with guarded support for workspace hygiene, branch discipline, repository cleanup, and conflict resolution. |
+| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Workflow skills and hooks for Grimoire bootstrap, skill authoring, current-work triage, issue preflight and readiness review, locale-grounded translation, review response, Git cleanup, and conflict resolution. |
 
 ## Contents
 
-- `plugins/archmage/`: the installable Archmage plugin package.
-- `plugins/archmage/skills/using-grimoire/SKILL.md`: the installable bootstrap skill that requires Codex agents to check and load applicable Grimoire skills before acting.
-- `plugins/archmage/skills/report-grimoire-issue/SKILL.md`: the explicit-invocation issue-reporting skill that drafts upstream Grimoire GitHub issues and posts them only after confirmation.
-- `plugins/archmage/skills/writing-great-skills/SKILL.md`: the explicit-invocation reference for writing and editing predictable Codex skills.
-- `plugins/archmage/hooks/resolve_grimoire_config.py`: the SessionStart config resolver that merges user and project `.grimoire/config.toml` files into a validated session config cache.
-- Archmage `0.3.0` adds the Grimoire session config hook for output localization and issue-tracker defaults.
-- `plugins/book-of-engineering/`: the installable Book of Engineering plugin package.
-- `plugins/book-of-engineering/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
-- `plugins/book-of-engineering/skills/issue-preflight/SKILL.md`: the explicit-invocation pre-implementation audit skill that validates tracker issues, linked changes, and branch-scoped work references without changing trackers.
-- `plugins/book-of-engineering/skills/issue-readiness-review/SKILL.md`: the explicit-invocation readiness review skill that drafts the appropriate tracker update without changing trackers.
-- `plugins/book-of-engineering/skills/magical-translation/SKILL.md`: the locale-grounded translation skill that reads the Grimoire session config cache before translating user-facing text.
-- `plugins/book-of-engineering/skills/magical-review-response/SKILL.md`: the review-response workflow that translates review feedback, interviews decision points, implements the confirmed plan, verifies changes, and handles reviewer follow-up.
-- Book of Engineering `0.5.0` adds `$magical-translation` for locale-grounded translation from the Grimoire session config cache.
-- Book of Engineering `0.6.0` adds `$magical-review-response` for end-to-end code review response workflows.
-- `plugins/book-of-git/`: the installable Book of Git plugin package.
-- `plugins/book-of-git/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
-- `plugins/book-of-git/skills/git-resolve-conflicts/SKILL.md`: the guarded Git conflict resolution skill for making conflicted branches or PRs mergeable against a fetched remote base.
-- Book of Git `0.2.0` adds `$git-resolve-conflicts` for resolving merge, rebase, cherry-pick, and PR branch conflicts without pushing automatically.
+- `plugins/grimoire/`: the installable Grimoire plugin package.
+- `plugins/grimoire/hooks/resolve_grimoire_config.py`: the SessionStart config resolver that merges user and project `.grimoire/config.toml` files into a validated session config cache.
+- `plugins/grimoire/skills/using-grimoire/SKILL.md`: the bootstrap skill that requires Codex agents to check and load applicable Grimoire skills before acting.
+- `plugins/grimoire/skills/report-grimoire-issue/SKILL.md`: the explicit-invocation issue-reporting skill that drafts upstream Grimoire GitHub issues and posts them only after confirmation.
+- `plugins/grimoire/skills/writing-great-skills/SKILL.md`: the explicit-invocation reference for writing and editing predictable Codex skills.
+- `plugins/grimoire/skills/now-what/SKILL.md`: the explicit-invocation current-work triage skill that recommends what to do next.
+- `plugins/grimoire/skills/issue-preflight/SKILL.md`: the explicit-invocation pre-implementation audit skill that validates tracker issues, linked changes, and branch-scoped work references without changing trackers.
+- `plugins/grimoire/skills/issue-readiness-review/SKILL.md`: the explicit-invocation readiness review skill that drafts the appropriate tracker update without changing trackers.
+- `plugins/grimoire/skills/magical-translation/SKILL.md`: the locale-grounded translation skill that reads the Grimoire session config cache before translating user-facing text.
+- `plugins/grimoire/skills/magical-review-response/SKILL.md`: the review-response workflow that translates review feedback, interviews decision points, implements the confirmed plan, verifies changes, and handles reviewer follow-up.
+- `plugins/grimoire/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
+- `plugins/grimoire/skills/git-resolve-conflicts/SKILL.md`: the guarded Git conflict resolution skill for making conflicted branches or PRs mergeable against a fetched remote base.
 - `assets/readme/`: README-specific visual assets.
-- `assets/book-of/`: approved default book-family visual assets for `book-of-*` plugin scaffolding.
 - `docs/adr/0001-adopt-codex-only-harness-direction.md`: the decision record that defines Grimoire as a Codex harnessing repository.
 - `docs/maintaining-grimoire.md`: repository-local policy for changing Grimoire skills, plugin packaging, Codex harness assets, documentation, and publishing checks.
-- `.agents/plugins/marketplace.json`: the Codex marketplace catalog that exposes local plugins from `./plugins/`.
+- `.agents/plugins/marketplace.json`: the Codex marketplace catalog that exposes `plugins/grimoire/`.
 - `AGENTS.md`: the source-of-truth agent protocol for this repository.
 
 ## Installation Notes
@@ -58,20 +49,22 @@ For Codex, add this repository as a plugin marketplace:
 codex plugin marketplace add hon454/grimoire
 ```
 
-Then open the Codex plugin directory and install `archmage`, `book-of-engineering`, or `book-of-git` from the Grimoire marketplace:
+Then open the Codex plugin directory and install `grimoire` from the Grimoire marketplace:
 
 ```text
 codex
 /plugins
 ```
 
-The Codex marketplace catalog points to local plugin paths under `./plugins/`. Each plugin's `.codex-plugin/plugin.json` points to its installable skill directory.
+The Codex marketplace catalog points to `./plugins/grimoire`. The plugin's `.codex-plugin/plugin.json` points to its installable skill directory and SessionStart hook.
 
-Archmage bundles a Codex SessionStart hook. After installing or updating the plugin, review and trust the hook in Codex before relying on its generated Grimoire session config.
+Grimoire bundles a Codex SessionStart hook. After installing or updating the plugin, review and trust the hook in Codex before relying on its generated Grimoire session config.
+
+Migration note: if you previously installed `archmage`, `book-of-engineering`, or `book-of-git`, install or update `grimoire`, trust the hook again, then remove the old local plugin installs if they still appear. Existing `$skill-name` triggers are preserved.
 
 ## Grimoire Config
 
-Archmage reads optional user and project config files, bootstraps a missing user `output.locale` from the OS preferred locale, then writes a validated session config cache when the SessionStart hook runs:
+The Grimoire plugin reads optional user and project config files, bootstraps a missing user `output.locale` from the OS preferred locale, then writes a validated session config cache when the SessionStart hook runs:
 
 - user config: `~/.grimoire/config.toml`
 - project config: `<repo>/.grimoire/config.toml`

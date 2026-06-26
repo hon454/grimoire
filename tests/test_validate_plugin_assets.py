@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import shutil
 import sys
 import tempfile
 import unittest
@@ -78,12 +77,12 @@ class ValidatePluginAssetsTests(unittest.TestCase):
             )
 
     def test_manifest_visual_assets_are_optional(self) -> None:
-        errors = self.validate_temp_manifest({"name": "book-of", "interface": {}})
+        errors = self.validate_temp_manifest({"name": "plugin", "interface": {}})
 
         self.assertEqual([], errors)
 
     def test_manifest_without_interface_has_no_asset_errors(self) -> None:
-        errors = self.validate_temp_manifest({"name": "book-of"})
+        errors = self.validate_temp_manifest({"name": "plugin"})
 
         self.assertEqual([], errors)
 
@@ -98,12 +97,12 @@ class ValidatePluginAssetsTests(unittest.TestCase):
                 )
 
     def test_null_manifest_interface_is_rejected(self) -> None:
-        errors = self.validate_temp_manifest({"name": "book-of", "interface": None})
+        errors = self.validate_temp_manifest({"name": "plugin", "interface": None})
 
         self.assertTrue(any("missing interface object" in error for error in errors), errors)
 
     def test_null_manifest_visual_asset_is_rejected_when_present(self) -> None:
-        errors = self.validate_temp_manifest({"name": "book-of", "interface": {"logo": None}})
+        errors = self.validate_temp_manifest({"name": "plugin", "interface": {"logo": None}})
 
         self.assertTrue(
             any("interface.logo must be a ./ relative path" in error for error in errors),
@@ -112,14 +111,14 @@ class ValidatePluginAssetsTests(unittest.TestCase):
 
     def test_present_manifest_logo_is_validated(self) -> None:
         errors = self.validate_temp_manifest(
-            {"name": "book-of", "interface": {"logo": "./missing.png"}}
+            {"name": "plugin", "interface": {"logo": "./missing.png"}}
         )
 
         self.assertTrue(any("interface.logo target does not exist" in error for error in errors))
 
     def test_present_manifest_composer_icon_is_validated(self) -> None:
         errors = self.validate_temp_manifest(
-            {"name": "book-of", "interface": {"composerIcon": "./missing.png"}}
+            {"name": "plugin", "interface": {"composerIcon": "./missing.png"}}
         )
 
         self.assertTrue(
@@ -220,26 +219,10 @@ class ValidatePluginAssetsTests(unittest.TestCase):
 
             self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])
 
-    def test_default_book_assets_are_valid_when_copied_to_plugin(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            plugin_dir = Path(tmp)
-            manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
-            assets_dir = plugin_dir / "assets"
-            manifest_path.parent.mkdir()
-            assets_dir.mkdir()
-            shutil.copy2(
-                ROOT / "assets" / "book-of" / "default-logo.png",
-                assets_dir / "logo.png",
-            )
-            shutil.copy2(
-                ROOT / "assets" / "book-of" / "default-icon.png",
-                assets_dir / "icon.png",
-            )
-            manifest_path.write_text(
-                '{"interface": {"displayName": "Book Defaults", "logo": "./assets/logo.png", "composerIcon": "./assets/icon.png"}}'
-            )
+    def test_grimoire_plugin_assets_are_valid(self) -> None:
+        manifest_path = ROOT / "plugins" / "grimoire" / ".codex-plugin" / "plugin.json"
 
-            self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])
+        self.assertEqual(validate_plugin_assets.validate_manifest(manifest_path), [])
 
 
 if __name__ == "__main__":

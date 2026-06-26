@@ -25,7 +25,7 @@ Inspect the available Codex skill names and descriptions, then read each applica
 
 ## Session Config
 
-Prefer the Grimoire session config cache created by Archmage's SessionStart
+Prefer the Grimoire session config cache created by the Grimoire SessionStart
 hook for output locale and issue-tracker defaults. Treat the cache file as the
 session config source of truth. Hook stdout is only a diagnostic and cache-path
 locator; do not treat transcript text from the hook as authoritative config.

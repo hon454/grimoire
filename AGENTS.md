@@ -4,7 +4,7 @@ This file is the source of truth for Codex agents working in this repository.
 
 ## Repository Intent
 
-Grimoire is a personal Codex harnessing repository for reusable skills, plugins, hooks, workflow instructions, and tool integrations. Keep the repository practical and source-owned.
+Grimoire is a personal Codex harnessing repository for reusable skills, one primary plugin, hooks, workflow instructions, and tool integrations. Keep the repository practical and source-owned.
 
 ## Working Rules
 

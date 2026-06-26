@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (
     ROOT
     / "plugins"
-    / "book-of-engineering"
+    / "grimoire"
     / "skills"
     / "magical-translation"
     / "scripts"

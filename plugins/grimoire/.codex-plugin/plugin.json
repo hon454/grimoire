@@ -1,0 +1,51 @@
+{
+  "name": "grimoire",
+  "version": "0.7.0",
+  "description": "A single Codex harness plugin for Grimoire workflow skills, Git and engineering workflows, and session context hooks.",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "homepage": "https://github.com/hon454/grimoire",
+  "repository": "https://github.com/hon454/grimoire",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "workflow",
+    "engineering",
+    "git",
+    "prioritization",
+    "codex",
+    "codex-agents"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Grimoire",
+    "shortDescription": "Grimoire workflow skills and session context hooks.",
+    "longDescription": "Grimoire packages one Codex harness plugin with workflow skills for Grimoire bootstrap, skill authoring, issue reporting, current-work triage, work-item preflight and readiness review, locale-grounded translation, code review response, Git workspace cleanup, and conflict resolution. It also includes the SessionStart hook that resolves user and project Grimoire config into a session cache.",
+    "developerName": "hon454",
+    "category": "Productivity",
+    "capabilities": [
+      "Skills",
+      "Hooks"
+    ],
+    "websiteURL": "https://github.com/hon454/grimoire",
+    "defaultPrompt": [
+      "Use Grimoire before starting this task.",
+      "Check which Grimoire skills apply.",
+      "Load the right workflow skill first.",
+      "Use $now-what to inspect this workspace and recommend what to do next.",
+      "Use $issue-preflight to audit whether this work item is still valid before implementing.",
+      "Use $issue-readiness-review to review this work item for implementation readiness and draft the appropriate tracker update.",
+      "Use $magical-translation to translate this into my configured Grimoire locale.",
+      "Use $magical-review-response to translate and handle this PR review feedback end to end.",
+      "Use $git-workspace-cleanup to prune local worktrees and branches back to main.",
+      "Use $git-resolve-conflicts to resolve a branch or PR conflict against its remote base."
+    ],
+    "brandColor": "#4C1D95",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}
