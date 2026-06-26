@@ -5,34 +5,10 @@
   },
   "plugins": [
     {
-      "name": "archmage",
+      "name": "grimoire",
       "source": {
         "source": "local",
-        "path": "./plugins/archmage"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Productivity"
-    },
-    {
-      "name": "book-of-engineering",
-      "source": {
-        "source": "local",
-        "path": "./plugins/book-of-engineering"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Productivity"
-    },
-    {
-      "name": "book-of-git",
-      "source": {
-        "source": "local",
-        "path": "./plugins/book-of-git"
+        "path": "./plugins/grimoire"
       },
       "policy": {
         "installation": "AVAILABLE",

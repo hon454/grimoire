@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (
     ROOT
     / "plugins"
-    / "book-of-git"
+    / "grimoire"
     / "skills"
     / "git-workspace-cleanup"
     / "scripts"

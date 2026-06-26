@@ -32,7 +32,7 @@ out-of-scope research in the final draft with their reason.
 ## Output Locale
 
 Resolve the final-output locale before inspecting sources. Prefer `output`
-values from the Grimoire session config cache created by Archmage's
+values from the Grimoire session config cache created by the Grimoire
 `SessionStart` hook. Treat the cache file, not hook stdout, as the session
 config source of truth. Hook stdout may help locate the cache path, but it is
 only diagnostic.

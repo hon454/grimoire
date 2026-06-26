@@ -11,7 +11,7 @@ from typing import Optional, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "plugins" / "archmage" / "hooks" / "resolve_grimoire_config.py"
+SCRIPT = ROOT / "plugins" / "grimoire" / "hooks" / "resolve_grimoire_config.py"
 
 
 spec = importlib.util.spec_from_file_location("resolve_grimoire_config", SCRIPT)

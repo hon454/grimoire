@@ -4,9 +4,9 @@ This document is repository policy for maintaining Grimoire. `AGENTS.md` remains
 
 ## Repository Shape
 
-Grimoire is a personal Codex harnessing repository for reusable skills, plugins, hooks, workflow instructions, and tool integrations.
+Grimoire is a personal Codex harnessing repository for reusable skills, one primary plugin, hooks, workflow instructions, and tool integrations.
 
-Source-owned skill behavior belongs in `skills/<skill>/SKILL.md` unless that workflow has been moved into a packaged plugin. Codex packaging belongs under the matching plugin directory, such as `plugins/<plugin>/.codex-plugin/`, `plugins/<plugin>/skills/`, and plugin assets. Hooks, workflow instructions, and tool integration guidance belong in the narrowest Codex-owned path that matches their runtime use.
+Installable skill behavior belongs under `plugins/grimoire/skills/<skill>/SKILL.md`. Codex packaging belongs under `plugins/grimoire/.codex-plugin/`, `plugins/grimoire/skills/`, plugin hooks, and plugin assets. Hooks, workflow instructions, and tool integration guidance belong in the narrowest Codex-owned path that matches their runtime use.
 
 Repository-only policy belongs in `AGENTS.md` or `docs/`, not in `skills/`, because installed users should not receive repository maintenance instructions as an installable workflow.
 
@@ -53,7 +53,7 @@ Maintain Codex-focused packaging and documentation:
 - `AGENTS.md` is the source of truth for repository instructions.
 - Codex behavior is the primary design target.
 - Codex-specific metadata belongs in sidecar files or Codex plugin directories, not in unrelated repository policy.
-- Older packaging artifacts may remain until a dedicated cleanup issue removes or rewrites them.
+- Do not leave obsolete sibling plugin packages in the marketplace when their skills now ship through `plugins/grimoire/`.
 - Plugin manifests should describe package identity and installation behavior without duplicating repository policy.
 
 ## Instruction And Plugin Placement
@@ -62,10 +62,9 @@ Use this boundary when deciding where new maintenance material belongs:
 
 - Put always-on repository rules in `AGENTS.md` when every Codex agent working in this repository must see them before doing anything else.
 - Put detailed repository maintenance policy in `docs/maintaining-grimoire.md` when the material governs source ownership, packaging, harness assets, publishing, or documentation maintenance.
-- Put reusable Codex workflows in an installable plugin when installed users should be able to invoke the workflow outside this repository.
-- Use Archmage for Grimoire bootstrap, repository orientation, skill selection, and other workflows that help Codex agents use or maintain Grimoire as a harnessing repository.
-- Use Book of Engineering for current-work engineering context and next-action prioritization workflows.
-- Add a separate plugin only when the workflow has a durable user-facing domain boundary that would make Archmage's responsibility unclear.
+- Put reusable Codex workflows in `plugins/grimoire/skills/` when installed users should be able to invoke the workflow outside this repository.
+- Keep domain groupings such as Git, translation, review response, and current-work triage as skill names, descriptions, docs sections, or internal folders, not separate installable plugins.
+- Add a separate plugin only when there is a concrete external distribution boundary that would make the single Grimoire harness package misleading.
 - Keep repository-only operational policy out of installable plugin `skills/` paths.
 
 ## README Maintenance
@@ -78,24 +77,6 @@ Do not modify README files for maintenance-policy-only changes unless the reposi
 
 ## Plugin Visual Assets
 
-When creating a new `book-of-*` plugin, copy the approved default book assets into the plugin instead of generating new images:
-
-1. Copy `assets/book-of/default-logo.png` to `plugins/<plugin>/assets/logo.png`.
-2. Copy `assets/book-of/default-icon.png` to `plugins/<plugin>/assets/icon.png`.
-3. Reference them from the Codex manifest as `./assets/logo.png` and `./assets/icon.png`.
-
-Keep the copied default book assets until a human approves a plugin-specific variant in the same family, such as a changed central emblem or cover color. Treat plugin-specific `book-of-*` variants as manual visual asset updates, not as part of initial plugin scaffolding.
-
-When creating an approved plugin-specific `book-of-*` variant:
-
-- Use `assets/book-of/default-logo.png` as the family baseline for the book silhouette, centered placement, transparent padding, and approximate visual footprint.
-- Keep the book shape in the same family as the default asset. Limit plugin-specific differentiation to the central emblem, cover color, and a small number of ornamental accent colors.
-- Keep the bottom page block in the same warm parchment beige/tan family as the approved default assets. Do not tint pages with the plugin theme color.
-- Keep the cover body and left spine in one cohesive color family. Reserve strong accent colors for the central emblem and optional right-side corner or edge ornaments.
-- Prefer cel-shaded or hard-faceted painted shading that matches the existing icon family. Avoid smooth gradients, center glows, airbrush shading, vignettes, mottled color noise, and broad color-grading passes.
-- If a generated variant misses the approved art direction, regenerate or redraw the image instead of relying on color correction. Limit post-processing to transparency extraction, footprint alignment, small-fringe cleanup, and icon resizing.
-- Keep the central emblem simple enough to remain legible in the 256 by 256 composer icon and smaller client surfaces.
-
 When manually adding or updating plugin images:
 
 - Use only source images with clear usage rights, or manually approved original assets.
@@ -103,7 +84,7 @@ When manually adding or updating plugin images:
 - If both are present, keep `logo` and `composerIcon` visually related, but optimize the icon for small-size recognition.
 - Use transparent PNG assets by default, with no text, watermark, decorative floating particles, shadows, or background fill.
 - Center the subject and leave enough transparent padding so the mark is not clipped in rounded or masked client surfaces.
-- Store plugin visual assets under the plugin's `./assets/` directory and reference them from the Codex manifest with `./assets/...` paths.
+- Store Grimoire plugin visual assets under `plugins/grimoire/assets/` and reference them from the Codex manifest with `./assets/...` paths.
 - Treat copyright clearance, brand fit, and small-size legibility as manual review items; do not rely on automation for those judgments.
 
 For Codex plugin assets, keep the current repository convention unless the upstream client requirement changes. These manifest fields are optional, but if present they must point to matching assets:
