@@ -1,5 +1,4 @@
 interface:
-  display_name: "Magical Review Response"
   short_description: "Translate, decide, fix, and answer PR reviews"
   default_prompt: "Use $magical-review-response to translate and handle this PR review feedback end to end."
 

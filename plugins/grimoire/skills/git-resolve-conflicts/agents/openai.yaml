@@ -1,4 +1,3 @@
 interface:
-  display_name: "Git Resolve Conflicts"
   short_description: "Resolve Git conflicts against a remote base"
   default_prompt: "Use $git-resolve-conflicts to resolve a branch or PR conflict against its remote base and leave it mergeable."

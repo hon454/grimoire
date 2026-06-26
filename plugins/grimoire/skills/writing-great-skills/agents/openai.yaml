@@ -1,5 +1,4 @@
 interface:
-  display_name: "Writing Great Skills"
   short_description: "Write predictable skills"
   default_prompt: "Use $writing-great-skills to improve a Codex skill's invocation, structure, and wording."
 

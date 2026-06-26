@@ -1,0 +1,6 @@
+interface:
+  short_description: "Check applicable Grimoire skills first"
+  default_prompt: "Use $using-grimoire to check and load applicable Grimoire skills before starting this task."
+
+policy:
+  allow_implicit_invocation: true
