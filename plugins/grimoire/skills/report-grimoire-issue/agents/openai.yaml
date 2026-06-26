@@ -1,5 +1,4 @@
 interface:
-  display_name: "Report Grimoire Issue"
   short_description: "Draft and file upstream Grimoire issues"
   default_prompt: "Use $report-grimoire-issue to draft an upstream Grimoire issue and post it only after confirmation."
 

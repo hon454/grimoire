@@ -1,5 +1,4 @@
 interface:
-  display_name: "Issue Preflight"
   short_description: "Audit work-item validity before implementation"
   default_prompt: "Use $issue-preflight to audit whether this work item is still valid before implementing."
 
