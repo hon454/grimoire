@@ -121,29 +121,29 @@ merge it into the main ledger only after checking it against the sources.
    requests when available.
 5. Read repository instructions and discover validation commands.
 6. Use `$magical-translation` to present a readable review digest in the
-   resolved locale. Do not use Markdown tables or horizontal rules. Use this
-   heading-and-bullet structure, localizing labels to the resolved locale:
-
-   ## Decision index
-   - **{number}. {short review title}** — `{decision type}`; decision needed:
-     yes/no.
+   resolved locale. Do not use Markdown tables. Use horizontal rules only as the
+   divider required immediately before a user-facing decision or progress
+   question. Use this heading-and-bullet structure, localizing labels to the
+   resolved locale:
 
    ## Review details
 
    ### {number}. {short review title}
-   - **Decision needed:** yes/no, with the specific choice if yes.
-   - **Recommended response:** ...
    - **Translation:** ...
    - **Takeaway:** ...
+   - **Decision needed:** yes/no, with the specific choice if yes.
+   - **Recommended response:** ...
 
-   Put the decision-needed and recommended-response lines before source detail.
-   Keep `Translation` short and faithful to the reviewer text. Use `Takeaway` to
-   combine the ask, interpretation, and reviewer intent without repeating the
-   translation. Keep each field to one or two sentences, leave a blank line
-   between review items, and split long review items when they require separate
-   decisions.
+   Do not include a separate decision index section. Translate the full reviewer
+   text in `Translation` rather than shortening it, while still redacting
+   sensitive values before echoing source details. Use `Takeaway` to combine the
+   ask, interpretation, and reviewer intent without repeating the translation.
+   Keep `Takeaway`, `Decision needed`, and `Recommended response` to one or two
+   sentences each, leave a blank line between review items, and split long review
+   items when they require separate decisions.
 
-7. Interview each actionable decision point one at a time. Prefer a concrete
+7. Interview each actionable decision point one at a time. Put a horizontal
+   rule immediately above the decision or progress question. Prefer a concrete
    recommendation, but record the user's decision exactly enough to implement or
    draft a reply later.
 8. After all decision points are decided, present one consolidated response plan
