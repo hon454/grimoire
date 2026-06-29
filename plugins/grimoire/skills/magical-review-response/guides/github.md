@@ -27,6 +27,7 @@ inline context is needed and the app cannot provide it, use `gh` GraphQL.
 
 Collect:
 
+- acting GitHub identity used for write actions
 - PR state, draft state, base branch, head branch, author, reviewers, and review
   requests
 - review decisions, requested changes, and latest review submissions
@@ -49,6 +50,7 @@ the gap and continue with local or pasted context when possible.
 Common read commands:
 
 ```bash
+gh api user --jq .login
 gh pr view --json number,title,state,isDraft,author,baseRefName,headRefName,reviewDecision,reviewRequests,reviews,comments,files,statusCheckRollup,body,url
 gh pr diff
 gh pr checks
@@ -57,7 +59,8 @@ gh pr checks
 Use GraphQL for review threads because REST and basic `gh pr view` output often
 lose thread resolution context. Query only the target PR and request enough
 fields to map comments back to files, hunks, authors, outdated state, and thread
-resolution state.
+resolution state. Include `viewer.login` when GraphQL will drive write-action
+eligibility.
 
 ## Eligibility For Resolve
 
@@ -69,11 +72,15 @@ Resolve a GitHub review thread only when all are true:
 - the thread is currently unresolved
 - the thread is an inline review thread
 - the acting GitHub identity is allowed to resolve it
-- the thread was authored by the current user, or project conventions and
-  permissions make resolving reviewer-authored threads appropriate
+- the thread was authored by the acting GitHub identity, or the user explicitly
+  approved resolving that specific reviewer-authored thread in the confirmed
+  response plan
 
-If authorship or permission is unclear, do not resolve. Say which thread should
-be resolved manually or ask the user before resolving.
+Leave reviewer-authored threads unresolved by default after replying. Do not
+infer approval from write permission, repository role, project convention, or a
+general instruction to handle review feedback. If authorship, permission, or
+explicit approval is unclear, do not resolve. Say which thread should be
+resolved manually or ask the user before resolving.
 
 ## Replies
 

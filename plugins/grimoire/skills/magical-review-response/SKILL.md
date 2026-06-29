@@ -1,6 +1,6 @@
 ---
 name: magical-review-response
-description: Translate and interpret PR or code review feedback in the user's resolved locale, interview each decision point, implement the confirmed response plan, verify changes, and handle review replies, resolves, optional body updates, and re-review requests.
+description: Translate and handle PR/code review feedback in the user's resolved locale, including requested changes, decision interviews, confirmed fixes, verification, reviewer follow-up, per-thread replies and resolves, optional PR body updates, and re-review requests.
 ---
 
 # Magical Review Response
@@ -55,6 +55,8 @@ Keep an internal ledger for every review item in scope. Track:
 - implementation status
 - verification status
 - reply status
+- resolve action: auto-resolve, explicitly approved resolve, leave unresolved,
+  or not applicable
 
 Do not finalize implementation or write review replies until every actionable
 decision point has an explicit decision or a recorded reason for deferral.
@@ -149,7 +151,8 @@ merge it into the main ledger only after checking it against the sources.
 8. After all decision points are decided, present one consolidated response plan
    for final review. Include items to change, items to explain, questions to
    ask, deferred/rejected items, duplicate/outdated items, planned validation,
-   planned platform writes, and optional PR/MR body updates.
+   planned platform writes, per-thread resolve actions, and optional PR/MR body
+   updates.
 9. Implement only the confirmed plan. Keep changes traceable to review item
    numbers. For broad work, batch by review item or component and update the
    ledger after each batch.
@@ -158,9 +161,10 @@ merge it into the main ledger only after checking it against the sources.
 11. Draft concise English replies for each review item. Match the decision:
     fixed, explained, question, deferred/rejected, duplicate, or outdated.
 12. Perform platform write actions that are part of the confirmed plan and
-    supported by the loaded guide: reply to review threads, resolve eligible
-    inline comments, optionally update the PR/MR body, and request re-review
-    from current reviewers when appropriate.
+    supported by the loaded guide: reply to review threads, perform only the
+    per-thread resolve actions recorded in the confirmed plan, optionally update
+    the PR/MR body, and request re-review from current reviewers when
+    appropriate.
 13. Report the completed decision ledger, changed files, verification results,
     platform write actions performed, and any remaining reviewer or user
     decisions.
