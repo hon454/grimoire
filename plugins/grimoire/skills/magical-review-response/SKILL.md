@@ -131,18 +131,30 @@ merge it into the main ledger only after checking it against the sources.
    ## Review details
 
    ### {number}. {short review title}
-   - **Translation:** ...
+   - **Translation:**
+     {full translated reviewer text, preserving paragraph breaks}
    - **Takeaway:** ...
    - **Decision needed:** yes/no, with the specific choice if yes.
    - **Recommended response:** ...
 
    Do not include a separate decision index section. Translate the full reviewer
    text in `Translation` rather than shortening it, while still redacting
-   sensitive values before echoing source details. Use `Takeaway` to combine the
-   ask, interpretation, and reviewer intent without repeating the translation.
-   Keep `Takeaway`, `Decision needed`, and `Recommended response` to one or two
-   sentences each, leave a blank line between review items, and split long review
-   items when they require separate decisions.
+   sensitive values before echoing source details. Format `Translation` as a
+   block field, not an inline field. Preserve the source paragraph count and
+   order when the reviewer text has paragraph breaks. Preserve line-start
+   emphasis labels, including their Markdown emphasis and start-of-line
+   position. Use this shape for long translations:
+
+   - **Translation:**
+     {translated paragraph 1}
+
+     {translated paragraph 2}
+
+   Use `Takeaway` to combine the ask, interpretation, and reviewer intent
+   without repeating the translation. Keep `Takeaway`, `Decision needed`, and
+   `Recommended response` to one or two sentences each, leave a blank line
+   between review items, and split long review items when they require separate
+   decisions.
 
 7. Interview each actionable decision point one at a time. Put a horizontal
    rule immediately above the decision or progress question. Prefer a concrete
