@@ -120,20 +120,28 @@ merge it into the main ledger only after checking it against the sources.
    current diff, relevant CI state, reviewer identities, and existing review
    requests when available.
 5. Read repository instructions and discover validation commands.
-6. Use `$magical-translation` to present a numbered review digest in the
-   resolved locale. Avoid wide tables; use one readable block per review item,
-   with labels localized to the resolved locale:
+6. Use `$magical-translation` to present a readable review digest in the
+   resolved locale. Do not use Markdown tables or horizontal rules. Use this
+   heading-and-bullet structure, localizing labels to the resolved locale:
 
-   **{number}. {short review title}** — `{decision type}`
+   ## Decision index
+   - **{number}. {short review title}** — `{decision type}`; decision needed:
+     yes/no.
+
+   ## Review details
+
+   ### {number}. {short review title}
    - **Decision needed:** yes/no, with the specific choice if yes.
    - **Recommended response:** ...
-   - **Original ask:** ...
-   - **Interpretation:** ...
-   - **Reviewer intent:** ...
+   - **Translation:** ...
+   - **Takeaway:** ...
 
-   Put the decision-needed line first for items that require user input. Keep
-   each field to one or two sentences, and split long review items when they
-   require separate decisions.
+   Put the decision-needed and recommended-response lines before source detail.
+   Keep `Translation` short and faithful to the reviewer text. Use `Takeaway` to
+   combine the ask, interpretation, and reviewer intent without repeating the
+   translation. Keep each field to one or two sentences, leave a blank line
+   between review items, and split long review items when they require separate
+   decisions.
 
 7. Interview each actionable decision point one at a time. Prefer a concrete
    recommendation, but record the user's decision exactly enough to implement or
