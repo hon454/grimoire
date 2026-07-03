@@ -11,6 +11,15 @@ URL = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits"
 
 
 def parse_time(value):
+    dt = parse_datetime(value)
+    if dt:
+        return dt.strftime("%Y-%m-%d %H:%M %Z")
+    if value:
+        return str(value)
+    return None
+
+
+def parse_datetime(value):
     if not value:
         return None
     text = str(value)
@@ -20,24 +29,57 @@ def parse_time(value):
         dt = datetime.fromisoformat(text)
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z%z")
+        return dt.astimezone()
     except ValueError:
-        return str(value)
+        return None
 
 
-def summarize(data):
+def format_time_left(value, now=None):
+    expires_at = parse_datetime(value)
+    if not expires_at:
+        return None
+    if now is None:
+        now = datetime.now(expires_at.tzinfo)
+    else:
+        now = now.astimezone(expires_at.tzinfo)
+    seconds = int((expires_at - now).total_seconds())
+    if seconds <= 0:
+        return "expired"
+    if seconds < 60:
+        return "<1m"
+
+    total_minutes = seconds // 60
+    days, total_minutes = divmod(total_minutes, 24 * 60)
+    hours, minutes = divmod(total_minutes, 60)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    return " ".join(parts)
+
+
+def summarize_credit(credit, now=None):
+    expires_at = credit.get("expires_at")
+    return {
+        "status": credit.get("status"),
+        "title": credit.get("title"),
+        "granted_at": parse_time(credit.get("granted_at")),
+        "expires_at": parse_time(expires_at),
+        "time_left": format_time_left(expires_at, now),
+    }
+
+
+def summarize(data, now=None):
     credits = data.get("credits") or data.get("items") or []
     if not isinstance(credits, list):
         credits = []
     return {
         "available_count": data.get("available_count", len(credits)),
         "credits": [
-            {
-                "status": credit.get("status"),
-                "title": credit.get("title"),
-                "granted_at": parse_time(credit.get("granted_at")),
-                "expires_at": parse_time(credit.get("expires_at")),
-            }
+            summarize_credit(credit, now)
             for credit in credits
             if isinstance(credit, dict)
         ],
@@ -45,15 +87,15 @@ def summarize(data):
 
 
 def render(summary):
-    lines = [f"Available reset credits: {summary['available_count']}"]
+    lines = [f"Reset credits available: {summary['available_count']}"]
     for index, credit in enumerate(summary["credits"], 1):
         lines.extend(
             [
                 "",
-                f"{index}. Reset credit",
-                f"   Status: {credit.get('status') or '(unknown)'}",
+                f"{index}. Status: {credit.get('status') or '(unknown)'}",
                 f"   Granted: {credit.get('granted_at') or '(unknown)'}",
                 f"   Expires: {credit.get('expires_at') or '(unknown)'}",
+                f"   Time left: {credit.get('time_left') or '(unknown)'}",
             ]
         )
     return "\n".join(lines)
@@ -82,6 +124,7 @@ def fetch(token):
 
 
 def self_test():
+    now = datetime.fromisoformat("2026-07-02T00:00:00+00:00")
     summary = summarize(
         {
             "available_count": 1,
@@ -94,14 +137,20 @@ def self_test():
                     "expires_at": "2026-07-03T00:00:00+00:00",
                 }
             ],
-        }
+        },
+        now=now,
     )
     assert summary["available_count"] == 1
     assert summary["credits"][0]["status"] == "available"
+    assert summary["credits"][0]["time_left"] == "1d"
     assert "id" not in summary["credits"][0]
     assert summary["credits"][0]["granted_at"] != "2026-07-02T00:00:00Z"
     assert "do-not-print" not in render(summary)
-    assert "Reset\n" not in render(summary)
+    assert "1. Reset credit" not in render(summary)
+    assert "Time left: 1d" in render(summary)
+    assert format_time_left("2026-07-02T01:02:30Z", now) == "1h 2m"
+    assert format_time_left("2026-07-02T00:00:30Z", now) == "<1m"
+    assert format_time_left("2026-07-01T23:59:00Z", now) == "expired"
 
 
 def main():

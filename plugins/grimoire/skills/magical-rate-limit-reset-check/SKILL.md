@@ -19,10 +19,11 @@ rate-limit reset credits using this device's Codex credentials.
 2. If the script reports HTTP 401, tell the user the credentials are expired or
    the Authorization header was not accepted.
 
-3. Report `available_count` once, then list each credit as a short block.
-   Omit `title` in the default human-readable output because reset credits are
-   normally the same kind. Keep `title` available only in JSON output. Do not
-   use a table unless the user asks for one.
+3. Report `available_count` once, then list each credit as a short block with
+   status, granted time, expiration time, and time left. Omit `title` in the
+   default human-readable output because reset credits are normally the same
+   kind. Keep `title` available only in JSON output. Do not use a table unless
+   the user asks for one.
 
 ## Secret Handling
 
