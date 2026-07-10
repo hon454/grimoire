@@ -1,7 +1,0 @@
-interface:
-  display_name: "Magical Rate Limit Reset Check"
-  short_description: "Check reset-credit availability safely"
-  default_prompt: "Use $magical-rate-limit-reset-check to check my ChatGPT rate-limit reset credits without exposing credentials."
-
-policy:
-  allow_implicit_invocation: false
