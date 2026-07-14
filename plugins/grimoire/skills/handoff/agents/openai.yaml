@@ -1,0 +1,7 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Create a copy-ready conversation handoff"
+  default_prompt: "Use $handoff to create a self-contained prompt I can paste into another task."
+
+policy:
+  allow_implicit_invocation: false
