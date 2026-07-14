@@ -1,4 +1,5 @@
 interface:
+  display_name: "Magical Translation"
   short_description: "Translate using the Grimoire session locale"
   default_prompt: "Use $magical-translation to translate this into my configured Grimoire locale."
 

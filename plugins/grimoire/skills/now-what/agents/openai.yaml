@@ -1,4 +1,5 @@
 interface:
+  display_name: "Now What"
   short_description: "Recommend the next current-work action"
   default_prompt: "Use $now-what to inspect this workspace and recommend what to do next."
 
