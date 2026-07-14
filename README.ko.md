@@ -19,7 +19,7 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 
 | Icon | Plugin | 설명 |
 | --- | :---: | --- |
-| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Grimoire bootstrap, skill authoring, current-work triage, issue preflight와 readiness review, locale-grounded translation, review response, Git cleanup, conflict resolution을 위한 workflow skill과 hook입니다. |
+| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Grimoire bootstrap, skill authoring, conversation handoff, current-work triage, issue preflight와 readiness review, locale-grounded translation, review response, Git cleanup, conflict resolution을 위한 workflow skill과 hook입니다. |
 
 ## Contents
 
@@ -28,6 +28,7 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 - `plugins/grimoire/skills/using-grimoire/SKILL.md`: Codex agent가 작업 전에 적용 가능한 Grimoire skill을 확인하고 로드하도록 요구하는 bootstrap skill입니다.
 - `plugins/grimoire/skills/report-grimoire-issue/SKILL.md`: upstream Grimoire GitHub issue를 초안화하고 확인 후에만 게시하는 명시적 호출 issue-reporting skill입니다.
 - `plugins/grimoire/skills/writing-great-skills/SKILL.md`: 예측 가능한 Codex skill을 작성하고 편집하기 위한 명시적 호출 reference skill입니다.
+- `plugins/grimoire/skills/handoff/SKILL.md`: 선택한 대화 맥락을 다른 작업에 복사할 수 있는 자기완결적 prompt로 만드는 명시적 호출 skill입니다.
 - `plugins/grimoire/skills/now-what/SKILL.md`: 현재 작업 맥락을 triage하고 다음 행동을 추천하는 명시적 호출 skill입니다.
 - `plugins/grimoire/skills/issue-preflight/SKILL.md`: tracker를 변경하지 않고 구현 전 tracker issue, linked change, branch-scoped work reference를 검증하는 명시적 호출 skill입니다.
 - `plugins/grimoire/skills/issue-readiness-review/SKILL.md`: tracker를 변경하지 않고 readiness에 맞는 tracker update 초안을 만드는 명시적 호출 readiness review skill입니다.
@@ -56,7 +57,7 @@ codex
 /plugins
 ```
 
-Codex marketplace catalog는 `./plugins/grimoire`를 가리킵니다. plugin의 `.codex-plugin/plugin.json`은 설치 가능한 skill directory와 SessionStart hook을 가리킵니다.
+Codex marketplace catalog는 `./plugins/grimoire`를 가리킵니다. plugin manifest는 설치 가능한 skill directory를 가리키며, Codex는 번들된 SessionStart hook을 기본 `hooks/hooks.json` 경로에서 탐색합니다.
 
 Grimoire는 Codex SessionStart hook을 포함합니다. plugin을 설치하거나 업데이트한 뒤, 생성되는 Grimoire session config를 사용하기 전에 Codex에서 해당 hook을 검토하고 신뢰 처리해야 합니다.
 

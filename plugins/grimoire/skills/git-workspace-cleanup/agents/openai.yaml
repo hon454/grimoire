@@ -1,4 +1,5 @@
 interface:
+  display_name: "Git Workspace Cleanup"
   short_description: "Prune local Git worktrees and branches back to main"
   default_prompt: "Use $git-workspace-cleanup to keep only the main worktree and local main branch, then update main."
 
