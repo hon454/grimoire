@@ -57,7 +57,7 @@ codex
 /plugins
 ```
 
-The Codex marketplace catalog points to `./plugins/grimoire`. The plugin's `.codex-plugin/plugin.json` points to its installable skill directory and SessionStart hook.
+The Codex marketplace catalog points to `./plugins/grimoire`. The plugin manifest points to its installable skill directory, while Codex discovers the bundled SessionStart hook at the conventional `hooks/hooks.json` path.
 
 Grimoire bundles a Codex SessionStart hook. After installing or updating the plugin, review and trust the hook in Codex before relying on its generated Grimoire session config.
 

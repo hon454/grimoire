@@ -57,7 +57,7 @@ codex
 /plugins
 ```
 
-Codex marketplace catalog는 `./plugins/grimoire`를 가리킵니다. plugin의 `.codex-plugin/plugin.json`은 설치 가능한 skill directory와 SessionStart hook을 가리킵니다.
+Codex marketplace catalog는 `./plugins/grimoire`를 가리킵니다. plugin manifest는 설치 가능한 skill directory를 가리키며, Codex는 번들된 SessionStart hook을 기본 `hooks/hooks.json` 경로에서 탐색합니다.
 
 Grimoire는 Codex SessionStart hook을 포함합니다. plugin을 설치하거나 업데이트한 뒤, 생성되는 Grimoire session config를 사용하기 전에 Codex에서 해당 hook을 검토하고 신뢰 처리해야 합니다.
 
