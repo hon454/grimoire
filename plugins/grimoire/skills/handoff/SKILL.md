@@ -81,9 +81,22 @@ non-sensitive technical identifiers needed to understand the handoff. Note
 
 ## Output
 
-After resolving scope, return exactly one fenced Markdown block containing the
-paste-ready prompt. Write no explanation outside the block. Do not save a file or
-write to the clipboard.
+After resolving scope, compose the complete paste-ready prompt as the payload
+before wrapping it. Let `M` be the length of the longest run of consecutive
+backticks anywhere in the payload (`0` if none), then set the outer fence length
+to `N = max(4, M + 1)`.
+
+Return exactly one outer fenced code block:
+
+1. Start the opener at column 1 with exactly `N` backticks immediately followed
+   by `markdown` and nothing else.
+2. Place the payload unchanged on the following lines. Keep every internal
+   backtick or tilde fence as literal payload content.
+3. On the line after the payload, start the closer at column 1 with exactly `N`
+   backticks and nothing else.
+
+Use backticks, never tildes, for the outer fence, and write nothing outside the
+outer block. Do not save a file or write to the clipboard.
 
 Before returning it, silently verify that the handoff:
 
@@ -93,4 +106,5 @@ Before returning it, silently verify that the handoff:
 - preserves rationale and important examples
 - does not transfer authority
 - contains no sensitive data
-- consists of one copy-ready Markdown block
+- follows the outer-wrapper rule above without altering the payload or adding
+  content outside it
