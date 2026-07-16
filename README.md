@@ -19,7 +19,7 @@ Grimoire currently publishes one installable harness plugin:
 
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
-| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Workflow skills and hooks for Grimoire bootstrap, skill authoring, handoff prompt creation, verified side-conversation handoff, current-work triage, issue preflight, readiness review and Linear closeout, locale-grounded translation, review response, Git cleanup, and conflict resolution. |
+| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Workflow skills and hooks for Grimoire bootstrap, skill authoring, handoff prompt creation, verified side-conversation handoff, current-work triage, issue preflight, readiness review and Linear closeout, locale-grounded translation, evidence-bound review response, Git cleanup, and conflict resolution. |
 
 ## Contents
 
@@ -36,7 +36,7 @@ Grimoire currently publishes one installable harness plugin:
 - `plugins/grimoire/skills/issue-readiness-review/SKILL.md`: the explicit-invocation readiness review skill that drafts the appropriate tracker update without changing trackers.
 - `plugins/grimoire/skills/linear-issue-closeout/SKILL.md`: the explicit-invocation Linear closeout skill that uses independent read-only reviewers before completing and commenting on an evidence-backed issue.
 - `plugins/grimoire/skills/magical-translation/SKILL.md`: the locale-grounded translation skill that reads the Grimoire session config cache before translating user-facing text.
-- `plugins/grimoire/skills/magical-review-response/SKILL.md`: the review-response workflow that translates review feedback, interviews decision points, implements the confirmed plan, verifies changes, and handles reviewer follow-up.
+- `plugins/grimoire/skills/magical-review-response/SKILL.md`: the explicit-invocation review-response workflow that creates or resumes one Thread-owned Review Session for GitHub PR review or pasted feedback, binds decisions to versioned Evidence and an Action Envelope, verifies authorized work, and journals reviewer follow-up.
 - `plugins/grimoire/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `plugins/grimoire/skills/git-resolve-conflicts/SKILL.md`: the guarded Git conflict resolution skill for making conflicted branches or PRs mergeable against a fetched remote base.
 - `assets/readme/`: README-specific visual assets.
@@ -44,6 +44,18 @@ Grimoire currently publishes one installable harness plugin:
 - `docs/maintaining-grimoire.md`: repository-local policy for changing Grimoire skills, plugin packaging, Codex harness assets, documentation, and publishing checks.
 - `.agents/plugins/marketplace.json`: the Codex marketplace catalog that exposes `plugins/grimoire/`.
 - `AGENTS.md`: the source-of-truth agent protocol for this repository.
+
+## Review Response Sessions
+
+Invoke `$magical-review-response` explicitly with a GitHub PR review locator or a batch of pasted review feedback. The skill creates or resumes one Review Session for the current Codex task and stores its authoritative state and deterministic read-only detail view under:
+
+```text
+<GRIMOIRE_HOME>/review-response/threads/<thread-id>/
+├── state.json
+└── review.html
+```
+
+The Session preserves Source snapshots, Review Items, versioned Evidence, decisions, active authorization, local progress, and remote mutation attempts across interruptions. Artifacts remain by default. Switching the same task to a different PR requires remote reconciliation, explicit approval to discard the current Session, and a successful state-last purge before the new PR Session starts.
 
 ## Installation Notes
 
