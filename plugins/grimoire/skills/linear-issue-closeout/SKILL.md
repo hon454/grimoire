@@ -41,6 +41,10 @@ classification without a draft.
 
 ## Evidence Boundary
 
+On the first target issue read, before following linked sources or dispatching
+reviewers, capture its initial state and revision. Preserve that baseline for
+the entire invocation; do not replace it with a later read.
+
 Inspect the target issue's fields, description, substantive comments, parent,
 children, blockers, blocking issues, related issues, attachments, and state
 history when available. Follow direct Linear and change links only when they
@@ -115,10 +119,11 @@ the conflict cannot be resolved without judgment, return
 
 ## Closeout Gate
 
-Capture the target issue's initial state and revision before evaluating the
-gate. If that read fails, return `Access-blocked`. Otherwise evaluate the rows
-below in order against one internally consistent source snapshot. The first
-matching row wins; stop evaluating and return exactly that classification.
+Use the initial state and revision captured before evidence collection and
+reviewer dispatch. If that read failed, return `Access-blocked`. Otherwise
+evaluate the rows below in order against one internally consistent source
+snapshot. The first matching row wins; stop evaluating and return exactly that
+classification.
 
 | Order | Classification | First-match predicate |
 | --- | --- | --- |
