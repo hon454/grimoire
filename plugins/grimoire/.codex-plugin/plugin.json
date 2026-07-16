@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Grimoire",
     "shortDescription": "Grimoire workflow skills and session context hooks.",
-    "longDescription": "Grimoire packages one Codex harness plugin with workflow skills for Grimoire bootstrap, skill authoring, handoff prompt creation, verified side-conversation handoff to a main task, issue reporting, current-work triage, work-item preflight and readiness review, locale-grounded translation, code review response, Git workspace cleanup, and conflict resolution. It also includes the SessionStart hook that resolves user and project Grimoire config into a session cache.",
+    "longDescription": "Grimoire packages one Codex harness plugin with workflow skills for Grimoire bootstrap, skill authoring, handoff prompt creation, verified side-conversation handoff to a main task, issue reporting, current-work triage, work-item preflight, readiness review and evidence-backed Linear closeout, locale-grounded translation, code review response, Git workspace cleanup, and conflict resolution. It also includes the SessionStart hook that resolves user and project Grimoire config into a session cache.",
     "developerName": "hon454",
     "category": "Productivity",
     "capabilities": [
