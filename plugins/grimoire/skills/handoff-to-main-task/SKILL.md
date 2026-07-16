@@ -14,10 +14,10 @@ off.
 
 Before composing, read `../../references/handoff-composition.md` completely and
 apply its shared contract. Resolve `scripts/handoff_guard.py` relative to this
-`SKILL.md`, then run that absolute path for deterministic candidate resolution,
-fingerprinting, and pre-send validation. The script never calls Codex task
-tools, sends messages, or navigates. Treat any script error as a fail-closed
-result.
+`SKILL.md`, then run `python3 <absolute-script-path> <action>` for deterministic
+candidate resolution, fingerprinting, and pre-send validation. The script never
+calls Codex task tools, sends messages, or navigates. Treat any script error as
+a fail-closed result.
 
 ## Require The Host Boundary
 
