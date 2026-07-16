@@ -34,7 +34,7 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 - `plugins/grimoire/skills/now-what/SKILL.md`: 현재 작업 맥락을 triage하고 다음 행동을 추천하는 명시적 호출 skill입니다.
 - `plugins/grimoire/skills/issue-preflight/SKILL.md`: tracker를 변경하지 않고 구현 전 tracker issue, linked change, branch-scoped work reference를 검증하는 명시적 호출 skill입니다.
 - `plugins/grimoire/skills/issue-readiness-review/SKILL.md`: tracker를 변경하지 않고 readiness에 맞는 tracker update 초안을 만드는 명시적 호출 readiness review skill입니다.
-- `plugins/grimoire/skills/linear-issue-closeout/SKILL.md`: 독립적인 읽기 전용 reviewer 검토 후 근거가 충분한 Linear issue의 본문 정리, 완료 전환과 comment 작성을 수행하는 명시적 호출 closeout skill입니다.
+- `plugins/grimoire/skills/linear-issue-closeout/SKILL.md`: 독립적인 읽기 전용 reviewer 검토 후 근거가 충분한 Linear issue를 완료 상태로 전환하고 comment를 작성하는 명시적 호출 closeout skill입니다.
 - `plugins/grimoire/skills/magical-translation/SKILL.md`: user-facing text를 번역하기 전에 Grimoire session config cache에서 locale을 읽는 번역 skill입니다.
 - `plugins/grimoire/skills/magical-review-response/SKILL.md`: review feedback을 번역하고 결정점을 인터뷰한 뒤 확정된 계획을 구현, 검증, reviewer follow-up까지 처리하는 review-response workflow입니다.
 - `plugins/grimoire/skills/git-workspace-cleanup/SKILL.md`: local worktree와 branch를 main만 남기도록 정리한 뒤 main을 최신화하는 명시적 호출 Git cleanup skill입니다.
