@@ -30,6 +30,7 @@ PLATFORM_KINDS = {
 REPOSITORY_ACTIONS = {"commit", "push", "merge", "release", "deployment"}
 ALLOWED_FILES = {"state.json", "review.html", ".state.json.tmp", ".review.html.tmp"}
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+LOCALE_RE = re.compile(r"^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$")
 OBVIOUS_SECRET_RE = re.compile(
     r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----|"
     r"\b(?:gh[pousr]|sk)-[A-Za-z0-9_-]{20,}|"
@@ -164,14 +165,42 @@ def canonical_repo_part(value: Any, field: str) -> str:
 
 
 def validate_platform_action(value: Any, field: str) -> dict[str, Any]:
-    action = require_object(value, {"kind", "target", "summary", "reviewer_authored"}, field)
+    action = require_object(value, {"kind", "target", "summary", "reviewer_authored", "payload"}, field)
     kind = require_string(action["kind"], f"{field}.kind", allow_empty=False)
     if kind not in PLATFORM_KINDS:
         raise StateError(f"{field}.kind is unsupported")
     require_string(action["target"], f"{field}.target", allow_empty=False)
     require_string(action["summary"], f"{field}.summary", allow_empty=False)
     require_bool(action["reviewer_authored"], f"{field}.reviewer_authored")
+    payload = action["payload"]
+    if kind in {"github_reply", "github_pr_body_update"}:
+        payload = require_object(payload, {"body"}, f"{field}.payload")
+        require_string(payload["body"], f"{field}.payload.body", allow_empty=False)
+    elif kind == "github_rereview":
+        payload = require_object(payload, {"reviewers"}, f"{field}.payload")
+        reviewers = require_string_list(payload["reviewers"], f"{field}.payload.reviewers")
+        normalized_reviewers = {reviewer.lower() for reviewer in reviewers}
+        if not reviewers:
+            raise StateError(f"{field}.payload.reviewers must not be empty")
+        if len(reviewers) != len(normalized_reviewers):
+            raise StateError(
+                f"{field}.payload.reviewers must not contain case-insensitive duplicates"
+            )
+    else:
+        require_object(payload, set(), f"{field}.payload")
     return action
+
+
+def remote_effect_projection(action: dict[str, Any]) -> dict[str, Any]:
+    """Return only the fields that determine the externally visible mutation."""
+    payload = action["payload"]
+    if action["kind"] == "github_rereview":
+        payload = {"reviewers": sorted(reviewer.lower() for reviewer in payload["reviewers"])}
+    return {
+        "kind": action["kind"],
+        "target": action["target"],
+        "payload": payload,
+    }
 
 
 def validate_local_change(value: Any, field: str) -> dict[str, Any]:
@@ -259,15 +288,11 @@ def validate_evidence_semantic(value: Any, field: str) -> dict[str, Any]:
     for index, excerpt_value in enumerate(semantic["code"]):
         excerpt = require_object(
             excerpt_value,
-            {"path", "revision", "start_line", "end_line", "text"},
+            {"path", "revision", "text"},
             f"{field}.code[{index}]",
         )
         require_string(excerpt["path"], f"{field}.code[{index}].path", allow_empty=False)
         require_string(excerpt["revision"], f"{field}.code[{index}].revision", allow_empty=False)
-        start = require_int(excerpt["start_line"], f"{field}.code[{index}].start_line", minimum=1)
-        end = require_int(excerpt["end_line"], f"{field}.code[{index}].end_line", minimum=1)
-        if end < start:
-            raise StateError(f"{field}.code[{index}].end_line must be >= start_line")
         require_string(excerpt["text"], f"{field}.code[{index}].text")
     if not isinstance(semantic["examples"], list):
         raise StateError(f"{field}.examples must be an array")
@@ -294,6 +319,7 @@ def validate_presentation(value: Any, field: str) -> dict[str, Any]:
             "alternatives",
             "recommendation",
             "question",
+            "code_locations",
         },
         field,
     )
@@ -326,7 +352,40 @@ def validate_presentation(value: Any, field: str) -> dict[str, Any]:
         if choice_id in seen:
             raise StateError(f"{field}.alternatives has duplicate choice_id")
         seen.add(choice_id)
+    if not isinstance(presentation["code_locations"], list):
+        raise StateError(f"{field}.code_locations must be an array")
+    for index, location_value in enumerate(presentation["code_locations"]):
+        location = require_object(
+            location_value, {"start_line", "end_line"}, f"{field}.code_locations[{index}]"
+        )
+        start = require_int(location["start_line"], f"{field}.code_locations[{index}].start_line", minimum=1)
+        end = require_int(location["end_line"], f"{field}.code_locations[{index}].end_line", minimum=1)
+        if end < start:
+            raise StateError(f"{field}.code_locations[{index}].end_line must be >= start_line")
     return presentation
+
+
+def decision_view(
+    presentation: dict[str, Any], proposal: dict[str, Any]
+) -> dict[str, Any]:
+    displays = {
+        entry["choice_id"]: entry for entry in presentation["alternatives"]
+    }
+    return {
+        "question": presentation["question"],
+        "alternatives": [
+            {
+                "choice_id": choice_id,
+                "label": displays.get(choice_id, {}).get("label")
+                or proposal["choices_by_id"][choice_id]["label"]
+                or choice_id,
+                "tradeoff": displays.get(choice_id, {}).get("tradeoff")
+                or proposal["choices_by_id"][choice_id]["tradeoff"],
+            }
+            for choice_id in proposal["choice_order"]
+        ],
+        "recommendation": presentation["recommendation"],
+    }
 
 
 def evidence_projection(item: dict[str, Any], semantic: dict[str, Any], version: int, evidence_id: str) -> dict[str, Any]:
@@ -407,6 +466,11 @@ def mark_item_stale(
             "result": "unverified",
             "reason": reason,
             "diff": diff,
+            "proposal_id": item["proposal"]["id"] if item["proposal"] else None,
+            "proposal_generation": item["proposal"]["generation"] if item["proposal"] else 0,
+            "decision_fingerprint": (
+                item["proposal"]["decision_fingerprint"] if item["proposal"] else None
+            ),
             "created_at": timestamp,
         }
     )
@@ -423,6 +487,7 @@ def blank_presentation(title: str) -> dict[str, Any]:
         "alternatives": [],
         "recommendation": "",
         "question": "",
+        "code_locations": [],
     }
 
 
@@ -462,7 +527,9 @@ def new_item(
             "area": None,
             "change_kind": None,
             "validation_summary": "",
+            "authorization_id": None,
         },
+        "local_attempt_history": [],
         "remote_mutations": [],
         "created_at": timestamp,
         "updated_at": timestamp,
@@ -562,9 +629,11 @@ def validate_proposal(value: Any, item: dict[str, Any], field: str) -> Optional[
         return None
     proposal = require_object(
         value,
-        {"choices_by_id", "choice_order", "recommended_choice_id", "action_envelope", "decision_fingerprint"},
+        {"id", "generation", "choices_by_id", "choice_order", "recommended_choice_id", "action_envelope", "decision_fingerprint"},
         field,
     )
+    canonical_uuid(proposal["id"], f"{field}.id")
+    require_int(proposal["generation"], f"{field}.generation", minimum=1)
     if not isinstance(proposal["choices_by_id"], dict) or not proposal["choices_by_id"]:
         raise StateError(f"{field}.choices_by_id must be a non-empty object")
     for choice_id, choice_value in proposal["choices_by_id"].items():
@@ -692,10 +761,25 @@ def validate_evidence(value: Any, field: str) -> dict[str, Any]:
     if not isinstance(evidence["evaluations"], list):
         raise StateError(f"{field}.evaluations must be an array")
     seen = set()
+    current_generation = 0
+    current_proposal_id = None
+    current_decision_fingerprint = None
+    stale_boundary = False
     for index, evaluation_value in enumerate(evidence["evaluations"]):
         evaluation = require_object(
             evaluation_value,
-            {"id", "from_version", "to_version", "result", "reason", "diff", "created_at"},
+            {
+                "id",
+                "from_version",
+                "to_version",
+                "result",
+                "reason",
+                "diff",
+                "proposal_id",
+                "proposal_generation",
+                "decision_fingerprint",
+                "created_at",
+            },
             f"{field}.evaluations[{index}]",
         )
         evaluation_id = canonical_uuid(evaluation["id"], f"{field}.evaluations[{index}].id")
@@ -708,8 +792,57 @@ def validate_evidence(value: Any, field: str) -> dict[str, Any]:
                 require_int(value, f"{field}.evaluations[{index}].{key}", minimum=1)
         if evaluation["result"] not in {"initial", "same", "changed", "unverified"}:
             raise StateError(f"{field}.evaluations[{index}].result is invalid")
+        proposal_id = evaluation["proposal_id"]
+        if proposal_id is not None:
+            proposal_id = canonical_uuid(
+                proposal_id, f"{field}.evaluations[{index}].proposal_id"
+            )
+        proposal_generation = require_int(
+            evaluation["proposal_generation"],
+            f"{field}.evaluations[{index}].proposal_generation",
+            minimum=0,
+        )
+        decision_fingerprint = evaluation["decision_fingerprint"]
+        if decision_fingerprint is not None and not SHA256_RE.fullmatch(
+            require_string(
+                decision_fingerprint,
+                f"{field}.evaluations[{index}].decision_fingerprint",
+                allow_empty=False,
+            )
+        ):
+            raise StateError(f"{field}.evaluations[{index}].decision_fingerprint is invalid")
+        result = evaluation["result"]
+        if result == "unverified":
+            if (
+                proposal_generation != current_generation
+                or proposal_id != current_proposal_id
+                or decision_fingerprint != current_decision_fingerprint
+            ):
+                raise StateError(f"{field}.evaluations[{index}] stale generation is invalid")
+            stale_boundary = True
+        else:
+            if result == "initial" and current_generation != 0:
+                raise StateError(f"{field}.evaluations[{index}] initial result is invalid")
+            if result in {"same", "changed"} and current_generation == 0:
+                raise StateError(f"{field}.evaluations[{index}] requires prior Evidence")
+            advances = (
+                current_generation == 0
+                or stale_boundary
+                or decision_fingerprint != current_decision_fingerprint
+            )
+            expected_generation = current_generation + 1 if advances else current_generation
+            if proposal_generation != expected_generation or proposal_id is None:
+                raise StateError(f"{field}.evaluations[{index}] proposal generation is invalid")
+            if advances == (proposal_id == current_proposal_id):
+                raise StateError(f"{field}.evaluations[{index}] proposal ID generation is invalid")
+            current_generation = proposal_generation
+            current_proposal_id = proposal_id
+            current_decision_fingerprint = decision_fingerprint
+            stale_boundary = False
         for key in ("reason", "diff", "created_at"):
             require_string(evaluation[key], f"{field}.evaluations[{index}].{key}")
+    if current_status == "valid" and (stale_boundary or current_proposal_id is None):
+        raise StateError(f"{field} valid Evidence requires a current proposal generation")
     return evidence
 
 
@@ -720,7 +853,8 @@ def validate_remote_mutation(value: Any, field: str) -> dict[str, Any]:
     require_string(journal["created_at"], f"{field}.created_at")
     if not isinstance(journal["attempts"], list) or not journal["attempts"]:
         raise StateError(f"{field}.attempts must be a non-empty array")
-    seen = set()
+    attempts_by_id = {}
+    authorization_ids = set()
     for index, attempt_value in enumerate(journal["attempts"]):
         attempt = require_object(
             attempt_value,
@@ -732,13 +866,16 @@ def validate_remote_mutation(value: Any, field: str) -> dict[str, Any]:
                 "finished_at",
                 "summary",
                 "confirmed_not_applied",
+                "authorization_id",
+                "decision_fingerprint",
+                "action_fingerprint",
+                "adopted_from_attempt_id",
             },
             f"{field}.attempts[{index}]",
         )
         attempt_id = canonical_uuid(attempt["id"], f"{field}.attempts[{index}].id")
-        if attempt_id in seen:
+        if attempt_id in attempts_by_id:
             raise StateError(f"{field}.attempt IDs must be unique")
-        seen.add(attempt_id)
         status_value = require_string(attempt["status"], f"{field}.attempts[{index}].status")
         if status_value not in REMOTE_STATUSES:
             raise StateError(f"{field}.attempts[{index}].status is invalid")
@@ -756,9 +893,29 @@ def validate_remote_mutation(value: Any, field: str) -> dict[str, Any]:
             attempt["confirmed_not_applied"],
             f"{field}.attempts[{index}].confirmed_not_applied",
         )
-        if index < len(journal["attempts"]) - 1 and status_value != "failed":
+        authorization_id = canonical_uuid(
+            attempt["authorization_id"], f"{field}.attempts[{index}].authorization_id"
+        )
+        if authorization_id in authorization_ids:
+            raise StateError(f"{field}.attempt authorization IDs must be unique")
+        authorization_ids.add(authorization_id)
+        for key in ("decision_fingerprint", "action_fingerprint"):
+            if not SHA256_RE.fullmatch(
+                require_string(attempt[key], f"{field}.attempts[{index}].{key}", allow_empty=False)
+            ):
+                raise StateError(f"{field}.attempts[{index}].{key} is invalid")
+        if attempt["action_fingerprint"] != fingerprint(journal["action"]):
+            raise StateError(f"{field}.attempts[{index}] action fingerprint is stale")
+        adopted_from = attempt["adopted_from_attempt_id"]
+        if adopted_from is not None:
+            canonical_uuid(
+                adopted_from, f"{field}.attempts[{index}].adopted_from_attempt_id"
+            )
+            if status_value != "succeeded" or started_at is not None or not finished_at or not summary or confirmed:
+                raise StateError(f"{field}.attempts[{index}] adopted success is invalid")
+        elif index > 0 and journal["attempts"][index - 1]["status"] != "failed":
             raise StateError(f"{field} can retry only after a failed attempt")
-        if status_value == "pending":
+        elif status_value == "pending":
             if started_at is not None or finished_at is not None or summary or confirmed:
                 raise StateError(f"{field}.pending attempt has invalid execution metadata")
         elif status_value == "in_progress":
@@ -771,6 +928,7 @@ def validate_remote_mutation(value: Any, field: str) -> dict[str, Any]:
             not finished_at or not summary or not confirmed
         ):
             raise StateError(f"{field}.failed attempt must be confirmed not applied")
+        attempts_by_id[attempt_id] = attempt
     return journal
 
 
@@ -791,6 +949,7 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
             "authorization_history",
             "decision_history",
             "local_progress",
+            "local_attempt_history",
             "remote_mutations",
             "created_at",
             "updated_at",
@@ -818,6 +977,16 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
         if expected != version["fingerprint"]:
             raise StateError(f"{field}.evidence.versions[{index}].fingerprint is invalid")
     proposal = validate_proposal(item["proposal"], item, f"{field}.proposal")
+    latest_evaluation = evidence["evaluations"][-1] if evidence["evaluations"] else None
+    if proposal is None:
+        if latest_evaluation is not None and latest_evaluation["proposal_id"] is not None:
+            raise StateError(f"{field}.proposal is missing for its Evidence generation")
+    elif latest_evaluation is None or (
+        latest_evaluation["proposal_id"] != proposal["id"]
+        or latest_evaluation["proposal_generation"] != proposal["generation"]
+        or latest_evaluation["decision_fingerprint"] != proposal["decision_fingerprint"]
+    ):
+        raise StateError(f"{field}.proposal does not match its Evidence generation")
     authorization = item["active_authorization"]
     authorization_ids = set()
     authorizations = []
@@ -829,6 +998,7 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
                 "request_id",
                 "decision_id",
                 "item_id",
+                "proposal_generation",
                 "decision_fingerprint",
                 "choice_id",
                 "action_envelope",
@@ -838,6 +1008,11 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
         )
         for key in ("id", "request_id", "decision_id"):
             canonical_uuid(authorization[key], f"{field}.active_authorization.{key}")
+        require_int(
+            authorization["proposal_generation"],
+            f"{field}.active_authorization.proposal_generation",
+            minimum=1,
+        )
         authorization_ids.add(authorization["id"])
         authorizations.append(authorization)
         if authorization["item_id"] != item_id:
@@ -874,6 +1049,7 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
                 "request_id",
                 "decision_id",
                 "item_id",
+                "proposal_generation",
                 "decision_fingerprint",
                 "choice_id",
                 "action_envelope",
@@ -885,6 +1061,11 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
         )
         for key in ("id", "request_id", "decision_id"):
             canonical_uuid(archived[key], f"{field}.authorization_history[{index}].{key}")
+        require_int(
+            archived["proposal_generation"],
+            f"{field}.authorization_history[{index}].proposal_generation",
+            minimum=1,
+        )
         if archived["id"] in authorization_ids:
             raise StateError(f"{field}.authorization IDs must be unique")
         authorization_ids.add(archived["id"])
@@ -915,6 +1096,15 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
     if not isinstance(item["decision_history"], list):
         raise StateError(f"{field}.decision_history must be an array")
     decisions_by_id = {}
+    proposal_generations = {
+        (
+            evaluation["proposal_id"],
+            evaluation["proposal_generation"],
+            evaluation["decision_fingerprint"],
+        )
+        for evaluation in evidence["evaluations"]
+        if evaluation["proposal_id"] is not None
+    }
     for index, decision_value in enumerate(item["decision_history"]):
         decision = require_object(
             decision_value,
@@ -922,6 +1112,8 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
                 "id",
                 "request_id",
                 "item_id",
+                "proposal_id",
+                "proposal_generation",
                 "decision_fingerprint",
                 "choice_id",
                 "authorization_id",
@@ -929,13 +1121,26 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
             },
             f"{field}.decision_history[{index}]",
         )
-        for key in ("id", "request_id", "authorization_id"):
+        for key in ("id", "request_id", "authorization_id", "proposal_id"):
             canonical_uuid(decision[key], f"{field}.decision_history[{index}].{key}")
+        require_int(
+            decision["proposal_generation"],
+            f"{field}.decision_history[{index}].proposal_generation",
+            minimum=1,
+        )
         if decision["id"] in decisions_by_id:
             raise StateError(f"{field}.decision IDs must be unique")
         decisions_by_id[decision["id"]] = decision
         if decision["item_id"] != item_id:
             raise StateError(f"{field}.decision_history[{index}].item_id is invalid")
+        if (
+            decision["proposal_id"],
+            decision["proposal_generation"],
+            decision["decision_fingerprint"],
+        ) not in proposal_generations:
+            raise StateError(
+                f"{field}.decision_history[{index}] references an unknown proposal generation"
+            )
         if not SHA256_RE.fullmatch(
             require_string(
                 decision["decision_fingerprint"],
@@ -963,20 +1168,33 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
             or decision["decision_fingerprint"]
             != authorization_entry["decision_fingerprint"]
             or decision["choice_id"] != authorization_entry["choice_id"]
+            or decision["proposal_generation"]
+            != authorization_entry["proposal_generation"]
         ):
             raise StateError(f"{field}.authorization does not match its decision")
+    if authorization is not None and (
+        decisions_by_id[authorization["decision_id"]]["proposal_id"] != proposal["id"]
+        or authorization["proposal_generation"] != proposal["generation"]
+    ):
+        raise StateError(f"{field}.active authorization belongs to an older proposal")
+    if len(item["presentation"]["code_locations"]) != (
+        len(evidence["versions"][evidence["current_version"] - 1]["semantic"]["code"])
+        if evidence["current_version"] is not None
+        else 0
+    ):
+        raise StateError(f"{field}.presentation.code_locations must match current Evidence code")
     progress = require_object(
         item["local_progress"],
-        {"status", "started_at", "completed_at", "area", "change_kind", "validation_summary"},
+        {"status", "started_at", "completed_at", "area", "change_kind", "validation_summary", "authorization_id"},
         f"{field}.local_progress",
     )
     if progress["status"] not in LOCAL_STATUSES:
         raise StateError(f"{field}.local_progress.status is invalid")
-    for key in ("started_at", "completed_at", "area", "change_kind"):
+    for key in ("started_at", "completed_at", "area", "change_kind", "authorization_id"):
         require_optional_string(progress[key], f"{field}.local_progress.{key}")
     require_string(progress["validation_summary"], f"{field}.local_progress.validation_summary")
     if progress["status"] == "not_started" and any(
-        progress[key] is not None for key in ("started_at", "completed_at", "area", "change_kind")
+        progress[key] is not None for key in ("started_at", "completed_at", "area", "change_kind", "authorization_id")
     ):
         raise StateError(f"{field}.not_started local progress has execution metadata")
     if progress["status"] == "in_progress" and (
@@ -984,6 +1202,7 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
         or progress["completed_at"] is not None
         or not progress["area"]
         or not progress["change_kind"]
+        or not progress["authorization_id"]
         or progress["validation_summary"]
     ):
         raise StateError(f"{field}.in_progress local progress is invalid")
@@ -992,14 +1211,62 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
         or not progress["completed_at"]
         or not progress["area"]
         or not progress["change_kind"]
+        or not progress["authorization_id"]
         or not progress["validation_summary"]
     ):
         raise StateError(f"{field}.completed local progress is invalid")
+    if progress["authorization_id"] is not None:
+        canonical_uuid(progress["authorization_id"], f"{field}.local_progress.authorization_id")
+        progress_authorization = next(
+            (entry for entry in authorizations if entry["id"] == progress["authorization_id"]),
+            None,
+        )
+        if progress_authorization is None:
+            raise StateError(f"{field}.local_progress references unknown authorization")
+        if (
+            progress["area"] not in progress_authorization["action_envelope"]["allowed_areas"]
+            or progress["change_kind"]
+            not in progress_authorization["action_envelope"]["allowed_change_kinds"]
+        ):
+            raise StateError(f"{field}.local_progress is outside its authorization")
+    if not isinstance(item["local_attempt_history"], list):
+        raise StateError(f"{field}.local_attempt_history must be an array")
+    for index, attempt_value in enumerate(item["local_attempt_history"]):
+        attempt = require_object(
+            attempt_value,
+            {"status", "started_at", "completed_at", "area", "change_kind", "validation_summary", "authorization_id", "reason", "ended_at"},
+            f"{field}.local_attempt_history[{index}]",
+        )
+        if attempt["status"] not in {"completed", "superseded"}:
+            raise StateError(f"{field}.local_attempt_history[{index}].status is invalid")
+        for key in ("started_at", "area", "change_kind", "authorization_id", "reason", "ended_at"):
+            require_string(attempt[key], f"{field}.local_attempt_history[{index}].{key}", allow_empty=False)
+        canonical_uuid(attempt["authorization_id"], f"{field}.local_attempt_history[{index}].authorization_id")
+        attempt_authorization = next(
+            (entry for entry in authorizations if entry["id"] == attempt["authorization_id"]),
+            None,
+        )
+        if attempt_authorization is None:
+            raise StateError(f"{field}.local_attempt_history[{index}] references unknown authorization")
+        if (
+            attempt["area"] not in attempt_authorization["action_envelope"]["allowed_areas"]
+            or attempt["change_kind"]
+            not in attempt_authorization["action_envelope"]["allowed_change_kinds"]
+        ):
+            raise StateError(f"{field}.local_attempt_history[{index}] is outside its authorization")
+        require_optional_string(attempt["completed_at"], f"{field}.local_attempt_history[{index}].completed_at")
+        require_string(attempt["validation_summary"], f"{field}.local_attempt_history[{index}].validation_summary")
+        if attempt["status"] == "completed" and (not attempt["completed_at"] or not attempt["validation_summary"]):
+            raise StateError(f"{field}.local_attempt_history[{index}] completed attempt is invalid")
     if not isinstance(item["remote_mutations"], list):
         raise StateError(f"{field}.remote_mutations must be an array")
+    authorizations_by_id = {entry["id"]: entry for entry in authorizations}
     journal_ids = set()
     attempt_ids = set()
     action_keys = set()
+    effect_actual_journals: dict[str, str] = {}
+    attempt_entries: dict[str, tuple[int, dict[str, Any], dict[str, Any]]] = {}
+    attempt_order = 0
     for index, journal in enumerate(item["remote_mutations"]):
         validate_remote_mutation(journal, f"{field}.remote_mutations[{index}]")
         if journal["id"] in journal_ids:
@@ -1009,10 +1276,45 @@ def validate_item(item_value: Any, state: dict[str, Any], field: str) -> dict[st
         if action_key in action_keys:
             raise StateError(f"{field} must keep one journal per remote action")
         action_keys.add(action_key)
+        effect_key = fingerprint(remote_effect_projection(journal["action"]))
+        if any(attempt["adopted_from_attempt_id"] is None for attempt in journal["attempts"]):
+            actual_journal_id = effect_actual_journals.get(effect_key)
+            if actual_journal_id is not None and actual_journal_id != journal["id"]:
+                raise StateError(f"{field} must keep one actual journal per remote effect")
+            effect_actual_journals[effect_key] = journal["id"]
         for attempt in journal["attempts"]:
             if attempt["id"] in attempt_ids:
                 raise StateError(f"{field}.remote attempt IDs must be unique")
             attempt_ids.add(attempt["id"])
+            attempt_entries[attempt["id"]] = (attempt_order, journal, attempt)
+            attempt_order += 1
+            attempt_authorization = authorizations_by_id.get(attempt["authorization_id"])
+            if attempt_authorization is None:
+                raise StateError(f"{field}.remote attempt references unknown authorization")
+            if (
+                attempt["decision_fingerprint"]
+                != attempt_authorization["decision_fingerprint"]
+                or journal["action"]
+                not in attempt_authorization["action_envelope"]["platform_actions"]
+            ):
+                raise StateError(f"{field}.remote attempt is outside its authorization")
+    for _, journal, attempt in attempt_entries.values():
+        source_attempt_id = attempt["adopted_from_attempt_id"]
+        if source_attempt_id is None:
+            continue
+        source_entry = attempt_entries.get(source_attempt_id)
+        if source_entry is None:
+            raise StateError(f"{field}.remote adoption source is unknown")
+        source_order, source_journal, source_attempt = source_entry
+        current_order = attempt_entries[attempt["id"]][0]
+        if (
+            source_order >= current_order
+            or source_attempt["status"] != "succeeded"
+            or source_attempt["adopted_from_attempt_id"] is not None
+            or remote_effect_projection(source_journal["action"])
+            != remote_effect_projection(journal["action"])
+        ):
+            raise StateError(f"{field}.remote adoption source is invalid")
     require_string(item["created_at"], f"{field}.created_at")
     require_string(item["updated_at"], f"{field}.updated_at")
     return item
@@ -1023,8 +1325,11 @@ def validate_pagination(value: Any, field: str, thread_ids: Optional[set[str]] =
     complete = True
     for key in ("reviews", "threads"):
         part = require_object(pagination[key], {"complete", "pages"}, f"{field}.{key}")
-        complete = require_bool(part["complete"], f"{field}.{key}.complete") and complete
-        require_int(part["pages"], f"{field}.{key}.pages", minimum=0)
+        part_complete = require_bool(part["complete"], f"{field}.{key}.complete")
+        pages = require_int(part["pages"], f"{field}.{key}.pages", minimum=0)
+        if part_complete and pages < 1:
+            raise StateError(f"{field}.{key}.complete requires at least one fetched page")
+        complete = part_complete and complete
     comments = require_object(
         pagination["comments"], {"complete", "pages_by_thread"}, f"{field}.comments"
     )
@@ -1264,6 +1569,7 @@ def validate_state(state_value: Any, expected_thread_id: Optional[str] = None) -
             "lifecycle",
             "created_at",
             "updated_at",
+            "output_locale",
             "source",
             "items",
             "item_order",
@@ -1283,6 +1589,9 @@ def validate_state(state_value: Any, expected_thread_id: Optional[str] = None) -
         raise StateError("state.lifecycle is invalid")
     require_string(state["created_at"], "state.created_at")
     require_string(state["updated_at"], "state.updated_at")
+    output_locale = require_string(state["output_locale"], "state.output_locale", allow_empty=False)
+    if not LOCALE_RE.fullmatch(output_locale):
+        raise StateError("state.output_locale is invalid")
     validate_source(state["source"], "state.source")
     if not isinstance(state["items"], dict):
         raise StateError("state.items must be an object")
@@ -1303,16 +1612,35 @@ def validate_state(state_value: Any, expected_thread_id: Optional[str] = None) -
     if pending is not None:
         pending = require_object(
             pending,
-            {"request_id", "item_id", "decision_fingerprint", "choice_ids", "question", "created_at"},
+            {
+                "request_id",
+                "item_id",
+                "proposal_id",
+                "proposal_generation",
+                "decision_fingerprint",
+                "choice_ids",
+                "question",
+                "created_at",
+            },
             "state.pending_request",
         )
         canonical_uuid(pending["request_id"], "state.pending_request.request_id")
+        canonical_uuid(pending["proposal_id"], "state.pending_request.proposal_id")
+        require_int(
+            pending["proposal_generation"],
+            "state.pending_request.proposal_generation",
+            minimum=1,
+        )
         item_id = canonical_uuid(pending["item_id"], "state.pending_request.item_id")
         if item_id not in state["items"]:
             raise StateError("state.pending_request.item_id is unknown")
         item = state["items"][item_id]
         proposal = item["proposal"]
-        if proposal is None or pending["decision_fingerprint"] != proposal["decision_fingerprint"]:
+        if proposal is None or (
+            pending["proposal_id"] != proposal["id"]
+            or pending["proposal_generation"] != proposal["generation"]
+            or pending["decision_fingerprint"] != proposal["decision_fingerprint"]
+        ):
             raise StateError("state.pending_request is stale")
         choices = require_string_list(pending["choice_ids"], "state.pending_request.choice_ids")
         if set(choices) != set(proposal["choices_by_id"]):
@@ -1339,6 +1667,8 @@ def validate_state(state_value: Any, expected_thread_id: Optional[str] = None) -
             {
                 "request_id",
                 "item_id",
+                "proposal_id",
+                "proposal_generation",
                 "decision_fingerprint",
                 "choice_ids",
                 "question",
@@ -1350,6 +1680,14 @@ def validate_state(state_value: Any, expected_thread_id: Optional[str] = None) -
             f"state.request_history[{index}]",
         )
         request_id = canonical_uuid(archived["request_id"], f"state.request_history[{index}].request_id")
+        canonical_uuid(
+            archived["proposal_id"], f"state.request_history[{index}].proposal_id"
+        )
+        require_int(
+            archived["proposal_generation"],
+            f"state.request_history[{index}].proposal_generation",
+            minimum=1,
+        )
         if request_id in seen_request_ids:
             raise StateError("state request IDs must never be reused")
         seen_request_ids.add(request_id)
@@ -1384,6 +1722,8 @@ def validate_state(state_value: Any, expected_thread_id: Optional[str] = None) -
                 raise StateError("state decision must reference a consumed request")
             if (
                 request["item_id"] != item["id"]
+                or request["proposal_id"] != decision["proposal_id"]
+                or request["proposal_generation"] != decision["proposal_generation"]
                 or request["decision_fingerprint"] != decision["decision_fingerprint"]
                 or decision["choice_id"] not in request["choice_ids"]
             ):
@@ -1455,6 +1795,8 @@ def op_update_item_analysis(
     reason = require_string(candidate["reason"], "candidate.reason", allow_empty=False)
     diff = require_string(candidate["diff"], "candidate.diff")
     presentation = copy.deepcopy(validate_presentation(candidate["presentation"], "candidate.presentation"))
+    if len(presentation["code_locations"]) != len(semantic["code"]):
+        raise StateError("candidate.presentation.code_locations must match candidate.evidence.code")
     if not isinstance(candidate["choices"], list) or not candidate["choices"]:
         raise StateError("candidate.choices must be a non-empty array")
     choices_by_id = {}
@@ -1478,6 +1820,7 @@ def op_update_item_analysis(
         raise StateError("candidate.recommended_choice_id is unknown")
     envelope = copy.deepcopy(validate_action_envelope(candidate["action_envelope"], "candidate.action_envelope"))
     evidence = item["evidence"]
+    evidence_was_stale = evidence["current_status"] != "valid"
     old_version = evidence["current_version"]
     semantic_fingerprint = fingerprint(semantic)
     old_semantic_fingerprint = None
@@ -1526,6 +1869,34 @@ def op_update_item_analysis(
     evidence["current_version"] = version_number
     evidence["current_status"] = "valid"
     evidence["last_diff"] = diff
+    proposal = {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "generation": 0,
+        "choices_by_id": choices_by_id,
+        "choice_order": choice_order,
+        "recommended_choice_id": recommended,
+        "action_envelope": envelope,
+        "decision_fingerprint": "0" * 64,
+    }
+    proposal["decision_fingerprint"] = fingerprint(decision_projection(item, proposal))
+    old_proposal = item["proposal"]
+    old_fingerprint = old_proposal["decision_fingerprint"] if old_proposal else None
+    old_generation = old_proposal["generation"] if old_proposal else 0
+    proposal["generation"] = (
+        old_generation + 1
+        if old_proposal is None
+        or evidence_was_stale
+        or old_fingerprint != proposal["decision_fingerprint"]
+        else old_generation
+    )
+    proposal["id"] = (
+        old_proposal["id"]
+        if proposal["generation"] == old_generation
+        else new_id(
+            ([old_proposal["id"]] if old_proposal else [])
+            + [decision["proposal_id"] for decision in item["decision_history"]]
+        )
+    )
     evidence["evaluations"].append(
         {
             "id": new_id(entry["id"] for entry in evidence["evaluations"]),
@@ -1534,20 +1905,21 @@ def op_update_item_analysis(
             "result": result,
             "reason": reason,
             "diff": diff,
+            "proposal_id": proposal["id"],
+            "proposal_generation": proposal["generation"],
+            "decision_fingerprint": proposal["decision_fingerprint"],
             "created_at": timestamp,
         }
     )
-    proposal = {
-        "choices_by_id": choices_by_id,
-        "choice_order": choice_order,
-        "recommended_choice_id": recommended,
-        "action_envelope": envelope,
-        "decision_fingerprint": "0" * 64,
-    }
-    proposal["decision_fingerprint"] = fingerprint(decision_projection(item, proposal))
-    old_fingerprint = item["proposal"]["decision_fingerprint"] if item["proposal"] else None
     if old_fingerprint != proposal["decision_fingerprint"]:
         invalidate_item_authority(state, item, "decision fingerprint changed", timestamp)
+    elif (
+        state["pending_request"] is not None
+        and state["pending_request"]["item_id"] == item["id"]
+        and decision_view(item["presentation"], old_proposal)
+        != decision_view(presentation, proposal)
+    ):
+        archive_pending(state, "invalidated", "decision-facing presentation changed", timestamp)
     item["proposal"] = proposal
     item["presentation"] = presentation
     item["presentation"]["evidence_diff"] = diff
@@ -1587,6 +1959,8 @@ def op_request_decision(state: dict[str, Any], candidate: dict[str, Any], timest
     state["pending_request"] = {
         "request_id": request_id,
         "item_id": item["id"],
+        "proposal_id": item["proposal"]["id"],
+        "proposal_generation": item["proposal"]["generation"],
         "decision_fingerprint": item["proposal"]["decision_fingerprint"],
         "choice_ids": list(item["proposal"]["choice_order"]),
         "question": question,
@@ -1612,7 +1986,11 @@ def op_record_decision(state: dict[str, Any], candidate: dict[str, Any], timesta
     if pending["request_id"] != request_id or pending["item_id"] != item["id"]:
         raise StateError("only the current pending request can be decided")
     proposal = item["proposal"]
-    if proposal is None or pending["decision_fingerprint"] != proposal["decision_fingerprint"]:
+    if proposal is None or (
+        pending["proposal_id"] != proposal["id"]
+        or pending["proposal_generation"] != proposal["generation"]
+        or pending["decision_fingerprint"] != proposal["decision_fingerprint"]
+    ):
         raise StateError("pending request no longer matches the Item")
     if choice_id not in pending["choice_ids"]:
         raise StateError("candidate.choice_id is not offered by the pending request")
@@ -1623,6 +2001,8 @@ def op_record_decision(state: dict[str, Any], candidate: dict[str, Any], timesta
         "id": decision_id,
         "request_id": request_id,
         "item_id": item["id"],
+        "proposal_id": proposal["id"],
+        "proposal_generation": proposal["generation"],
         "decision_fingerprint": proposal["decision_fingerprint"],
         "choice_id": choice_id,
         "authorization_id": authorization_id,
@@ -1634,6 +2014,7 @@ def op_record_decision(state: dict[str, Any], candidate: dict[str, Any], timesta
         "request_id": request_id,
         "decision_id": decision_id,
         "item_id": item["id"],
+        "proposal_generation": proposal["generation"],
         "decision_fingerprint": proposal["decision_fingerprint"],
         "choice_id": choice_id,
         "action_envelope": copy.deepcopy(proposal["action_envelope"]),
@@ -1668,8 +2049,53 @@ def op_start_local_work(state: dict[str, Any], candidate: dict[str, Any], timest
             "started_at": timestamp,
             "area": area,
             "change_kind": change_kind,
+            "authorization_id": authorization["id"],
         }
     )
+    item["updated_at"] = timestamp
+
+
+def op_reconcile_local_work(
+    state: dict[str, Any], candidate: dict[str, Any], timestamp: str
+) -> None:
+    require_object(
+        candidate,
+        {"op", "expected_revision", "item_id", "outcome", "reason", "validation_summary"},
+        "candidate",
+    )
+    item = item_by_id(state, candidate["item_id"])
+    progress = item["local_progress"]
+    if progress["status"] not in {"in_progress", "completed"}:
+        raise StateError("local reconciliation requires recorded local work")
+    outcome = require_string(candidate["outcome"], "candidate.outcome")
+    if outcome not in {"completed", "superseded"}:
+        raise StateError("candidate.outcome must be completed or superseded")
+    reason = require_string(candidate["reason"], "candidate.reason", allow_empty=False)
+    summary = require_string(candidate["validation_summary"], "candidate.validation_summary")
+    if outcome == "completed" and not (summary or progress["validation_summary"]):
+        raise StateError("completed reconciliation requires a validation summary")
+    if progress["status"] == "completed" and outcome != "completed":
+        raise StateError("completed local work can only be reconciled as completed")
+    archived = copy.deepcopy(progress)
+    archived.update(
+        {
+            "status": outcome,
+            "reason": reason,
+            "ended_at": timestamp,
+            "completed_at": progress["completed_at"] or (timestamp if outcome == "completed" else None),
+            "validation_summary": progress["validation_summary"] or summary,
+        }
+    )
+    item["local_attempt_history"].append(archived)
+    item["local_progress"] = {
+        "status": "not_started",
+        "started_at": None,
+        "completed_at": None,
+        "area": None,
+        "change_kind": None,
+        "validation_summary": "",
+        "authorization_id": None,
+    }
     item["updated_at"] = timestamp
 
 
@@ -1716,7 +2142,13 @@ def op_prepare_remote_mutation(
     require_authorized_platform_action(item, authorization, action)
     for journal in item["remote_mutations"]:
         if journal["action"] == action:
-            raise StateError("this remote mutation already has a journal; retry that journal")
+            raise StateError(
+                "this remote mutation already has a journal; use its retry or adoption transition"
+            )
+        if remote_effect_projection(journal["action"]) == remote_effect_projection(action):
+            raise StateError(
+                "this remote effect already has a journal; reuse the exact action or verify and adopt a prior success"
+            )
     journal_id = new_id(journal["id"] for journal in item["remote_mutations"])
     attempt_id = new_id(
         attempt["id"]
@@ -1730,6 +2162,10 @@ def op_prepare_remote_mutation(
             "attempts": [
                 {
                     "id": attempt_id,
+                    "authorization_id": authorization["id"],
+                    "decision_fingerprint": authorization["decision_fingerprint"],
+                    "action_fingerprint": fingerprint(action),
+                    "adopted_from_attempt_id": None,
                     "status": "pending",
                     "created_at": timestamp,
                     "started_at": None,
@@ -1769,6 +2205,17 @@ def require_authorized_platform_action(
         raise StateError("remote mutation is outside the active authorization")
 
 
+def remote_attempt_matches_authorization(
+    authorization: Optional[dict[str, Any]], journal: dict[str, Any], attempt: dict[str, Any]
+) -> bool:
+    return (
+        authorization is not None
+        and attempt["authorization_id"] == authorization["id"]
+        and attempt["decision_fingerprint"] == authorization["decision_fingerprint"]
+        and attempt["action_fingerprint"] == fingerprint(journal["action"])
+    )
+
+
 def op_start_remote_mutation(
     state: dict[str, Any], candidate: dict[str, Any], timestamp: str
 ) -> None:
@@ -1783,6 +2230,8 @@ def op_start_remote_mutation(
         item, candidate["journal_id"], candidate["attempt_id"]
     )
     require_authorized_platform_action(item, authorization, journal["action"])
+    if not remote_attempt_matches_authorization(authorization, journal, attempt):
+        raise StateError("remote attempt does not belong to the active authorization")
     if attempt["status"] != "pending":
         raise StateError("remote attempt can start only from pending")
     attempt["status"] = "in_progress"
@@ -1808,8 +2257,7 @@ def op_finish_remote_mutation(
         "candidate",
     )
     item = item_by_id(state, candidate["item_id"])
-    active_authorization(state, item)
-    _journal, attempt = journal_and_attempt(item, candidate["journal_id"], candidate["attempt_id"])
+    journal, attempt = journal_and_attempt(item, candidate["journal_id"], candidate["attempt_id"])
     if attempt["status"] != "in_progress":
         raise StateError("remote attempt can finish only from in_progress")
     outcome = require_string(candidate["outcome"], "candidate.outcome")
@@ -1829,7 +2277,18 @@ def op_finish_remote_mutation(
             "confirmed_not_applied": confirmed,
         }
     )
-    if outcome in {"failed", "uncertain"}:
+    matches_current = remote_attempt_matches_authorization(
+        item["active_authorization"], journal, attempt
+    )
+    if not matches_current and outcome in {"succeeded", "uncertain"}:
+        mark_item_stale(
+            state,
+            item,
+            "late remote result belongs to a superseded authorization",
+            summary,
+            timestamp,
+        )
+    elif matches_current and outcome in {"failed", "uncertain"}:
         mark_item_stale(
             state,
             item,
@@ -1849,7 +2308,7 @@ def op_cancel_pending_remote_mutation(
         "candidate",
     )
     item = item_by_id(state, candidate["item_id"])
-    _journal, attempt = journal_and_attempt(
+    journal, attempt = journal_and_attempt(
         item, candidate["journal_id"], candidate["attempt_id"]
     )
     if attempt["status"] != "pending":
@@ -1863,13 +2322,14 @@ def op_cancel_pending_remote_mutation(
             "confirmed_not_applied": True,
         }
     )
-    mark_item_stale(
-        state,
-        item,
-        "pending remote mutation was cancelled before its call",
-        reason,
-        timestamp,
-    )
+    if remote_attempt_matches_authorization(item["active_authorization"], journal, attempt):
+        mark_item_stale(
+            state,
+            item,
+            "pending remote mutation was cancelled before its call",
+            reason,
+            timestamp,
+        )
     item["updated_at"] = timestamp
 
 
@@ -1909,7 +2369,7 @@ def op_reconcile_remote_mutation(
         "candidate",
     )
     item = item_by_id(state, candidate["item_id"])
-    _journal, attempt = journal_and_attempt(item, candidate["journal_id"], candidate["attempt_id"])
+    journal, attempt = journal_and_attempt(item, candidate["journal_id"], candidate["attempt_id"])
     if attempt["status"] != "uncertain":
         raise StateError("only an uncertain remote attempt can be reconciled")
     outcome = require_string(candidate["outcome"], "candidate.outcome")
@@ -1928,6 +2388,16 @@ def op_reconcile_remote_mutation(
             "confirmed_not_applied": confirmed,
         }
     )
+    if outcome == "succeeded" and not remote_attempt_matches_authorization(
+        item["active_authorization"], journal, attempt
+    ):
+        mark_item_stale(
+            state,
+            item,
+            "late remote reconciliation belongs to a superseded authorization",
+            attempt["summary"],
+            timestamp,
+        )
     item["updated_at"] = timestamp
 
 
@@ -1950,15 +2420,98 @@ def op_retry_remote_mutation(
     require_authorized_platform_action(item, authorization, journal["action"])
     if journal["attempts"][-1]["status"] != "failed":
         raise StateError("retry requires a reconciled failed attempt")
+    if any(
+        attempt["authorization_id"] == authorization["id"]
+        for attempt in journal["attempts"]
+    ):
+        raise StateError("active authorization already has an attempt for this action")
     attempt_ids = [attempt["id"] for entry in item["remote_mutations"] for attempt in entry["attempts"]]
     journal["attempts"].append(
         {
             "id": new_id(attempt_ids),
+            "authorization_id": authorization["id"],
+            "decision_fingerprint": authorization["decision_fingerprint"],
+            "action_fingerprint": fingerprint(journal["action"]),
+            "adopted_from_attempt_id": None,
             "status": "pending",
             "created_at": timestamp,
             "started_at": None,
             "finished_at": None,
             "summary": "",
+            "confirmed_not_applied": False,
+        }
+    )
+    item["updated_at"] = timestamp
+
+
+def op_adopt_remote_mutation(
+    state: dict[str, Any], candidate: dict[str, Any], timestamp: str
+) -> None:
+    require_object(
+        candidate,
+        {
+            "op",
+            "expected_revision",
+            "item_id",
+            "action",
+            "source_journal_id",
+            "source_attempt_id",
+            "verification_summary",
+        },
+        "candidate",
+    )
+    item = item_by_id(state, candidate["item_id"])
+    authorization = active_authorization(state, item)
+    action = copy.deepcopy(validate_platform_action(candidate["action"], "candidate.action"))
+    require_authorized_platform_action(item, authorization, action)
+    source_journal, source_attempt = journal_and_attempt(
+        item, candidate["source_journal_id"], candidate["source_attempt_id"]
+    )
+    if (
+        source_attempt["status"] != "succeeded"
+        or source_attempt["adopted_from_attempt_id"] is not None
+    ):
+        raise StateError("adoption requires an actual previously succeeded remote attempt")
+    if remote_effect_projection(source_journal["action"]) != remote_effect_projection(action):
+        raise StateError("adoption source does not match the approved remote effect")
+    journal = next(
+        (entry for entry in item["remote_mutations"] if entry["action"] == action), None
+    )
+    if journal is None:
+        journal = {
+            "id": new_id(entry["id"] for entry in item["remote_mutations"]),
+            "action": action,
+            "attempts": [],
+            "created_at": timestamp,
+        }
+        item["remote_mutations"].append(journal)
+    if any(
+        attempt["authorization_id"] == authorization["id"]
+        for attempt in journal["attempts"]
+    ):
+        raise StateError("active authorization already has an attempt for this action")
+    summary = require_string(
+        candidate["verification_summary"],
+        "candidate.verification_summary",
+        allow_empty=False,
+    )
+    attempt_ids = [
+        attempt["id"]
+        for entry in item["remote_mutations"]
+        for attempt in entry["attempts"]
+    ]
+    journal["attempts"].append(
+        {
+            "id": new_id(attempt_ids),
+            "authorization_id": authorization["id"],
+            "decision_fingerprint": authorization["decision_fingerprint"],
+            "action_fingerprint": fingerprint(journal["action"]),
+            "adopted_from_attempt_id": source_attempt["id"],
+            "status": "succeeded",
+            "created_at": timestamp,
+            "started_at": None,
+            "finished_at": timestamp,
+            "summary": summary,
             "confirmed_not_applied": False,
         }
     )
@@ -1974,15 +2527,36 @@ def op_close_authorization(
         "candidate",
     )
     item = item_by_id(state, candidate["item_id"])
-    if item["active_authorization"] is None:
-        raise StateError("Item has no active authorization")
+    authorization = active_authorization(state, item)
     if item["local_progress"]["status"] == "in_progress":
         raise StateError("cannot close authorization while local work is in progress")
-    if any(
-        journal["attempts"][-1]["status"] in {"pending", "in_progress", "uncertain"}
-        for journal in item["remote_mutations"]
+    if (
+        item["local_progress"]["status"] != "not_started"
+        and item["local_progress"]["authorization_id"] != authorization["id"]
     ):
-        raise StateError("cannot close authorization while a remote mutation is unfinished")
+        raise StateError("reconcile local work from the previous authorization before closing")
+    chosen = item["proposal"]["choices_by_id"][authorization["choice_id"]]["semantic_action"]
+    local_attempts = item["local_attempt_history"] + [item["local_progress"]]
+    for local_change in chosen["local_changes"]:
+        if not any(
+            attempt["authorization_id"] == authorization["id"]
+            and attempt["status"] == "completed"
+            and attempt["area"] == local_change["area"]
+            and attempt["change_kind"] == local_change["change_kind"]
+            for attempt in local_attempts
+        ):
+            raise StateError("cannot close authorization before every approved local change completes")
+    for action in chosen["platform_actions"]:
+        journal = next(
+            (entry for entry in item["remote_mutations"] if entry["action"] == action), None
+        )
+        if journal is None:
+            raise StateError("cannot close authorization before every approved platform action runs")
+        attempt = journal["attempts"][-1]
+        if not remote_attempt_matches_authorization(authorization, journal, attempt):
+            raise StateError("approved platform action has no attempt for the active authorization")
+        if attempt["status"] not in {"succeeded", "failed"}:
+            raise StateError("cannot close authorization while an approved platform action is unfinished")
     reason = require_string(candidate["reason"], "candidate.reason", allow_empty=False)
     archive_authorization(item, reason, timestamp)
     item["updated_at"] = timestamp
@@ -2001,19 +2575,41 @@ def op_set_session_lifecycle(
     if lifecycle not in TERMINAL_LIFECYCLES:
         raise StateError("candidate.lifecycle must be completed or stopped")
     reason = require_string(candidate["reason"], "candidate.reason", allow_empty=False)
-    if state["pending_request"] is not None:
-        archive_pending(state, "invalidated", reason, timestamp)
-    for item in state["items"].values():
-        archive_authorization(item, reason, timestamp)
     if lifecycle == "completed":
+        if state["source"]["status"] != "ready":
+            raise StateError("cannot complete a Session while the Source is stale")
+        if state["pending_request"] is not None:
+            raise StateError("cannot complete a Session with a pending decision request")
+        if any(item["active_authorization"] is not None for item in state["items"].values()):
+            raise StateError("cannot complete a Session with active authorization")
+        for item in state["items"].values():
+            if item["source_state"] == "resolved_out_of_scope":
+                continue
+            proposal = item["proposal"]
+            if item["evidence"]["current_status"] != "valid" or proposal is None:
+                raise StateError("cannot complete a Session with undecided or stale Items")
+            if not item["decision_history"] or (
+                item["decision_history"][-1]["proposal_id"] != proposal["id"]
+                or item["decision_history"][-1]["proposal_generation"]
+                != proposal["generation"]
+                or item["decision_history"][-1]["decision_fingerprint"]
+                != proposal["decision_fingerprint"]
+            ):
+                raise StateError("cannot complete a Session before every current Item is decided")
         if any(item["local_progress"]["status"] == "in_progress" for item in state["items"].values()):
             raise StateError("cannot complete a Session with in_progress local work")
         if any(
-            journal["attempts"][-1]["status"] in {"pending", "in_progress", "uncertain"}
+            attempt["status"] in {"pending", "in_progress", "uncertain"}
             for item in state["items"].values()
             for journal in item["remote_mutations"]
+            for attempt in journal["attempts"]
         ):
             raise StateError("cannot complete a Session with unfinished remote mutation")
+    else:
+        if state["pending_request"] is not None:
+            archive_pending(state, "invalidated", reason, timestamp)
+        for item in state["items"].values():
+            archive_authorization(item, reason, timestamp)
     state["lifecycle"] = lifecycle
 
 
@@ -2347,6 +2943,8 @@ def apply_operation(state: dict[str, Any], candidate: dict[str, Any]) -> dict[st
         op_start_local_work(next_state, candidate, timestamp)
     elif op == "complete_local_work":
         op_complete_local_work(next_state, candidate, timestamp)
+    elif op == "reconcile_local_work":
+        op_reconcile_local_work(next_state, candidate, timestamp)
     elif op == "prepare_remote_mutation":
         op_prepare_remote_mutation(next_state, candidate, timestamp)
     elif op == "start_remote_mutation":
@@ -2361,6 +2959,8 @@ def apply_operation(state: dict[str, Any], candidate: dict[str, Any]) -> dict[st
         op_reconcile_remote_mutation(next_state, candidate, timestamp)
     elif op == "retry_remote_mutation":
         op_retry_remote_mutation(next_state, candidate, timestamp)
+    elif op == "adopt_remote_mutation":
+        op_adopt_remote_mutation(next_state, candidate, timestamp)
     elif op == "close_authorization":
         op_close_authorization(next_state, candidate, timestamp)
     elif op == "set_session_lifecycle":
@@ -2373,7 +2973,7 @@ def apply_operation(state: dict[str, Any], candidate: dict[str, Any]) -> dict[st
 
 
 def initialize_state(thread_id: str, candidate: dict[str, Any]) -> dict[str, Any]:
-    require_object(candidate, {"op", "expected_revision", "source"}, "candidate")
+    require_object(candidate, {"op", "expected_revision", "source", "output_locale"}, "candidate")
     if candidate["op"] != "initialize_session":
         raise StateError("state does not exist; initialize_session is required")
     if require_int(candidate["expected_revision"], "candidate.expected_revision") != 0:
@@ -2383,6 +2983,9 @@ def initialize_state(thread_id: str, candidate: dict[str, Any]) -> dict[str, Any
         raise StateError("candidate.source must be a typed object")
     source_type = source_input["type"]
     timestamp = now_utc()
+    output_locale = require_string(candidate["output_locale"], "candidate.output_locale", allow_empty=False)
+    if not LOCALE_RE.fullmatch(output_locale):
+        raise StateError("candidate.output_locale is invalid")
     source_id = new_id([])
     items = {}
     item_order = []
@@ -2469,6 +3072,7 @@ def initialize_state(thread_id: str, candidate: dict[str, Any]) -> dict[str, Any
         "lifecycle": "active",
         "created_at": timestamp,
         "updated_at": timestamp,
+        "output_locale": output_locale,
         "source": source,
         "items": items,
         "item_order": item_order,
@@ -2518,9 +3122,13 @@ def require_owned_directory(path: Path, field: str) -> None:
         raise StateError(f"{field} must be a directory")
     if info.st_uid != current_uid():
         raise StateError(f"{field} must be owned by the current user")
+    if stat.S_IMODE(info.st_mode) != 0o700:
+        raise StateError(f"{field} must have mode 0700")
 
 
-def require_owned_regular_file(path: Path, field: str) -> None:
+def require_owned_regular_file(
+    path: Path, field: str, expected_mode: Optional[int] = None
+) -> None:
     info = path.lstat()
     if stat.S_ISLNK(info.st_mode):
         raise StateError(f"{field} must not be a symlink")
@@ -2528,6 +3136,8 @@ def require_owned_regular_file(path: Path, field: str) -> None:
         raise StateError(f"{field} must be a regular file")
     if info.st_uid != current_uid():
         raise StateError(f"{field} must be owned by the current user")
+    if expected_mode is not None and stat.S_IMODE(info.st_mode) != expected_mode:
+        raise StateError(f"{field} must have mode {expected_mode:04o}")
 
 
 def ensure_directory(path: Path, field: str, create: bool) -> None:
@@ -2565,7 +3175,7 @@ def session_directory(home_arg: str, thread_id: str, create: bool) -> tuple[Path
 
 
 def read_owned_file(path: Path, field: str) -> bytes:
-    require_owned_regular_file(path, field)
+    require_owned_regular_file(path, field, 0o600)
     with path.open("rb") as handle:
         data = handle.read(MAX_JSON_BYTES + 1)
     if len(data) > MAX_JSON_BYTES:
@@ -2580,8 +3190,9 @@ def load_state(thread_dir: Path, thread_id: str) -> dict[str, Any]:
 
 def write_fixed_temp(path: Path, data: bytes) -> None:
     if path.exists() or path.is_symlink():
-        require_owned_regular_file(path, path.name)
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        require_owned_regular_file(path, path.name, 0o600)
+        path.unlink()
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
     descriptor = os.open(path, flags, 0o600)
@@ -2621,7 +3232,7 @@ def publish_state(
     html_path = thread_dir / "review.html"
     for path, field in ((state_path, "state.json"), (html_path, "review.html")):
         if path.exists() or path.is_symlink():
-            require_owned_regular_file(path, field)
+            require_owned_regular_file(path, field, 0o600)
     write_fixed_temp(state_tmp, state_bytes)
     try:
         write_fixed_temp(html_tmp, html_bytes)
@@ -2650,6 +3261,9 @@ def apply_candidate(
     if create:
         if state_path.exists() or state_path.is_symlink():
             raise StateError("Review Session already exists for this Thread; resume it")
+        html_path = thread_dir / "review.html"
+        if html_path.exists() or html_path.is_symlink():
+            raise StateError("review.html exists without state.json; preserve it and repair manually")
         with os.scandir(thread_dir) as entries:
             unexpected = [entry.name for entry in entries if entry.name not in ALLOWED_FILES]
         if unexpected:
@@ -2667,13 +3281,13 @@ def recover_html(home: str, thread_id: str, template_path: Path) -> dict[str, An
     state = load_state(thread_dir, thread_id)
     state_tmp = thread_dir / ".state.json.tmp"
     if state_tmp.exists() or state_tmp.is_symlink():
-        require_owned_regular_file(state_tmp, ".state.json.tmp")
+        require_owned_regular_file(state_tmp, ".state.json.tmp", 0o600)
         unlink_file(state_tmp)
     html = render_bytes(state, template_path)
     html_tmp = thread_dir / ".review.html.tmp"
     html_path = thread_dir / "review.html"
     if html_path.exists() or html_path.is_symlink():
-        require_owned_regular_file(html_path, "review.html")
+        require_owned_regular_file(html_path, "review.html", 0o600)
     write_fixed_temp(html_tmp, html)
     os.replace(html_tmp, html_path)
     return state
@@ -2703,7 +3317,7 @@ def inspect_purge_directory(thread_dir: Path) -> list[str]:
             if entry.name not in ALLOWED_FILES:
                 raise StateError(f"Thread directory contains unexpected file: {entry.name}")
             path = thread_dir / entry.name
-            require_owned_regular_file(path, entry.name)
+            require_owned_regular_file(path, entry.name, 0o600)
             names.append(entry.name)
     return names
 

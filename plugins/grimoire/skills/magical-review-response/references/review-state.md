@@ -73,6 +73,7 @@ writer, not a process lock.
 - `owner.thread_id`
 - global `revision`
 - `lifecycle`: `active`, `completed`, or `stopped`
+- persisted `output_locale` for localized renderer regions
 - authority timestamps
 - one `source`
 - `items` keyed by authority Item UUID and deterministic `item_order`
@@ -90,18 +91,23 @@ Each Item contains:
 - current proposal and computed decision fingerprint
 - at most one active authorization plus archived authorization history
 - decision history
-- local progress: `not_started`, `in_progress`, or `completed`
-- remote mutation journals and immutable attempt IDs
+- current local progress plus terminal `completed`/`superseded` attempt history,
+  each bound to its authorization
+- remote mutation journals and immutable attempts bound to authorization,
+  decision fingerprint, and exact action fingerprint
 
 The renderer places authority Item UUIDs in DOM IDs. User-provided source,
 translation, code, paths, questions, and other display text appear only as
-escaped text nodes.
+escaped text nodes. The document remains `lang="en"`; localized translation,
+interpretation, recommendation, and decision-question regions carry the
+persisted output locale.
 
 ## Source Operations
 
 ### `initialize_session`
 
-Require `expected_revision: 0` and one `source`.
+Require `expected_revision: 0`, one `source`, and an `output_locale` such as
+`ko-KR`.
 
 GitHub Source:
 
@@ -109,6 +115,7 @@ GitHub Source:
 {
   "op": "initialize_session",
   "expected_revision": 0,
+  "output_locale": "ko-KR",
   "source": {
     "type": "github_pr",
     "host": "github.com",
@@ -127,6 +134,7 @@ Pasted feedback Source:
 {
   "op": "initialize_session",
   "expected_revision": 0,
+  "output_locale": "ko-KR",
   "source": {
     "type": "pasted_feedback",
     "batch_text": "the entire paste",
@@ -187,8 +195,6 @@ Evidence semantic fields are exact:
     {
       "path": "src/file.py",
       "revision": "commit-or-worktree-revision",
-      "start_line": 10,
-      "end_line": 12,
       "text": "short excerpt"
     }
   ],
@@ -201,9 +207,13 @@ Evidence semantic fields are exact:
 ```
 
 Presentation fields are `title`, `translation`, `interpretation`,
-`reviewer_intent`, `evidence_diff`, `alternatives`, `recommendation`, and
-`question`. Each alternative has `choice_id`, `label`, and `tradeoff`.
-Presentation wording and order are excluded from the decision fingerprint.
+`reviewer_intent`, `evidence_diff`, `alternatives`, `recommendation`, `question`,
+and `code_locations`. Each code location carries mutable `start_line` and
+`end_line` display coordinates for the corresponding semantic excerpt. Each
+alternative has `choice_id`, `label`, and `tradeoff`. Presentation content is
+excluded from the decision fingerprint, but changing a pending question,
+alternative label/trade-off, or recommendation invalidates that request. While
+a request is pending, its stored question is authoritative for rendering.
 
 Each choice has exact fields `id`, `label`, `tradeoff`, and `semantic_action`.
 The semantic action has:
@@ -225,9 +235,15 @@ The Action Envelope has exact fields:
   and `deployment`
 - exact `platform_actions`
 
-Each platform action has `kind`, `target`, semantic `summary`, and
-`reviewer_authored`. Supported kinds are `github_reply`, `github_resolve`,
-`github_pr_body_update`, and `github_rereview`.
+Each platform action has `kind`, `target`, semantic `summary`,
+`reviewer_authored`, and an exact kind-specific `payload`. Reply and PR-body
+update payloads contain exact `body`, re-review payloads contain exact
+`reviewers`, and resolve payloads are empty. Supported kinds are `github_reply`,
+`github_resolve`, `github_pr_body_update`, and `github_rereview`. Payload bytes
+participate in both decision and action fingerprints.
+For duplicate-call detection and adoption only, a re-review reviewer list is an
+unordered, case-insensitive, non-empty, duplicate-free remote effect; its stored
+approved payload remains exact.
 
 Every choice-local change and choice-platform action must fit within the common
 Action Envelope. The State Authority fingerprints schema/domain, Item and Source
@@ -258,10 +274,15 @@ request UUID and publishes HTML before committing state.
 Require `item_id`, current `request_id`, and offered `choice_id`. The request,
 Item, expected revision, decision fingerprint, and choice must all match. Consume
 the pending request into history and create one active authorization bound to the
-chosen choice, fingerprint, and Action Envelope.
+chosen choice, fingerprint, proposal generation UUID, and Action Envelope.
+The proposal, decision, and authorization also carry the same monotonic proposal
+generation number for fail-closed validation.
 
-A consumed or invalidated request ID cannot be reused. Returning a proposal from
-A to B to A never searches history or restores the old authorization.
+A consumed or invalidated request ID cannot be reused. A semantic fingerprint
+change or revalidation of previously stale Evidence issues a new proposal
+generation UUID. Returning a proposal from A to B to A never searches history,
+restores old authorization, or treats the old A decision as current completion
+evidence.
 
 ## Execution Operations
 
@@ -275,21 +296,28 @@ active envelope.
 transitions only `in_progress → completed` while authorization and Evidence are
 still current.
 
-Do not reset local status. Reconcile persisted `in_progress` against the
-worktree; stale unexpected facts before continuing.
+`reconcile_local_work` requires `item_id`, terminal `outcome` (`completed` or
+`superseded`), non-empty `reason`, and `validation_summary`. It archives the
+authorization-bound attempt and resets the current slot to `not_started`.
+Completed reconciliation requires validation evidence. Reconcile persisted
+work explicitly before the next approved local change, before a replacement
+authorization closes, or on resume; never silently reuse or discard the old
+slot.
 
 ### Remote journal
 
 `prepare_remote_mutation` requires `item_id` and the exact platform `action`. It
 creates a journal and a unique `pending` attempt only when the chosen action and
 active envelope contain the action. One Item cannot create a second journal for
-the same action; use the existing journal's retry transition instead.
+the same action. Use that journal's retry transition after confirmed failure or
+its adoption transition after verifying a prior success.
 
 `cancel_pending_remote_mutation` requires `item_id`, `journal_id`, `attempt_id`,
 and a non-empty reason. Use it only after confirming the remote call did not
 start. It transitions that `pending` attempt to terminal `failed`, records
-`confirmed_not_applied: true`, and stales Evidence because execution diverged
-from the approved plan.
+`confirmed_not_applied: true`, and stales Evidence when the attempt belongs to
+current authorization. A superseded cancellation is recorded without disturbing
+newer authority.
 
 `start_remote_mutation` requires `item_id`, `journal_id`, and `attempt_id`, and
 transitions `pending → in_progress` immediately before the call. It rechecks the
@@ -303,32 +331,50 @@ envelope.
 - `failed` only with `confirmed_not_applied: true`
 - `uncertain` for an ambiguous call boundary
 
-`failed` and `uncertain` are unexpected execution facts that stale Evidence and
-revoke authority in the same operation.
+For the current authorization, `failed` and `uncertain` are unexpected execution
+facts that stale Evidence and revoke authority in the same operation. A late
+`succeeded` or `uncertain` result from a superseded authorization also stales
+current Evidence and revokes current authority. A late confirmed-not-applied
+`failed` result is recorded without disturbing current authority.
 
 `mark_remote_uncertain` requires an `in_progress` attempt plus `reason`; use it
 on resume before any retry.
 
 `reconcile_remote_mutation` requires an `uncertain` attempt, `outcome` of
 `succeeded` or confirmed-not-applied `failed`, summary, and confirmation flag.
-It may run while Evidence is stale because reconciliation is the prerequisite
-to new authorization.
+It may run while Evidence is stale or a newer authorization exists. A late
+superseded success stales that newer authority; confirmed non-application does
+not.
+
+`adopt_remote_mutation` requires `item_id`, the current exact approved `action`,
+`source_journal_id`, an actual previously `succeeded` `source_attempt_id`, and
+non-empty `verification_summary`. The source and current action must have the
+same remote effect (`kind`, `target`, and exact `payload`); presentation metadata
+such as `summary` may differ. After verifying that the exact remote result is
+still present, it creates or reuses the current action journal and appends a
+terminal `succeeded` attempt bound to current authorization with
+`adopted_from_attempt_id`. It performs no remote call and cannot adopt another
+adoption.
 
 `retry_remote_mutation` requires a journal whose latest attempt is reconciled
 `failed` plus a new current authorization. It appends a new pending attempt and
 never rewinds the old one, after rechecking the exact journal action.
 
-`close_authorization` requires `item_id` and `reason`. It rejects local
-`in_progress` or remote `pending`, `in_progress`, or `uncertain`, then archives
-the active authorization.
+`close_authorization` requires `item_id` and `reason`. It verifies that every
+approved local change has a completed attempt for the active authorization and
+every approved platform action has a matching terminal attempt. A chosen no-op
+may close immediately.
 
 ## Lifecycle, Recovery, and Purge
 
 `set_session_lifecycle` requires `lifecycle` of `completed` or `stopped` and a
-reason. It consumes a pending request and archives active authorizations.
-`completed` additionally rejects in-progress local work and unfinished remote
-attempts. Terminal state blocks new decisions and execution but still permits
-remote reconciliation needed for safe purge.
+reason. `completed` requires a ready Source, no pending request or active
+authorization, a current valid decided proposal for every in-scope Item, and
+terminal local/remote attempts. It does not discard authority to manufacture
+completion. `stopped` explicitly invalidates any pending request and archives
+active authorizations. Terminal state blocks new decisions and execution but
+still permits local and remote reconciliation needed for an accurate terminal
+record and safe purge.
 
 Every update follows this order:
 
@@ -344,10 +390,18 @@ state replacement may leave old HTML. `recover-html` ignores temporary contents,
 validates committed state, and regenerates HTML without changing state. The
 contract covers process interruption, not power-loss durability.
 
+The standalone renderer rejects output paths that alias state or the fixed
+template by path, symlink, or hardlink. It writes a same-directory private
+temporary file and atomically replaces the output.
+
 Purge requires a terminal state and exact expected revision. It rejects any
 `in_progress` or `uncertain` remote attempt. Before the first unlink it inspects
 the entire Thread directory: only the four allowed artifact names may exist,
-and each present entry must be a current-UID-owned regular non-symlink file.
+and each present entry must be a current-UID-owned regular non-symlink file with
+mode `0600`. Managed directories must have exact mode `0700`; state, HTML, and
+fixed temporary files must have exact mode `0600`. The authority fails closed
+instead of changing modes. Initialization preserves and rejects an orphan
+`review.html` when `state.json` is absent.
 
 Purge unlinks `review.html` and fixed temporary files individually, reloads and
 revalidates state, unlinks `state.json` last, then removes only the empty Thread

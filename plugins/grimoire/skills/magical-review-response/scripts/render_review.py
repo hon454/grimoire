@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import os
 import sys
 from pathlib import Path
@@ -31,14 +32,20 @@ def section(title: str, body: str, css_class: str = "") -> str:
     return f"<section{class_name}><h3>{escape(title)}</h3>{body}</section>"
 
 
-def render_code(excerpts: list[dict[str, Any]]) -> str:
+def localized(body: str, locale: str) -> str:
+    return f'<div lang="{escape(locale)}">{body}</div>'
+
+
+def render_code(
+    excerpts: list[dict[str, Any]], locations: list[dict[str, int]]
+) -> str:
     if not excerpts:
         return '<p class="empty">No code excerpt recorded.</p>'
     parts = []
-    for excerpt in excerpts:
+    for excerpt, location in zip(excerpts, locations):
         label = (
             f"{excerpt['path']} · {excerpt['revision']} · "
-            f"lines {excerpt['start_line']}–{excerpt['end_line']}"
+            f"lines {location['start_line']}–{location['end_line']}"
         )
         parts.append(
             '<figure class="code"><figcaption>'
@@ -108,6 +115,16 @@ def render_platform_actions(actions: list[dict[str, Any]]) -> str:
             + authored
             + "<br>"
             + escape(action["summary"])
+            + "<br><strong>Exact payload:</strong><pre class=\"review-text\">"
+            + escape(
+                json.dumps(
+                    action["payload"],
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+            )
+            + "</pre>"
             + "</li>"
         )
     parts.append("</ul>")
@@ -166,9 +183,11 @@ def latest_remote_status(item: dict[str, Any]) -> str:
     return ", ".join(statuses) if statuses else "none"
 
 
-def render_item(item: dict[str, Any], pending_item_id: Any) -> str:
+def render_item(
+    item: dict[str, Any], pending_request: Any, output_locale: str
+) -> str:
     item_id = item["id"]
-    is_pending = item_id == pending_item_id
+    is_pending = pending_request is not None and item_id == pending_request["item_id"]
     open_attribute = " open" if is_pending else ""
     pending_badge = '<span class="badge pending">Decision pending</span>' if is_pending else ""
     outdated_badge = (
@@ -203,18 +222,28 @@ def render_item(item: dict[str, Any], pending_item_id: Any) -> str:
         + f"<span>Authorization <strong>{authorization}</strong></span>"
         + "</div>"
         + section("Original", '<pre class="review-text">' + escape(item["source_data"]["original"]) + "</pre>")
-        + section("Translation", paragraphs(item["presentation"]["translation"]))
+        + section(
+            "Translation",
+            localized(paragraphs(item["presentation"]["translation"]), output_locale),
+        )
         + section(
             "Interpretation and reviewer intent",
-            paragraphs(item["presentation"]["interpretation"])
+            localized(paragraphs(item["presentation"]["interpretation"]), output_locale)
             + '<h4>Reviewer intent</h4>'
-            + paragraphs(item["presentation"]["reviewer_intent"]),
+            + localized(paragraphs(item["presentation"]["reviewer_intent"]), output_locale),
         )
-        + section("Relevant code", render_code(semantic["code"]))
+        + section(
+            "Relevant code",
+            render_code(semantic["code"], item["presentation"]["code_locations"]),
+        )
         + section("Input → behavior → outcome", render_examples(semantic["examples"]))
         + section("Evidence Set and diff", render_evidence(item))
         + section("Alternatives and trade-offs", render_alternatives(item))
-        + section("Recommendation", paragraphs(item["presentation"]["recommendation"]), "recommendation")
+        + section(
+            "Recommendation",
+            localized(paragraphs(item["presentation"]["recommendation"]), output_locale),
+            "recommendation",
+        )
         + section("Action Envelope", render_envelope(item))
         + section(
             "Decision fingerprint",
@@ -222,7 +251,14 @@ def render_item(item: dict[str, Any], pending_item_id: Any) -> str:
         )
         + section(
             "Exact decision question",
-            paragraphs(item["presentation"]["question"]),
+            localized(
+                paragraphs(
+                    pending_request["question"]
+                    if is_pending
+                    else item["presentation"]["question"]
+                ),
+                output_locale,
+            ),
             "decision-question",
         )
     )
@@ -233,7 +269,6 @@ def render_state(state: dict[str, Any], template: str) -> str:
     if template.count("{{TITLE}}") != 1 or template.count("{{BODY}}") != 1:
         raise ValueError("template must contain exactly one {{TITLE}} and one {{BODY}} token")
     pending = state["pending_request"]
-    pending_item_id = pending["item_id"] if pending else None
     if pending:
         pending_text = (
             f"Pending Item {pending['item_id']} · request {pending['request_id']}"
@@ -257,7 +292,8 @@ def render_state(state: dict[str, Any], template: str) -> str:
         )
     navigation += "</ol></nav>"
     items = "".join(
-        render_item(state["items"][item_id], pending_item_id) for item_id in state["item_order"]
+        render_item(state["items"][item_id], pending, state["output_locale"])
+        for item_id in state["item_order"]
     )
     if not items:
         items = '<p class="empty-state">No in-scope Review Item has been collected yet.</p>'
@@ -296,21 +332,31 @@ def main(argv: list[str]) -> int:
         state = review_state.validate_state(review_state.decode_json_bytes(data, "state.json"))
         template_path = Path(__file__).resolve().parents[1] / "assets" / "review.html.tmpl"
         review_state.require_owned_regular_file(template_path, "review HTML template")
+        output_normalized = args.output.resolve(strict=False)
+        for input_path, label in ((args.state, "state.json"), (template_path, "HTML template")):
+            input_normalized = input_path.resolve(strict=False)
+            aliased = output_normalized == input_normalized
+            if args.output.exists() and input_path.exists():
+                aliased = aliased or os.path.samefile(args.output, input_path)
+            if aliased:
+                raise review_state.StateError(f"HTML output must not alias {label}")
         template = template_path.read_text(encoding="utf-8")
         output = render_state(state, template).encode("utf-8")
         if args.output.exists() or args.output.is_symlink():
-            review_state.require_owned_regular_file(args.output, "HTML output")
-        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
-        descriptor = os.open(args.output, flags, 0o600)
+            review_state.require_owned_regular_file(args.output, "HTML output", 0o600)
+        output_tmp = args.output.with_name(f".{args.output.name}.tmp")
+        for input_path in (args.state, template_path):
+            temp_aliased = output_tmp.resolve(strict=False) == input_path.resolve(strict=False)
+            if output_tmp.exists() and input_path.exists():
+                temp_aliased = temp_aliased or os.path.samefile(output_tmp, input_path)
+            if temp_aliased:
+                raise review_state.StateError("HTML temporary output aliases an input")
         try:
-            os.fchmod(descriptor, 0o600)
-            with os.fdopen(descriptor, "wb", closefd=False) as handle:
-                handle.write(output)
-                handle.flush()
-        finally:
-            os.close(descriptor)
+            review_state.write_fixed_temp(output_tmp, output)
+            os.replace(output_tmp, args.output)
+        except Exception:
+            review_state.unlink_file(output_tmp)
+            raise
         return 0
     except (OSError, ValueError, review_state.StateError) as error:
         print(str(error), file=sys.stderr)

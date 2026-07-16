@@ -109,8 +109,9 @@ new state, or fingerprints.
 Any new Source signal, unexpected worktree fact, head OID change, or unexpected
 execution fact must make affected Evidence stale immediately. Re-evaluate it:
 
-- If semantic Evidence is unchanged, restore the same version to `valid` and
-  record the diff and reason.
+- If semantic Evidence is unchanged, restore the same version to `valid`,
+  record the diff and reason, and require a new decision because the stale
+  boundary advances the proposal generation.
 - If semantics changed, preserve the old version as immutable `invalid`, create
   one new valid version, and require a new decision.
 - If revalidation is inconclusive, keep it stale.
@@ -158,21 +159,30 @@ For local work:
 4. Call `complete_local_work` with a concise validation summary only after the
    approved work and validation complete.
 
-On resume, reconcile an `in_progress` Item with the worktree and recorded
-validation before continuing. Mark Evidence stale for any unexpected fact.
+Before the next local change, on resume, or after redecision, reconcile the
+authorization-bound local slot with `reconcile_local_work`. Archive it as
+`completed` with validation evidence or `superseded` with a reason; never
+silently reset it. Mark Evidence stale for any unexpected fact.
 
 For GitHub reply, resolve, PR body update, or re-review request:
 
 1. Call `prepare_remote_mutation` with the exact approved platform action.
 2. If the confirmed remote call will not start, call
    `cancel_pending_remote_mutation`; otherwise call `start_remote_mutation`
-   immediately before the remote call. Both recheck the exact current action.
+   immediately before the remote call. Start rechecks the exact current action;
+   cancellation also records a superseded attempt without revoking newer authority.
 3. Call `finish_remote_mutation` immediately after a known outcome.
 4. Record `failed` only when remote non-application is confirmed. Record an
    ambiguous call boundary as `uncertain`.
+   A late superseded `succeeded` or `uncertain` result stales current Evidence;
+   a late confirmed-not-applied `failed` result does not revoke current authority.
 5. On resume, call `mark_remote_uncertain` for every persisted `in_progress`
    attempt. Reconcile remote state before retrying.
-6. Retry only a reconciled `failed` attempt, using a new attempt ID and current
+6. When a new authorization approves a remote effect (`kind`, `target`, and
+   exact `payload`) that already succeeded, verify the remote result and call
+   `adopt_remote_mutation` with the current approved action and source journal;
+   do not repeat the remote call.
+7. Retry only a reconciled `failed` attempt, using a new attempt ID and current
    active authorization. Never rewind or overwrite an attempt.
 
 Resolve a reviewer-authored thread only when the exact thread resolve action was
@@ -184,8 +194,10 @@ the Item are terminal. Preserve the authorization and decision histories.
 
 ## Completion, Recovery, and PR Switching
 
-Use `set_session_lifecycle` to mark the Session `completed` or explicitly
-`stopped`. Preserve artifacts by default.
+Use `set_session_lifecycle` to mark the Session `completed` only after the
+Source is ready, every current Item is valid and decided, all authorizations are
+closed, and all attempts are terminal. Use `stopped` for an explicit early stop.
+Preserve artifacts by default.
 
 Normal publication must render the next HTML before committing and replace
 `state.json` before `review.html`. On every resume, rebuild HTML from committed

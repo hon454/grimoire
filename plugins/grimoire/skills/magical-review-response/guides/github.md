@@ -154,11 +154,12 @@ Permit only these journaled platform action kinds:
 - `github_pr_body_update`
 - `github_rereview`
 
-Include the exact thread, PR, or reviewer target and action summary in the Action
-Envelope before the user decides. For `github_resolve`, record whether the
-thread is reviewer-authored. Inclusion of that exact reviewer-authored resolve
-action in the chosen approved envelope is required; general permission or write
-access is not enough.
+Include the exact thread, PR, or reviewer target, action summary, and payload in
+the Action Envelope before the user decides. Reply and PR-body payloads carry
+exact `body`, re-review payloads carry exact `reviewers`, and resolve payloads
+are empty. For `github_resolve`, record whether the thread is reviewer-authored.
+Inclusion of that exact reviewer-authored resolve action in the chosen approved
+envelope is required; general permission or write access is not enough.
 
 Draft concise English replies unless locale or repository convention says
 otherwise. Name verification only when it actually ran.
@@ -172,6 +173,9 @@ Before each GitHub mutation, create and start its journal attempt. After the
 call, record `succeeded`, confirmed-not-applied `failed`, or `uncertain`. On
 resume, treat persisted `in_progress` as `uncertain`, inspect remote state, and
 reconcile before retry. Never perform or repeat a remote action from chat memory
-alone. If a prepared `pending` attempt is deliberately abandoned before any
-remote call starts, cancel it only through the confirmed-not-applied pending
-transition.
+alone. If a new authorization approves the same remote effect (`kind`, `target`,
+and exact `payload`) that already succeeded, verify that exact remote result and
+use `adopt_remote_mutation` with the current approved action and source journal
+instead of calling GitHub again. If a prepared `pending` attempt is deliberately abandoned
+before any remote call starts, cancel it only through the confirmed-not-applied
+pending transition.
