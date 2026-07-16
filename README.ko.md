@@ -19,7 +19,7 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 
 | Icon | Plugin | 설명 |
 | --- | :---: | --- |
-| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Grimoire bootstrap, skill authoring, handoff prompt 생성, 검증된 side-conversation handoff, current-work triage, issue preflight, readiness review와 Linear closeout, locale-grounded translation, review response, Git cleanup, conflict resolution을 위한 workflow skill과 hook입니다. |
+| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Grimoire bootstrap, skill authoring, handoff prompt 생성, 검증된 side-conversation handoff, current-work triage, issue preflight, readiness review와 Linear closeout, locale-grounded translation, evidence-bound review response, Git cleanup, conflict resolution을 위한 workflow skill과 hook입니다. |
 
 ## Contents
 
@@ -36,7 +36,7 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 - `plugins/grimoire/skills/issue-readiness-review/SKILL.md`: tracker를 변경하지 않고 readiness에 맞는 tracker update 초안을 만드는 명시적 호출 readiness review skill입니다.
 - `plugins/grimoire/skills/linear-issue-closeout/SKILL.md`: 독립적인 읽기 전용 reviewer 검토 후 근거가 충분한 Linear issue를 완료 상태로 전환하고 comment를 작성하는 명시적 호출 closeout skill입니다.
 - `plugins/grimoire/skills/magical-translation/SKILL.md`: user-facing text를 번역하기 전에 Grimoire session config cache에서 locale을 읽는 번역 skill입니다.
-- `plugins/grimoire/skills/magical-review-response/SKILL.md`: review feedback을 번역하고 결정점을 인터뷰한 뒤 확정된 계획을 구현, 검증, reviewer follow-up까지 처리하는 review-response workflow입니다.
+- `plugins/grimoire/skills/magical-review-response/SKILL.md`: GitHub PR review 또는 pasted feedback을 위한 Thread-owned Review Session을 하나 생성하거나 resume하고, 결정을 versioned Evidence와 Action Envelope에 결합하며, 승인된 작업의 검증과 reviewer follow-up journal까지 처리하는 명시적 호출 review-response workflow입니다.
 - `plugins/grimoire/skills/git-workspace-cleanup/SKILL.md`: local worktree와 branch를 main만 남기도록 정리한 뒤 main을 최신화하는 명시적 호출 Git cleanup skill입니다.
 - `plugins/grimoire/skills/git-resolve-conflicts/SKILL.md`: fetched remote base를 기준으로 conflict가 있는 branch나 PR을 merge 가능하게 만드는 guarded Git conflict resolution skill입니다.
 - `assets/readme/`: README 전용 visual asset입니다.
@@ -44,6 +44,18 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 - `docs/maintaining-grimoire.md`: Grimoire skill, plugin packaging, Codex harness asset, 문서, publishing check를 변경할 때 쓰는 repository-local policy입니다.
 - `.agents/plugins/marketplace.json`: `plugins/grimoire/`를 노출하는 Codex marketplace catalog입니다.
 - `AGENTS.md`: 이 저장소의 source-of-truth agent protocol입니다.
+
+## Review Response Session
+
+GitHub PR review locator 또는 한 batch의 pasted review feedback과 함께 `$magical-review-response`를 명시적으로 호출합니다. 이 skill은 현재 Codex task에 Review Session 하나를 생성하거나 resume하고, authoritative state와 deterministic read-only detail view를 다음 경로에 저장합니다.
+
+```text
+<GRIMOIRE_HOME>/review-response/threads/<thread-id>/
+├── state.json
+└── review.html
+```
+
+Session은 중단 이후에도 Source snapshot, Review Item, versioned Evidence, 결정, active authorization, local progress와 remote mutation attempt를 보존합니다. 산출물은 기본적으로 유지됩니다. 같은 task에서 다른 PR로 전환하려면 먼저 remote 상태를 조정하고, 현재 Session 폐기에 대한 명시적 승인을 받은 뒤, state-last purge가 성공해야 새 PR Session을 시작할 수 있습니다.
 
 ## Installation Notes
 

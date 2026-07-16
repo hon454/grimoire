@@ -1,7 +1,7 @@
 interface:
   display_name: "Magical Review Response"
-  short_description: "Translate, decide, fix, and answer PR reviews"
-  default_prompt: "Use $magical-review-response to translate and handle this PR review feedback end to end."
+  short_description: "Run an evidence-bound review response session"
+  default_prompt: "Use $magical-review-response to create or resume a Thread-owned Review Session for this feedback."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
