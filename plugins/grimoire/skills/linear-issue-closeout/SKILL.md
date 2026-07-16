@@ -32,14 +32,18 @@ Do not implement code, alter other issues, change labels, assignees, priority,
 relations, title, project, cycle, or milestone, or perform broad backlog triage.
 Do not mutate Linear when the user requests review only.
 
-Require a connected Linear app. If Linear evidence is unavailable, return
-`Access-blocked`. Require subagent support before any mutation; without it,
-complete the primary evidence review. If the evidence would otherwise support
-`Ready-to-close`, prepare one unpublished closeout comment draft and return
-`Review-blocked`. Return any other evidence-backed classification without a
-draft.
+Require a connected Linear app. If the target issue and its current state
+cannot be read, return `Access-blocked`. Require subagent support before any
+mutation; without it, complete the primary evidence review. If the evidence
+would otherwise support `Ready-to-close`, prepare one unpublished closeout
+comment draft and return `Review-blocked`. Return any higher-precedence
+classification without a draft.
 
 ## Evidence Boundary
+
+On the first target issue read, before following linked sources or dispatching
+reviewers, capture its initial state and revision. Preserve that baseline for
+the entire invocation; do not replace it with a later read.
 
 Inspect the target issue's fields, description, substantive comments, parent,
 children, blockers, blocking issues, related issues, attachments, and state
@@ -72,11 +76,12 @@ scope evidence and a concrete owner issue.
 
 ## Independent Review
 
-Skip this section when the issue is already in a completed-type state; verify
-the current state and report whether a matching closeout comment exists, then
-return `Already-completed` without mutation. Also skip it for the
-unavailable-subagent branch defined in the Contract; that branch can return
-`Review-blocked` but can never mutate Linear.
+Skip this section when the issue is in a completed-type state in the initial
+snapshot; verify that the current state is still completed and report whether a
+matching closeout comment exists, then return `Already-completed` without
+mutation. Return `Evidence-stale` if the state changes before that confirmation.
+Also skip this section for the unavailable-subagent branch defined in the
+Contract; that branch can return `Review-blocked` but can never mutate Linear.
 
 Run independent, read-only subagent reviews after collecting the raw source
 packet and before drafting. Do not give reviewers the primary agent's expected
@@ -114,24 +119,38 @@ the conflict cannot be resolved without judgment, return
 
 ## Closeout Gate
 
-Return exactly one classification:
+Use the initial state and revision captured before evidence collection and
+reviewer dispatch. If that read failed, return `Access-blocked`. Otherwise
+evaluate the rows below in order against one internally consistent source
+snapshot. The first matching row wins; stop evaluating and return exactly that
+classification.
 
-- `Already-completed`: the issue is in a completed-type state; verify the
-  current state and report whether a matching closeout comment exists without
-  repairing or creating artifacts.
-- `Ready-to-close`: the issue is not in a completed-type state; every matrix
-  item is `satisfied`,
-  `deferred-explicit-nonblocking`, or `obsolete-by-explicit-decision`; every
-  required reviewer passes; and the latest source snapshot is consistent.
-- `Review-blocked`: primary evidence otherwise supports `Ready-to-close`, but
-  required independent reviewers could not run because subagents are
-  unavailable.
-- `Not-ready`: current evidence shows required work or a blocker remains.
-- `Needs-human-decision`: scope, ownership, intended completion meaning,
-  whether another closeout invocation is active, or conflicting evidence
-  requires judgment.
-- `Access-blocked`: a closure-critical source or Linear access is unavailable.
-- `Evidence-stale`: source state changed during review or before mutation.
+| Order | Classification | First-match predicate |
+| --- | --- | --- |
+| 1 | `Already-completed` | The initial issue state has `type=completed` and immediate confirmation shows it is still completed. Report whether a matching closeout comment exists when comments are readable. Comment inaccessibility is a reported gap, not a closure-critical access failure on this no-op path. |
+| 2 | `Evidence-stale` | The completed state changes before the row 1 confirmation, or an initially non-completed review detects any tracked issue, relation, substantive decision, actor, team, linked change, PR, CI, or target-state revision change after its category was reviewed. This includes the issue becoming completed or newly showing unfinished work. Do not combine the new value with the old closure matrix. |
+| 3 | `Access-blocked` | A closure-critical source required to classify the current snapshot is inaccessible or `unverifiable`. This outranks reviewer availability and evidence conclusions from the incomplete snapshot. |
+| 4 | `Not-ready` | The consistent current snapshot proves required work or a blocker remains, including a concrete `unresolved` or `contradicted` matrix item or a supported reviewer veto that identifies unfinished work. |
+| 5 | `Needs-human-decision` | No earlier row matches, but scope, ownership, intended completion meaning, an active concurrent invocation, conflicting accessible evidence, an unsafe token-bearing comment, multiple valid completed states, or a reviewer finding requires judgment. |
+| 6 | `Review-blocked` | No earlier row matches and primary evidence satisfies every closure obligation, but one or more required reviewers could not run because subagents are unavailable. |
+| 7 | `Ready-to-close` | The issue is not completed; every matrix item is `satisfied`, `deferred-explicit-nonblocking`, or `obsolete-by-explicit-decision`; every required reviewer and red-team reviewer passes; the target completed state is uniquely resolved; comment ownership is safe; and the latest source snapshot is unchanged. |
+
+`Already-completed` short-circuits only when the initial and confirmation reads
+both show a completed state. Once a non-completed review starts, freshness
+outranks the newly observed state: a transition to completed returns
+`Evidence-stale`. A later serialized invocation starts from a new initial
+snapshot and can then return `Already-completed`.
+
+Map reviewer outcomes to the table predicate they establish, not to a separate
+classification: a supported veto proving unfinished work maps to `Not-ready`;
+an `unknown` caused by inaccessible closure evidence maps to `Access-blocked`;
+an unresolved conflict over accessible evidence maps to
+`Needs-human-decision`; and reviewers that cannot run map to `Review-blocked`
+only when primary evidence otherwise meets every `Ready-to-close` condition.
+Treat an `unresolved` matrix item as `Not-ready` when it names concrete work or
+a blocker, and as `Needs-human-decision` when only a human choice can resolve
+it. If complete, current evidence still cannot establish any row, the
+unresolved classification itself matches `Needs-human-decision`.
 
 Only `Ready-to-close` enters the mutation branch. `Already-completed` is always
 a no-op. For every other classification, return the evidence-backed finding
@@ -139,9 +158,31 @@ and the smallest next decision or source needed without changing Linear. For
 `Review-blocked`, also return the unpublished closeout comment draft and the
 smallest step needed to rerun with subagent support.
 
+### Overlapping-Signal Dry Runs
+
+Use these cases to dry-run the ordered gate without mutation:
+
+| Signals | Expected classification | Reason |
+| --- | --- | --- |
+| Initial and confirmation states are completed; a linked source is inaccessible | `Already-completed` | The confirmed completed state short-circuits the no-op path; report the source gap. |
+| Initial state is completed; it is reopened before confirmation | `Evidence-stale` | The no-op state changed before it could be confirmed. |
+| Initial state is not completed; it becomes completed during review | `Evidence-stale` | Freshness outranks the newly completed state. |
+| A closure-critical source is inaccessible; required subagents are unavailable | `Access-blocked` | Source completeness precedes reviewer capability. |
+| A tracked source changes and its newest value shows unfinished work | `Evidence-stale` | Do not mix the new value into the reviewed snapshot; retry before deciding `Not-ready`. |
+| Stable evidence proves unfinished work; required subagents are unavailable | `Not-ready` | Concrete unfinished work precedes reviewer capability. |
+| Stable primary evidence meets every closure obligation; required subagents are unavailable | `Review-blocked` | Reviewer capability is the only remaining gate; return an unpublished draft. |
+| Stable evidence proves unfinished work and also contains a separate judgment question | `Not-ready` | The concrete blocker precedes a human decision that cannot yet enable closure. |
+| Stable accessible evidence has no concrete blocker but conflicts on completion meaning | `Needs-human-decision` | The conflict requires judgment. |
+| All `Ready-to-close` conditions pass | `Ready-to-close` | This is the only classification allowed to mutate Linear. |
+
 ## Draft And Red-Team
 
-For `Ready-to-close`, prepare one closeout comment in memory before any write.
+When rows 1 through 6 do not match and the independent reviewers pass, treat
+the result as a provisional `Ready-to-close` candidate. Prepare one closeout
+comment in memory before any write, run the red-team review below, and then
+reevaluate the ordered gate with its findings. Return final `Ready-to-close`
+only after the red-team reviewer passes and the freshness checks remain clean.
+
 For `Review-blocked`, prepare the same draft, label it as unpublished, and stop
 after returning it without red-team review or mutation.
 Identify it with the visible token ``linear-issue-closeout:{issue UUID}``.
@@ -170,11 +211,12 @@ byte-for-byte. Return `Needs-human-decision` without mutation when the eligible
 body differs or for any foreign, multiple, malformed, or otherwise ambiguous
 match.
 
-After drafting for `Ready-to-close`, send the raw source packet and drafts,
-including the provisional conclusion, to a read-only red-team subagent. Ask it
-to try to falsify that conclusion. Require `pass | veto | unknown` for factual
-support, scope preservation, counter-evidence, and safe mutation. Stop on
-`veto` or closure-critical `unknown`.
+After drafting for the provisional candidate, send the raw source packet and
+drafts, including the provisional conclusion, to a read-only red-team subagent.
+Ask it to try to falsify that conclusion. Require `pass | veto | unknown` for
+factual support, scope preservation, counter-evidence, and safe mutation. Map
+any `veto` or closure-critical `unknown` through the ordered gate and stop
+without mutation.
 
 ## Freshness And Mutation
 
