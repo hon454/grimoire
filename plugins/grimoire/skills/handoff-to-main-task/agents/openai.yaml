@@ -1,0 +1,7 @@
+interface:
+  display_name: "Handoff to Main Task"
+  short_description: "Send a verified side-task handoff"
+  default_prompt: "Use $handoff-to-main-task to preview and send this side conversation to its verified main task."
+
+policy:
+  allow_implicit_invocation: false
