@@ -27,8 +27,8 @@ def normalize_payload(value: str) -> str:
 
 def require_string(mapping: dict[str, Any], key: str) -> str:
     value = mapping.get(key)
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"{key} must be a non-empty string")
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{key} must be a non-whitespace string")
     return value
 
 
@@ -66,10 +66,13 @@ def resolve(data: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("resolve requires anchors object and candidates array")
 
     require_string(anchors, "cwd")
-    if not any(isinstance(anchors.get(key), str) and anchors[key] for key in ("title", "preview")):
+    if not any(
+        isinstance(anchors.get(key), str) and normalize_text(anchors[key])
+        for key in ("title", "preview")
+    ):
         raise ValueError("anchors require a normalized-exact title or preview")
 
-    source_id = data.get("sourceThreadId")
+    current_side_id = require_string(data, "currentSideThreadId")
     assessments: list[dict[str, Any]] = []
     matches: list[dict[str, Any]] = []
 
@@ -83,13 +86,15 @@ def resolve(data: dict[str, Any]) -> dict[str, Any]:
         candidate_id = candidate.get("id")
         if not isinstance(candidate_id, str) or not candidate_id:
             mismatches.append("id: missing")
-        elif source_id and candidate_id == source_id:
-            mismatches.append("id: source thread is never a target")
+        elif candidate_id == current_side_id:
+            mismatches.append("id: current side task is never a target")
 
         fields = (("cwd", False), ("title", True), ("preview", True), ("hostId", False), ("status", False))
         for field, normalized in fields:
             expected = anchors.get(field)
-            if not isinstance(expected, str) or not expected:
+            if not isinstance(expected, str) or not (
+                normalize_text(expected) if normalized else expected
+            ):
                 continue
             ok, reason = compare_exact(candidate, field, expected, normalize=normalized)
             (reasons if ok else mismatches).append(reason)
@@ -152,11 +157,13 @@ def prepare(data: dict[str, Any]) -> dict[str, Any]:
 def revalidate(data: dict[str, Any]) -> dict[str, Any]:
     preview = data.get("preview")
     target = data.get("target")
-    messages = data.get("recentMessages", "")
+    messages = data.get("recentMessages")
     if not isinstance(preview, dict) or not isinstance(target, dict):
         raise ValueError("revalidate requires preview and target objects")
     if isinstance(messages, list):
-        messages = "\n".join(item for item in messages if isinstance(item, str))
+        if not all(isinstance(item, str) for item in messages):
+            raise ValueError("recentMessages must contain only strings")
+        messages = "\n".join(messages)
     if not isinstance(messages, str):
         raise ValueError("recentMessages must be a string or string array")
 

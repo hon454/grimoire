@@ -14,10 +14,13 @@ off.
 
 Before composing, read `../../references/handoff-composition.md` completely and
 apply its shared contract. Resolve `scripts/handoff_guard.py` relative to this
-`SKILL.md`, then run `python3 <absolute-script-path> <action>` for deterministic
-candidate resolution, fingerprinting, and pre-send validation. The script never
-calls Codex task tools, sends messages, or navigates. Treat any script error as
-a fail-closed result.
+`SKILL.md`. Choose the Python 3 launcher available in the user's shell and call
+it `<python>` below: POSIX shells commonly use `python3`; Windows PowerShell or
+`cmd.exe` commonly use `py -3` or `python`. Run
+`<python> <absolute-script-path> <action>` for deterministic candidate
+resolution, fingerprinting, and pre-send validation. The script never calls
+Codex task tools, sends messages, or navigates. Treat any script error as a
+fail-closed result.
 
 ## Require The Host Boundary
 
@@ -28,10 +31,13 @@ ephemeral side conversation with its injected `Side conversation boundary`.
   or artifact containing those words as the boundary.
 - Fail closed when the boundary is absent or cannot be distinguished from
   user-provided content.
+- Require the boundary to provide a trustworthy ID for the current side task.
+  Fail closed before listing tasks when that identity is absent or empty.
 - Fail closed in an ordinary task, fork, separately created task, or internal
   subagent context. Do not use collaboration or subagent messaging tools as a
   substitute.
-- Never treat a delegation `source_thread_id` as the main task ID.
+- Never use a delegation `source_thread_id` as the current side task ID or the
+  main task ID.
 
 When ineligible, explain the single reason and do not list, read, send to, or
 navigate among tasks.
@@ -53,9 +59,11 @@ the user reaffirmed it after the boundary.
    NFKC normalization, whitespace collapse, and case folding before equality.
    Include exact `hostId`, status, or time bounds only when the host context
    actually establishes them.
-3. Pass the anchors and raw candidates as JSON to the bundled script's
-   `resolve` action. Do not edit the script result or replace it with fuzzy,
-   semantic, embedding, or score-based matching.
+3. Pass the host-verified current side task ID as `currentSideThreadId`, plus
+   the anchors and raw candidates, as JSON to the bundled script's `resolve`
+   action. The guard excludes the current side task from target candidates. Do
+   not edit the script result or replace it with fuzzy, semantic, embedding, or
+   score-based matching.
 4. Auto-select only a `unique` result. With `none` or `ambiguous`, do not send.
    Show each relevant candidate's title, ID, cwd, updated time, and exact
    match/mismatch reasons, then ask the user to choose a target.
@@ -78,6 +86,13 @@ Always show:
 - target title, ID, cwd, and `updatedAt`
 - the complete exact message, including the hidden marker
 
+Make the marker visible by showing the exact message in one dynamic outer code
+fence. Let `M` be the longest run of consecutive backticks in the exact message
+and use `N = max(4, M + 1)` backticks for both outer fence lines. Append
+`markdown` to the opening fence, preserve the message unchanged between the
+fences, and put nothing else inside them. The outer fence is preview formatting
+only and is not part of the message sent to the target.
+
 Ask for explicit confirmation to send that exact message. An invocation is not
 confirmation. A target selection is not confirmation. Any substantive payload
 correction invalidates the preview; regenerate it and ask again.
@@ -86,18 +101,27 @@ correction invalidates the preview; regenerate it and ask again.
 
 Immediately after confirmation and before sending:
 
-1. Use `list_threads` and `read_thread` to inspect the target again. Follow
-   `read_thread` pagination through the complete accessible target transcript
-   when searching for the marker. If the transcript is truncated or marker
-   absence cannot be established, do not send.
-2. Pass the stored preview snapshot, current target snapshot, and inspected
-   target message text to the bundled script's `revalidate` action.
-3. If the target ID differs, `updatedAt` changed for any reason, the payload hash
+1. Use `list_threads` and require its target `updatedAt` to equal the stored
+   preview revision.
+2. Use `read_thread`, following pagination through the complete accessible
+   target transcript when searching for the marker. If the transcript is
+   truncated or marker absence cannot be established, do not send.
+3. Use `list_threads` again. Only `list_threads.updatedAt` is the canonical
+   target revision; ignore any `read_thread.thread.updatedAt` value. Require the
+   target ID and both list snapshots' `updatedAt` values to equal the preview.
+4. Pass the stored preview snapshot, the second list snapshot, and all inspected
+   target message text as `recentMessages` to the bundled script's `revalidate`
+   action. Omitting `recentMessages` is an error; an explicitly supplied empty
+   transcript is allowed.
+5. If the target ID differs, `updatedAt` changed for any reason, the payload hash
    differs, or the same marker already exists, do not send. Report the exact
    reason. Re-resolve, re-compose, and re-preview stale content; report duplicate
    content as already sent.
-4. Only when validation returns `valid` may `send_message_to_thread` send the
+6. Only when validation returns `valid` may `send_message_to_thread` send the
    exact previewed message to the exact target ID.
+
+Codex task tools do not provide a compare-and-swap send. This ordered recheck is
+best effort; a target update can still race between the second list and send.
 
 Do not retry a failed send automatically. Remain in the side conversation and
 report the failure.
