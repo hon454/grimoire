@@ -1,0 +1,7 @@
+interface:
+  display_name: "Linear Issue Closeout"
+  short_description: "Close Linear issues with independent review"
+  default_prompt: "Use $linear-issue-closeout to review this Linear issue and close it only when the evidence supports completion."
+
+policy:
+  allow_implicit_invocation: false
