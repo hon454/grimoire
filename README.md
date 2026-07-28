@@ -19,7 +19,7 @@ Grimoire currently publishes one installable harness plugin:
 
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
-| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Workflow skills and hooks for Grimoire bootstrap, skill authoring, opening ChatGPT, handoff prompt creation, verified side-conversation handoff, current-work triage, issue preflight, readiness review and Linear closeout, locale-grounded translation, review response, Git cleanup, and conflict resolution. |
+| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Workflow skills and hooks for Grimoire bootstrap, skill authoring, opening ChatGPT, handoff prompt creation, verified side-conversation handoff, current-work triage, issue preflight, readiness review and Linear closeout, locale-grounded translation, SHA-pinned GitHub PR review, review response, Git cleanup, and conflict resolution. |
 
 ## Contents
 
@@ -37,6 +37,7 @@ Grimoire currently publishes one installable harness plugin:
 - `plugins/grimoire/skills/issue-readiness-review/SKILL.md`: the explicit-invocation readiness review skill that drafts the appropriate tracker update without changing trackers.
 - `plugins/grimoire/skills/linear-issue-closeout/SKILL.md`: the explicit-invocation Linear closeout skill that uses independent read-only reviewers before completing and commenting on an evidence-backed issue.
 - `plugins/grimoire/skills/magical-translation/SKILL.md`: the locale-grounded translation skill that reads the Grimoire session config cache before translating user-facing text.
+- `plugins/grimoire/skills/gh-pr-review-loop/SKILL.md`: the explicit-invocation GitHub PR review loop that statically reviews one SHA-pinned snapshot and publishes deduplicated inline findings plus one final review through `gh`.
 - `plugins/grimoire/skills/magical-review-response/SKILL.md`: the review-response workflow that translates review feedback, interviews decision points, implements the confirmed plan, verifies changes, and handles reviewer follow-up.
 - `plugins/grimoire/skills/git-workspace-cleanup/SKILL.md`: the explicit-invocation Git cleanup skill that prunes local worktrees and branches back to main, then updates main.
 - `plugins/grimoire/skills/git-resolve-conflicts/SKILL.md`: the guarded Git conflict resolution skill for making conflicted branches or PRs mergeable against a fetched remote base.
