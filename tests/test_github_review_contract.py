@@ -3,8 +3,6 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-import yaml
-
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "plugins/grimoire/skills/gh-pr-review-loop"
@@ -18,7 +16,6 @@ class GitHubReviewPackageStaticGuards(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.launcher = SKILL.read_text()
         cls.sidecar_text = SIDECAR.read_text()
-        cls.sidecar = yaml.safe_load(cls.sidecar_text)
         cls.contract = CONTRACT.read_text()
 
     def test_runtime_package_has_only_three_files(self) -> None:
@@ -49,23 +46,18 @@ class GitHubReviewPackageStaticGuards(unittest.TestCase):
         self.assertNotIn("Finish only", self.launcher)
         self.assertNotIn("\n## ", self.launcher)
 
-    def test_sidecar_has_real_explicit_only_structure(self) -> None:
-        self.assertIsInstance(self.sidecar, dict)
-        self.assertIs(
-            self.sidecar["policy"]["allow_implicit_invocation"],
-            False,
-        )
+    def test_sidecar_has_exact_explicit_only_structure(self) -> None:
         self.assertEqual(
-            self.sidecar["interface"]["short_description"],
-            "Review one exact GitHub PR and publish one review",
-        )
-        self.assertIn(
-            "$gh-pr-review-loop",
-            self.sidecar["interface"]["default_prompt"],
-        )
-        self.assertNotRegex(
             self.sidecar_text,
-            r"(?i)\bversion\b|\bv\d+(?:\.\d+)*\b",
+            """\
+interface:
+  display_name: "GitHub PR Review Loop"
+  short_description: "Review one exact GitHub PR and publish one review"
+  default_prompt: "Use $gh-pr-review-loop to review the exact GitHub PR I provide."
+
+policy:
+  allow_implicit_invocation: false
+""",
         )
 
     def test_contract_identity_blocks_have_static_shape(self) -> None:
@@ -73,11 +65,11 @@ class GitHubReviewPackageStaticGuards(unittest.TestCase):
         self.assertIn(
             "contract_source_identifier=github-review-contract/v1\\n\n"
             "contract_sha256=<SHA-256 of the exact bytes of "
-            "github-review-contract.md>\\n",
+            "github-review-contract.md>\\n\n"
+            "principal=<authenticated principal login>\\n",
             self.contract,
         )
-        self.assertIn("principal=<authenticated principal login>\\n", self.contract)
-        self.assertIn("prompt_digest=<prompt_digest>\\n", self.contract)
+        self.assertNotIn("prompt_digest", self.contract)
         self.assertIn(
             "<!-- grimoire:gh-pr-review-loop review_key=<review_key> -->",
             self.contract,
@@ -156,9 +148,24 @@ class GitHubReviewPackageStaticGuards(unittest.TestCase):
             self.contract,
         )
         self.assertIn(
-            "Non-author review has any P1 or P2 finding | `REQUEST_CHANGES`",
+            "Non-author review has any P0, P1, or P2 finding | `REQUEST_CHANGES`",
             self.contract,
         )
+        self.assertIn("no P0/P1/P2 finding", self.contract)
+        self.assertIn("check runs with `filter=latest`", self.contract)
+        self.assertIn(
+            "latest commit status per\ncase-insensitive context",
+            self.contract,
+        )
+        for guard in (
+            "`check_source_sha`",
+            "complete configuration evidence proves no checks are required",
+            "needed by a stronger event is missing or ambiguous | `COMMENT`",
+            "`APPROVE` and `REQUEST_CHANGES` require complete, unambiguous evidence",
+            "SNAPSHOT_CHANGED_AFTER_PUBLICATION",
+        ):
+            with self.subTest(guard=guard):
+                self.assertIn(guard, self.contract)
 
     def test_static_readback_canonicalization_is_present(self) -> None:
         for field in (
@@ -171,17 +178,17 @@ class GitHubReviewPackageStaticGuards(unittest.TestCase):
             with self.subTest(field=field):
                 self.assertIn(field, self.contract)
         self.assertIn(
-            "path=<path>\\nstart_side=<start side>\\nstart_line=<start line>\\n"
-            "side=<end side>\\nline=<end line>\\nbody=<normalized body>",
+            "`(path, start_anchor, end_anchor, normalized_body)`",
             self.contract,
         )
+        self.assertNotIn("fingerprint", self.contract)
 
     def test_repository_validation_is_explicitly_static(self) -> None:
         self.assertIn(
             "static-contract guards, not proof of\nruntime state safety",
             self.contract,
         )
-        self.assertIn("Do\nnot use a live GitHub mutation as validation", self.contract)
+        self.assertIn("live GitHub mutation as validation", self.contract)
 
 
 if __name__ == "__main__":
