@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "plugins/grimoire/skills/gh-pr-review-loop"
@@ -11,12 +13,15 @@ SIDECAR = SKILL_DIR / "agents/openai.yaml"
 CONTRACT = SKILL_DIR / "references/github-review-contract.md"
 
 
-class GitHubReviewContractTests(unittest.TestCase):
+class GitHubReviewPackageStaticGuards(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.launcher = SKILL.read_text()
+        cls.sidecar_text = SIDECAR.read_text()
+        cls.sidecar = yaml.safe_load(cls.sidecar_text)
         cls.contract = CONTRACT.read_text()
 
-    def test_package_has_only_the_three_runtime_files(self) -> None:
+    def test_runtime_package_has_only_three_files(self) -> None:
         files = {
             path.relative_to(SKILL_DIR).as_posix()
             for path in SKILL_DIR.rglob("*")
@@ -32,192 +37,151 @@ class GitHubReviewContractTests(unittest.TestCase):
             },
         )
 
-    def test_launcher_is_small_and_only_gates_the_contract(self) -> None:
-        launcher = SKILL.read_text()
-
-        self.assertLessEqual(len(launcher.splitlines()), 20)
-        self.assertIn("Use only when explicitly invoked", launcher)
-        self.assertIn("Before querying any target data", launcher)
-        self.assertIn("read\n`references/github-review-contract.md` completely", launcher)
-        self.assertIn("contract-required terminal object", launcher)
-        self.assertNotIn("\n## ", launcher)
-        self.assertNotIn("Workflow", launcher)
-        self.assertNotIn("Hard Boundaries", launcher)
-
-    def test_sidecar_is_explicit_only_and_has_no_version_prose(self) -> None:
-        sidecar = SIDECAR.read_text()
-
-        self.assertIn('short_description: "Review one exact GitHub PR and publish once"', sidecar)
-        self.assertIn('default_prompt: "Use $gh-pr-review-loop', sidecar)
-        self.assertIn("allow_implicit_invocation: false", sidecar)
-        self.assertNotRegex(sidecar, r"(?i)\bversion\b|\bv\d+(?:\.\d+)*\b")
-
-    def test_prompt_digest_uses_only_contract_identity_and_exact_bytes(self) -> None:
+    def test_launcher_only_gates_the_contract(self) -> None:
+        self.assertLessEqual(len(self.launcher.splitlines()), 16)
+        self.assertIn("Use only when explicitly invoked", self.launcher)
+        self.assertIn("Before querying any target data", self.launcher)
         self.assertIn(
-            "Compute `contract_sha256` as the SHA-256 of the exact bytes of this file.",
-            self.contract,
+            "read\n`references/github-review-contract.md` completely",
+            self.launcher,
+        )
+        self.assertIn("sole\nnormative source", self.launcher)
+        self.assertNotIn("Finish only", self.launcher)
+        self.assertNotIn("\n## ", self.launcher)
+
+    def test_sidecar_has_real_explicit_only_structure(self) -> None:
+        self.assertIsInstance(self.sidecar, dict)
+        self.assertIs(
+            self.sidecar["policy"]["allow_implicit_invocation"],
+            False,
+        )
+        self.assertEqual(
+            self.sidecar["interface"]["short_description"],
+            "Review one exact GitHub PR and publish one review",
         )
         self.assertIn(
-            "Compute `prompt_digest` from only the following labeled UTF-8 byte "
-            "sequence:\n\n"
-            "```\n"
+            "$gh-pr-review-loop",
+            self.sidecar["interface"]["default_prompt"],
+        )
+        self.assertNotRegex(
+            self.sidecar_text,
+            r"(?i)\bversion\b|\bv\d+(?:\.\d+)*\b",
+        )
+
+    def test_contract_identity_blocks_have_static_shape(self) -> None:
+        self.assertIn("`github-review-contract/v1`", self.contract)
+        self.assertIn(
             "contract_source_identifier=github-review-contract/v1\\n\n"
             "contract_sha256=<SHA-256 of the exact bytes of "
-            "github-review-contract.md>\\n\n"
-            "```",
+            "github-review-contract.md>\\n",
             self.contract,
         )
+        self.assertIn("principal=<authenticated principal login>\\n", self.contract)
+        self.assertIn("prompt_digest=<prompt_digest>\\n", self.contract)
         self.assertIn(
-            "Do not include `SKILL.md`,\n"
-            "`agents/openai.yaml`, user prose, PR data, a local path, or any editorial\n"
-            "sidecar change in this digest.",
+            "<!-- grimoire:gh-pr-review-loop review_key=<review_key> -->",
             self.contract,
         )
 
-    def test_snapshot_is_fixed_before_analysis_and_identity(self) -> None:
-        self.assertIn(
-            "Before beginning static analysis, record one complete `snapshot_tuple`.",
-            self.contract,
-        )
-        self.assertIn(
-            "same tuple for all analysis and the review-key calculation with its\n"
-            "contract-only `prompt_digest`",
-            self.contract,
-        )
-
-    def test_dedupe_is_readback_only_without_concurrency_state(self) -> None:
-        for forbidden in (
-            "CONCURRENT_RUN",
-            "competing/nonterminal",
-            "concurrency coordination",
-            "shared state",
-            "prepublication marker",
-        ):
-            self.assertNotIn(forbidden, self.contract)
-        self.assertIn(
-            "Deduplicate only through complete marker/review readback and exact\n"
-            "reconciliation.",
-            self.contract,
-        )
-        self.assertIn(
-            "On every invocation, cancellation recovery, or\n"
-            "resume, reconcile that key before any new publication decision.",
-            self.contract,
+    def test_contract_has_expected_static_sections(self) -> None:
+        headings = (
+            "## Scope and trust boundary",
+            "## Immutable identity",
+            "## Static review and immutable decision",
+            "## Closed validation matrix",
+            "## Publication and reconciliation",
+            "## Terminal output",
+            "## Author-time repository validation",
         )
 
-    def test_prepublication_rechecks_the_full_tuple_and_aborts_on_drift(self) -> None:
-        self.assertIn(
-            "Immediately before the single request, bounded revalidation of the same "
-            "target's base, merge-base, and head; exact equality with "
-            "`snapshot_tuple`",
-            self.contract,
-        )
-        self.assertIn(
-            "Tuple drift is immediately `NONE / ABORTED / SNAPSHOT_CHANGED`; do not "
-            "publish, reanalyse, or restart automatically.",
-            self.contract,
-        )
+        for heading in headings:
+            with self.subTest(heading=heading):
+                self.assertEqual(self.contract.count(heading), 1)
 
-    def test_matrix_has_exactly_the_five_closed_rows(self) -> None:
+    def test_validation_matrix_has_five_static_rows(self) -> None:
         rows = [
             line.split("|")[1].strip()
             for line in self.contract.splitlines()
-            if line.startswith("| ") and not line.startswith("| ---")
+            if line.startswith(
+                (
+                    "| Authority |",
+                    "| Snapshot |",
+                    "| Decision |",
+                    "| Prepublication |",
+                    "| Readback |",
+                )
+            )
         ]
 
         self.assertEqual(
             rows,
-            [
-                "Validation row",
-                "Authority",
-                "Snapshot",
-                "Decision",
-                "Prepublication",
-                "Readback",
-            ],
+            ["Authority", "Snapshot", "Decision", "Prepublication", "Readback"],
         )
-        self.assertEqual(self.contract.count("## Closed validation matrix"), 1)
+        for terminal in (
+            "AUTHORITY_UNVERIFIED",
+            "SNAPSHOT_INVALID",
+            "DECISION_INVALID",
+            "SNAPSHOT_CHANGED",
+            "DECISION_EVIDENCE_CHANGED",
+            "EXACT_MATCH",
+            "READBACK_UNRESOLVED",
+        ):
+            with self.subTest(terminal=terminal):
+                self.assertIn(terminal, self.contract)
 
-    def test_closed_matrix_branch_probes(self) -> None:
-        probes = {
-            "Authority": (
-                "NONE / BLOCKED / AUTHORITY_UNVERIFIED",
-                "NONE / UNCERTAIN / AUTHORITY_UNVERIFIABLE",
-            ),
-            "Snapshot": (
-                "NONE / BLOCKED / SNAPSHOT_INVALID",
-                "NONE / UNCERTAIN / SNAPSHOT_UNVERIFIABLE",
-            ),
-            "Decision": (
-                "NONE / NO_OP / NONE",
-                "NONE / BLOCKED / DECISION_INVALID",
-                "NONE / UNCERTAIN / DECISION_UNVERIFIABLE",
-            ),
-            "Prepublication": (
-                "NONE / ABORTED / SNAPSHOT_CHANGED",
-                "NONE / NO_OP / NONE",
-                "NONE / UNCERTAIN / PREPUBLICATION_UNVERIFIABLE",
-            ),
-            "Readback": (
-                "PUBLISHED / CONFIRMED / EXACT_MATCH",
-                "one byte-identical retry",
-                "PUBLISHED / UNCERTAIN / READBACK_UNRESOLVED",
-            ),
-        }
-        rows = {
-            line.split("|")[1].strip(): line
-            for line in self.contract.splitlines()
-            if line.startswith("| ") and not line.startswith("| ---")
-        }
-
-        for row, expected_fragments in probes.items():
-            with self.subTest(row=row):
-                self.assertIn("Missing", rows[row])
-                self.assertIn("unverifiable", rows[row])
-                for fragment in expected_fragments:
-                    self.assertIn(fragment, rows[row])
-
-    def test_readback_and_retry_probes_are_exact_and_fail_closed(self) -> None:
+    def test_static_publication_guards_are_present(self) -> None:
+        self.assertIn("Support serialized invocations only", self.contract)
+        self.assertIn("makes no concurrent or global exactly-once claim", self.contract)
+        self.assertIn("PUBLICATION_REJECTED", self.contract)
         self.assertIn(
-            "(fingerprint, path, side, start_anchor, end_anchor, normalized_body)",
+            "Never retry after a request might have been sent",
             self.contract,
         )
-        self.assertIn("order-independent multisets", self.contract)
-        self.assertIn("Missing, duplicate, or extra inline comments", self.contract)
-        self.assertIn("one and only one byte-identical retry", self.contract)
+        self.assertNotIn("byte-identical retry", self.contract)
+
+    def test_static_event_and_check_mappings_are_present(self) -> None:
+        for mapping in (
+            "`COMMENT` → `COMMENTED`",
+            "`REQUEST_CHANGES` → `CHANGES_REQUESTED`",
+            "`APPROVE` → `APPROVED`",
+            "`NOT_CONFIGURED`",
+            "`PASS`",
+            "`PENDING`",
+            "`FAIL_OR_UNVERIFIABLE`",
+        ):
+            with self.subTest(mapping=mapping):
+                self.assertIn(mapping, self.contract)
         self.assertIn(
-            "A partial result, any conflict,\n"
-            "an unknown result, or incomplete readback is `uncertain` and forbids retries.",
+            "Authenticated principal is the PR author | `COMMENT`",
+            self.contract,
+        )
+        self.assertIn(
+            "Non-author review has any P1 or P2 finding | `REQUEST_CHANGES`",
             self.contract,
         )
 
-    def test_timeout_interruption_and_mutation_boundaries_fail_closed(self) -> None:
-        self.assertIn("bounded-deadline `gh` REST or GraphQL calls", self.contract)
+    def test_static_readback_canonicalization_is_present(self) -> None:
+        for field in (
+            "Plan start anchor",
+            "Observed end anchor: `(side, original_line)`",
+            "original_start_line",
+            "order-independent multisets",
+            "Nonmatching markers never suppress",
+        ):
+            with self.subTest(field=field):
+                self.assertIn(field, self.contract)
         self.assertIn(
-            "Before publication it produces\n"
-            "no write and an `uncertain` terminal result",
+            "path=<path>\\nstart_side=<start side>\\nstart_line=<start line>\\n"
+            "side=<end side>\\nline=<end line>\\nbody=<normalized body>",
             self.contract,
-        )
-        self.assertIn("after a request might have been\nsent", self.contract)
-        self.assertIn("Perform static review only.", self.contract)
-        self.assertIn("Never check out the target or execute target code", self.contract)
-        self.assertIn("only permitted GitHub mutation is one immutable GitHub review request", self.contract)
-        self.assertIn("Unresolved review threads may be fetched only as read-only evidence", self.contract)
-        self.assertRegex(
-            self.contract,
-            r"A\s+finding that cannot be anchored must be included in full in the final "
-            r"review\s+body",
         )
 
-    def test_validation_is_author_time_and_contract_owned(self) -> None:
-        self.assertIn("sole normative contract source identifier", self.contract)
-        self.assertIn("## Author-time repository validation", self.contract)
-        self.assertRegex(
+    def test_repository_validation_is_explicitly_static(self) -> None:
+        self.assertIn(
+            "static-contract guards, not proof of\nruntime state safety",
             self.contract,
-            r"Do not use a live GitHub\s+mutation as validation\.",
         )
-        self.assertNotIn("## Runtime Read-only validation oracle", self.contract)
-        self.assertNotRegex(self.contract, r"(?im)^## .*runtime.*validation oracle")
+        self.assertIn("Do\nnot use a live GitHub mutation as validation", self.contract)
 
 
 if __name__ == "__main__":

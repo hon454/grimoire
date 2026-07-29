@@ -1,6 +1,6 @@
 interface:
   display_name: "GitHub PR Review Loop"
-  short_description: "Review one exact GitHub PR and publish once"
+  short_description: "Review one exact GitHub PR and publish one review"
   default_prompt: "Use $gh-pr-review-loop to review the exact GitHub PR I provide."
 
 policy:

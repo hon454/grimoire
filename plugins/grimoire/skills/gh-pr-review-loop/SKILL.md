@@ -10,7 +10,3 @@ Use only when explicitly invoked as `$gh-pr-review-loop`.
 Before querying any target data or taking any GitHub action, read
 `references/github-review-contract.md` completely. Treat it as the sole
 normative source; do not restate, extend, or replace it.
-
-Finish only after producing the contract-required terminal object backed by
-exactly one confirmed publication, an evidenced no-write terminal result, or
-preserved post-write uncertainty.
