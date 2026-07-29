@@ -1,0 +1,7 @@
+interface:
+  display_name: "Open ChatGPT"
+  short_description: "Open ChatGPT in the Codex in-app browser"
+  default_prompt: "Use $open-chatgpt-in-app-browser to open ChatGPT in the Codex in-app browser."
+
+policy:
+  allow_implicit_invocation: false

@@ -19,7 +19,7 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 
 | Icon | Plugin | 설명 |
 | --- | :---: | --- |
-| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Grimoire bootstrap, skill authoring, handoff prompt 생성, 검증된 side-conversation handoff, current-work triage, issue preflight, readiness review와 Linear closeout, locale-grounded translation, review response, Git cleanup, conflict resolution을 위한 workflow skill과 hook입니다. |
+| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Grimoire bootstrap, skill authoring, ChatGPT 열기, handoff prompt 생성, 검증된 side-conversation handoff, current-work triage, issue preflight, readiness review와 Linear closeout, locale-grounded translation, review response, Git cleanup, conflict resolution을 위한 workflow skill과 hook입니다. |
 
 ## Contents
 
@@ -28,6 +28,7 @@ Grimoire는 현재 설치 가능한 harness plugin 하나를 제공합니다.
 - `plugins/grimoire/skills/using-grimoire/SKILL.md`: Codex agent가 작업 전에 적용 가능한 Grimoire skill을 확인하고 로드하도록 요구하는 bootstrap skill입니다.
 - `plugins/grimoire/skills/report-grimoire-issue/SKILL.md`: upstream Grimoire GitHub issue를 초안화하고 확인 후에만 게시하는 명시적 호출 issue-reporting skill입니다.
 - `plugins/grimoire/skills/writing-great-skills/SKILL.md`: 예측 가능한 Codex skill을 작성하고 편집하기 위한 명시적 호출 reference skill입니다.
+- `plugins/grimoire/skills/open-chatgpt-in-app-browser/SKILL.md`: Codex 인앱 브라우저에서 ChatGPT를 여는 명시적 호출 skill입니다.
 - `plugins/grimoire/skills/create-handoff-prompt/SKILL.md`: 선택한 대화 맥락을 다른 작업에 복사할 수 있는 자기완결적 prompt로 만드는 명시적 호출 skill입니다.
 - `plugins/grimoire/skills/handoff-to-main-task/SKILL.md`: host가 식별한 임시 side conversation에서 유일하게 검증된 main task로 guarded handoff를 preview하고 보내는 명시적 호출 skill입니다.
 - `plugins/grimoire/references/handoff-composition.md`: 두 handoff skill이 공유하는 비노출 composition contract입니다.

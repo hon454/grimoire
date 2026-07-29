@@ -19,7 +19,7 @@ Grimoire currently publishes one installable harness plugin:
 
 | Icon | Plugin | Purpose |
 | --- | :---: | --- |
-| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Workflow skills and hooks for Grimoire bootstrap, skill authoring, handoff prompt creation, verified side-conversation handoff, current-work triage, issue preflight, readiness review and Linear closeout, locale-grounded translation, review response, Git cleanup, and conflict resolution. |
+| <img src="plugins/grimoire/assets/icon.png" width="72" alt="Grimoire icon"> | [**Grimoire**](plugins/grimoire/) | Workflow skills and hooks for Grimoire bootstrap, skill authoring, opening ChatGPT, handoff prompt creation, verified side-conversation handoff, current-work triage, issue preflight, readiness review and Linear closeout, locale-grounded translation, review response, Git cleanup, and conflict resolution. |
 
 ## Contents
 
@@ -28,6 +28,7 @@ Grimoire currently publishes one installable harness plugin:
 - `plugins/grimoire/skills/using-grimoire/SKILL.md`: the bootstrap skill that requires Codex agents to check and load applicable Grimoire skills before acting.
 - `plugins/grimoire/skills/report-grimoire-issue/SKILL.md`: the explicit-invocation issue-reporting skill that drafts upstream Grimoire GitHub issues and posts them only after confirmation.
 - `plugins/grimoire/skills/writing-great-skills/SKILL.md`: the explicit-invocation reference for writing and editing predictable Codex skills.
+- `plugins/grimoire/skills/open-chatgpt-in-app-browser/SKILL.md`: the explicit-invocation skill that opens ChatGPT in the Codex in-app browser.
 - `plugins/grimoire/skills/create-handoff-prompt/SKILL.md`: the explicit-invocation skill that creates a self-contained prompt for copying selected conversation context into another task.
 - `plugins/grimoire/skills/handoff-to-main-task/SKILL.md`: the explicit-invocation skill that previews and sends a guarded handoff from a host-identified temporary side conversation to its uniquely verified main task.
 - `plugins/grimoire/references/handoff-composition.md`: the non-discoverable composition contract shared by the two handoff skills.
