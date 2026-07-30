@@ -319,8 +319,11 @@ Use REST anchors:
         self.assertNotIn("fingerprint", self.skill)
 
     def test_exact_review_reconciliation_is_present(self) -> None:
+        reconciliation = self.skill.split("After freezing the plan, ", 1)[1].split(
+            "\n\n", 1
+        )[0]
         self.assertRegex(
-            self.skill,
+            reconciliation,
             r"paginate all existing reviews and their inline\s+comments to completion",
         )
         for criterion in (
@@ -332,13 +335,13 @@ Use REST anchors:
             "canonical inline multiset and count",
         ):
             with self.subTest(criterion=criterion):
-                self.assertIn(criterion, self.skill)
-        self.assertIn("Exactly one match is\n`NONE / NO_OP / NONE`", self.skill)
-        self.assertIn("zero permits Prepublication", self.skill)
+                self.assertIn(criterion, reconciliation)
+        self.assertIn("Exactly one match is\n`NONE / NO_OP / NONE`", reconciliation)
+        self.assertIn("zero permits Prepublication", reconciliation)
         self.assertIn(
             "more than one or incomplete\nreview evidence is "
             "`NONE / UNCERTAIN / DECISION_UNVERIFIABLE`",
-            self.skill,
+            reconciliation,
         )
 
     def test_repository_validation_is_explicitly_static(self) -> None:
