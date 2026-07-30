@@ -8,17 +8,15 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "plugins/grimoire/skills/gh-pr-review-loop"
 SKILL = SKILL_DIR / "SKILL.md"
 SIDECAR = SKILL_DIR / "agents/openai.yaml"
-CONTRACT = SKILL_DIR / "references/github-review-contract.md"
 
 
 class GitHubReviewPackageStaticGuards(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.launcher = SKILL.read_text()
+        cls.skill = SKILL.read_text()
         cls.sidecar_text = SIDECAR.read_text()
-        cls.contract = CONTRACT.read_text()
 
-    def test_runtime_package_has_only_three_files(self) -> None:
+    def test_runtime_package_has_only_two_files(self) -> None:
         files = {
             path.relative_to(SKILL_DIR).as_posix()
             for path in SKILL_DIR.rglob("*")
@@ -30,21 +28,8 @@ class GitHubReviewPackageStaticGuards(unittest.TestCase):
             {
                 "SKILL.md",
                 "agents/openai.yaml",
-                "references/github-review-contract.md",
             },
         )
-
-    def test_launcher_only_gates_the_contract(self) -> None:
-        self.assertLessEqual(len(self.launcher.splitlines()), 16)
-        self.assertIn("Use only when explicitly invoked", self.launcher)
-        self.assertIn("Before querying any target data", self.launcher)
-        self.assertIn(
-            "read\n`references/github-review-contract.md` completely",
-            self.launcher,
-        )
-        self.assertIn("sole\nnormative source", self.launcher)
-        self.assertNotIn("Finish only", self.launcher)
-        self.assertNotIn("\n## ", self.launcher)
 
     def test_sidecar_has_exact_explicit_only_structure(self) -> None:
         self.assertEqual(
@@ -60,8 +45,7 @@ policy:
 """,
         )
 
-    def test_contract_identity_blocks_have_static_shape(self) -> None:
-        self.assertIn("`github-review-contract/v1`", self.contract)
+    def test_snapshot_identity_has_static_shape(self) -> None:
         self.assertIn(
             "- `comparison_base_sha`: exact commit GitHub PR Files uses as the "
             "old side of\n"
@@ -69,60 +53,7 @@ policy:
             "- `head_sha`: PR head commit SHA.\n"
             "- `snapshot_tuple`:\n"
             "  `(base_sha, merge_base_sha, comparison_base_sha, head_sha)`.",
-            self.contract,
-        )
-        self.assertIn(
-            "Compute `contract_sha256` as lowercase hexadecimal SHA-256 of the "
-            "exact bytes of\n"
-            "this file. Do not include `SKILL.md`, `agents/openai.yaml`, user "
-            "prose, PR data,\n"
-            "paths, or sidecar changes. Compute `review_key` as lowercase "
-            "hexadecimal\n"
-            "SHA-256 of the exact UTF-8 bytes formed by concatenating:",
-            self.contract,
-        )
-        self.assertIn(
-            "```\n"
-            "contract_source_identifier=github-review-contract/v1<LF>\n"
-            "contract_sha256=<lowercase hexadecimal contract_sha256><LF>\n"
-            "host=<verified GitHub host><LF>\n"
-            "principal_id=<authenticated principal node ID><LF>\n"
-            "repository_id=<repository node ID><LF>\n"
-            "pull_request_id=<pull request node ID><LF>\n"
-            "base_sha=<base_sha><LF>\n"
-            "merge_base_sha=<merge_base_sha><LF>\n"
-            "comparison_base_sha=<comparison_base_sha><LF>\n"
-            "head_sha=<head_sha><LF>\n"
-            "```",
-            self.contract,
-        )
-        self.assertIn(
-            """\
-Each displayed `<LF>` is exactly one byte `0x0a`, not the four literal
-characters, and the final `head_sha` field includes that trailing LF. Add no
-other whitespace, CR, separator, or encoding transformation. This fixed vector
-must produce the shown result:
-
-```
-contract_source_identifier=github-review-contract/v1
-contract_sha256=0000000000000000000000000000000000000000000000000000000000000000
-host=github.com
-principal_id=U_1
-repository_id=R_2
-pull_request_id=PR_3
-base_sha=1111111111111111111111111111111111111111
-merge_base_sha=2222222222222222222222222222222222222222
-comparison_base_sha=3333333333333333333333333333333333333333
-head_sha=4444444444444444444444444444444444444444
-review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
-```
-""",
-            self.contract,
-        )
-        self.assertNotIn("prompt_digest", self.contract)
-        self.assertIn(
-            "<!-- grimoire:gh-pr-review-loop review_key=<review_key> -->",
-            self.contract,
+            self.skill,
         )
 
     def test_contract_has_expected_static_sections(self) -> None:
@@ -138,10 +69,10 @@ review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
 
         for heading in headings:
             with self.subTest(heading=heading):
-                self.assertEqual(self.contract.count(heading), 1)
+                self.assertEqual(self.skill.count(heading), 1)
 
     def test_validation_matrix_has_five_static_rows(self) -> None:
-        matrix = self.contract.split("## Closed validation matrix\n", 1)[1].split(
+        matrix = self.skill.split("## Closed validation matrix\n", 1)[1].split(
             "\nA later row never repairs an earlier failure.",
             1,
         )[0]
@@ -165,17 +96,17 @@ review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
             "drift: `NONE / ABORTED / DECISION_EVIDENCE_CHANGED`. One exact "
             "match: `NONE / NO_OP / NONE`. Missing or multiple-match evidence: "
             "`NONE / UNCERTAIN / PREPUBLICATION_UNVERIFIABLE`. |",
-            self.contract.splitlines(),
+            self.skill.splitlines(),
         )
         self.assertIn(
             "| Decision | Complete review-content evidence; deterministic "
-            "event; immutable plan; complete exact candidate reconciliation; "
+            "event; immutable plan; complete exact review reconciliation; "
             "for a selected strong event, complete applicable strong-event "
             "evidence. | Forbidden plan, anchor, event, or target: `NONE / "
             "BLOCKED / DECISION_INVALID`. Missing, conflicting, or incomplete "
             "review-content evidence, or missing evidence for a selected "
             "strong event: `NONE / UNCERTAIN / DECISION_UNVERIFIABLE`. |",
-            self.contract.splitlines(),
+            self.skill.splitlines(),
         )
         for terminal in (
             "AUTHORITY_UNVERIFIED",
@@ -187,17 +118,17 @@ review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
             "READBACK_UNRESOLVED",
         ):
             with self.subTest(terminal=terminal):
-                self.assertIn(terminal, self.contract)
+                self.assertIn(terminal, self.skill)
 
     def test_static_publication_guards_are_present(self) -> None:
-        self.assertIn("Support serialized invocations only", self.contract)
-        self.assertIn("makes no concurrent or global exactly-once claim", self.contract)
-        self.assertIn("PUBLICATION_REJECTED", self.contract)
+        self.assertIn("Support serialized invocations only", self.skill)
+        self.assertIn("makes no concurrent or global exactly-once claim", self.skill)
+        self.assertIn("PUBLICATION_REJECTED", self.skill)
         self.assertIn(
             "Never retry after a request might have been sent",
-            self.contract,
+            self.skill,
         )
-        self.assertNotIn("byte-identical retry", self.contract)
+        self.assertNotIn("byte-identical retry", self.skill)
 
     def test_static_event_and_check_mappings_are_present(self) -> None:
         for mapping in (
@@ -210,29 +141,29 @@ review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
             "`FAIL_OR_UNVERIFIABLE`",
         ):
             with self.subTest(mapping=mapping):
-                self.assertIn(mapping, self.contract)
+                self.assertIn(mapping, self.skill)
         self.assertIn(
             "Authenticated principal is the PR author | `COMMENT`",
-            self.contract,
+            self.skill,
         )
         self.assertIn(
             "Non-author review has any `P0`, `P1`, or `P2` finding | "
             "`REQUEST_CHANGES`",
-            self.contract,
+            self.skill,
         )
         self.assertIn(
             "Review has only `P3` or `NIT` findings | `COMMENT`",
-            self.contract,
+            self.skill,
         )
         self.assertIn(
             "Review has no findings, all existing threads are resolved, and "
             "checks are approval eligible | `APPROVE`",
-            self.contract,
+            self.skill,
         )
-        self.assertIn("check runs with `filter=latest`", self.contract)
+        self.assertIn("check runs with `filter=latest`", self.skill)
         self.assertIn(
             "latest commit status per\ncase-insensitive context",
-            self.contract,
+            self.skill,
         )
         for guard in (
             "`check_source_sha`",
@@ -243,7 +174,7 @@ review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
             "SNAPSHOT_CHANGED_AFTER_PUBLICATION",
         ):
             with self.subTest(guard=guard):
-                self.assertIn(guard, self.contract)
+                self.assertIn(guard, self.skill)
 
     def test_review_evidence_and_bounded_fallback_are_exact(self) -> None:
         self.assertIn(
@@ -252,7 +183,7 @@ Use exactly two evidence sets:
 
 - Review-content evidence, required for any publication: complete Authority and
   Snapshot rows, complete changed-file inventory and contents, frozen findings,
-  body, and anchors, exact candidate reconciliation, and immediate tuple
+  body, and anchors, exact review reconciliation, and immediate tuple
   revalidation. Missing or ambiguous review-content evidence is a no-write
   `NONE / UNCERTAIN` terminal from the decisive validation row; do not publish.
 - Strong-event evidence, required only for `APPROVE` or `REQUEST_CHANGES`:
@@ -262,7 +193,7 @@ Use exactly two evidence sets:
   evidence is complete but strong-event evidence is missing or ambiguous, use
   `COMMENT`.
 """,
-            self.contract,
+            self.skill,
         )
         self.assertIn(
             """\
@@ -280,7 +211,7 @@ object type at both commits. If any comparison-base, inventory, fallback blob,
 mode, type, rename, deletion, submodule, or binary evidence remains incomplete
 or ambiguous, review-content evidence is incomplete.
 """,
-            self.contract,
+            self.skill,
         )
 
     def test_required_checks_join_source_and_kind_exactly(self) -> None:
@@ -296,7 +227,7 @@ kind; when both a check run and commit status have the required context, both
 must succeed. Optional results and same-context results from a nonmatching
 source never satisfy the requirement.
 """,
-            self.contract,
+            self.skill,
         )
         rows = (
             "| Any missing required result, source mismatch, unverifiable "
@@ -314,11 +245,11 @@ source never satisfy the requirement.
         self.assertIn(
             "Classify that current evidence by evaluating these rows in order "
             "and selecting\nthe first match:",
-            self.contract,
+            self.skill,
         )
         for row in rows:
             with self.subTest(row=row):
-                self.assertIn(row, self.contract.splitlines())
+                self.assertIn(row, self.skill.splitlines())
 
     def test_finding_rubric_and_event_rows_are_exact(self) -> None:
         self.assertIn(
@@ -337,11 +268,11 @@ boundary is whether an actual behavioral defect exists. When the `P2`/`P3`
 boundary cannot be resolved, do not use it to select a strong event; use
 `COMMENT`.
 """,
-            self.contract,
+            self.skill,
         )
         event_rows = [
             line
-            for line in self.contract.splitlines()
+            for line in self.skill.splitlines()
             if line.startswith("| ") and line.endswith((" | `COMMENT` |", " | `REQUEST_CHANGES` |", " | `APPROVE` |"))
         ]
         self.assertEqual(
@@ -363,7 +294,7 @@ boundary cannot be resolved, do not use it to select a strong event; use
         )
         self.assertIn(
             "Do not track `merge_group` SHA or monitor queue\nchanges.",
-            self.contract,
+            self.skill,
         )
 
     def test_static_readback_canonicalization_is_present(self) -> None:
@@ -378,24 +309,48 @@ Use REST anchors:
 - Observed start anchor: `(start_side, original_start_line)` when present;
   otherwise the observed end anchor.
 """,
-            self.contract,
+            self.skill,
         )
-        self.assertIn("order-independent multisets", self.contract)
-        self.assertIn("Nonmatching markers never suppress", self.contract)
+        self.assertIn("order-independent multisets", self.skill)
         self.assertIn(
             "`(path, start_anchor, end_anchor, normalized_body)`",
-            self.contract,
+            self.skill,
         )
-        self.assertNotIn("fingerprint", self.contract)
+        self.assertNotIn("fingerprint", self.skill)
+
+    def test_exact_review_reconciliation_is_present(self) -> None:
+        self.assertRegex(
+            self.skill,
+            r"paginate all existing reviews and their inline\s+comments to completion",
+        )
+        for criterion in (
+            "current target",
+            "authenticated\nauthor's stable ID",
+            "`head_sha`",
+            "expected state",
+            "normalized final body",
+            "canonical inline multiset and count",
+        ):
+            with self.subTest(criterion=criterion):
+                self.assertIn(criterion, self.skill)
+        self.assertIn("Exactly one match is\n`NONE / NO_OP / NONE`", self.skill)
+        self.assertIn("zero permits Prepublication", self.skill)
+        self.assertIn(
+            "more than one or incomplete\nreview evidence is "
+            "`NONE / UNCERTAIN / DECISION_UNVERIFIABLE`",
+            self.skill,
+        )
 
     def test_repository_validation_is_explicitly_static(self) -> None:
         self.assertIn(
-            "static-contract guards, not proof of\nruntime state safety",
-            self.contract,
+            "static-safety guards, not proof of\nruntime state safety",
+            self.skill,
         )
+        self.assertIn("Check the two-file package", self.skill)
+        self.assertIn("integrated `SKILL.md` safety rules", self.skill)
         self.assertIn(
             "Do not use a live GitHub mutation as validation.",
-            self.contract.splitlines(),
+            self.skill.splitlines(),
         )
 
 
