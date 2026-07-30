@@ -63,18 +63,60 @@ policy:
     def test_contract_identity_blocks_have_static_shape(self) -> None:
         self.assertIn("`github-review-contract/v1`", self.contract)
         self.assertIn(
+            "- `comparison_base_sha`: exact commit GitHub PR Files uses as the "
+            "old side of\n"
+            "  its changed-file inventory and anchors.\n"
+            "- `head_sha`: PR head commit SHA.\n"
+            "- `snapshot_tuple`:\n"
+            "  `(base_sha, merge_base_sha, comparison_base_sha, head_sha)`.",
+            self.contract,
+        )
+        self.assertIn(
+            "Compute `contract_sha256` as lowercase hexadecimal SHA-256 of the "
+            "exact bytes of\n"
+            "this file. Do not include `SKILL.md`, `agents/openai.yaml`, user "
+            "prose, PR data,\n"
+            "paths, or sidecar changes. Compute `review_key` as lowercase "
+            "hexadecimal\n"
+            "SHA-256 of the exact UTF-8 bytes formed by concatenating:",
+            self.contract,
+        )
+        self.assertIn(
             "```\n"
-            "contract_source_identifier=github-review-contract/v1\\n\n"
-            "contract_sha256=<SHA-256 of the exact bytes of "
-            "github-review-contract.md>\\n\n"
-            "host=<verified GitHub host>\\n\n"
-            "principal_id=<authenticated principal node ID>\\n\n"
-            "repository_id=<repository node ID>\\n\n"
-            "pull_request_id=<pull request node ID>\\n\n"
-            "base_sha=<base_sha>\\n\n"
-            "merge_base_sha=<merge_base_sha>\\n\n"
-            "head_sha=<head_sha>\\n\n"
+            "contract_source_identifier=github-review-contract/v1<LF>\n"
+            "contract_sha256=<lowercase hexadecimal contract_sha256><LF>\n"
+            "host=<verified GitHub host><LF>\n"
+            "principal_id=<authenticated principal node ID><LF>\n"
+            "repository_id=<repository node ID><LF>\n"
+            "pull_request_id=<pull request node ID><LF>\n"
+            "base_sha=<base_sha><LF>\n"
+            "merge_base_sha=<merge_base_sha><LF>\n"
+            "comparison_base_sha=<comparison_base_sha><LF>\n"
+            "head_sha=<head_sha><LF>\n"
             "```",
+            self.contract,
+        )
+        self.assertIn(
+            """\
+Each displayed `<LF>` is exactly one byte `0x0a`, not the four literal
+characters, and the final `head_sha` field includes that trailing LF. Add no
+other whitespace, CR, separator, or encoding transformation. This fixed vector
+must produce the shown result:
+
+```
+contract_source_identifier=github-review-contract/v1
+contract_sha256=0000000000000000000000000000000000000000000000000000000000000000
+host=github.com
+principal_id=U_1
+repository_id=R_2
+pull_request_id=PR_3
+base_sha=1111111111111111111111111111111111111111
+merge_base_sha=2222222222222222222222222222222222222222
+comparison_base_sha=3333333333333333333333333333333333333333
+head_sha=4444444444444444444444444444444444444444
+review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
+```
+""",
             self.contract,
         )
         self.assertNotIn("prompt_digest", self.contract)
@@ -99,18 +141,15 @@ policy:
                 self.assertEqual(self.contract.count(heading), 1)
 
     def test_validation_matrix_has_five_static_rows(self) -> None:
+        matrix = self.contract.split("## Closed validation matrix\n", 1)[1].split(
+            "\nA later row never repairs an earlier failure.",
+            1,
+        )[0]
         rows = [
             line.split("|")[1].strip()
-            for line in self.contract.splitlines()
-            if line.startswith(
-                (
-                    "| Authority |",
-                    "| Snapshot |",
-                    "| Decision |",
-                    "| Prepublication |",
-                    "| Readback |",
-                )
-            )
+            for line in matrix.splitlines()
+            if line.startswith("| ")
+            and not line.startswith(("| Row |", "| --- |"))
         ]
 
         self.assertEqual(
@@ -231,11 +270,15 @@ The changed-file inventory is complete only when its unique entry count equals
 the PR's `changed_files` and every page is complete while `snapshot_tuple`
 remains current. A successful response or pagination end alone does not prove
 completeness across the REST 3,000-file or compare 300-file cap. Do not rebuild
-an over-cap inventory by traversing full Git trees. When the inventory is
-complete but a known entry has a missing or truncated patch, fetch its exact
-base/head blobs and text-or-binary evidence from the immutable tuple. If any
-inventory, fallback blob, rename, deletion, submodule, or binary evidence
-remains incomplete or ambiguous, review-content evidence is incomplete.
+an over-cap inventory by traversing full Git trees. Prove
+`comparison_base_sha` is the old side GitHub PR Files actually used; never
+substitute a graph merge base or compare-page merge base. Bind inventory,
+anchors, and fallback to `comparison_base_sha` and `head_sha`. When the inventory
+is complete but a known entry has a missing or truncated patch, fetch its exact
+comparison-base/head blobs, text-or-binary evidence, and Git tree mode and
+object type at both commits. If any comparison-base, inventory, fallback blob,
+mode, type, rename, deletion, submodule, or binary evidence remains incomplete
+or ambiguous, review-content evidence is incomplete.
 """,
             self.contract,
         )
@@ -255,14 +298,25 @@ source never satisfy the requirement.
 """,
             self.contract,
         )
-        for row in (
-            "| Required-result join is complete, and every current result "
-            "completed as `success`, `skipped`, or `neutral` | `PASS` | Yes |",
+        rows = (
             "| Any missing required result, source mismatch, unverifiable "
             "source or kind, other conclusion, unidentified check source, "
             "incomplete configuration or pagination, or unverifiable result | "
             "`FAIL_OR_UNVERIFIABLE` | No |",
-        ):
+            "| Otherwise, any `queued`, `pending`, `requested`, `waiting`, "
+            "`expected`, or `in_progress` result | `PENDING` | No |",
+            "| Otherwise, no reported checks, and complete configuration "
+            "evidence proves no checks are required | `NOT_CONFIGURED` | Yes |",
+            "| Otherwise, the required-result join is complete, at least one "
+            "current result exists, and every current result completed as "
+            "`success`, `skipped`, or `neutral` | `PASS` | Yes |",
+        )
+        self.assertIn(
+            "Classify that current evidence by evaluating these rows in order "
+            "and selecting\nthe first match:",
+            self.contract,
+        )
+        for row in rows:
             with self.subTest(row=row):
                 self.assertIn(row, self.contract.splitlines())
 
@@ -313,15 +367,21 @@ boundary cannot be resolved, do not use it to select a strong event; use
         )
 
     def test_static_readback_canonicalization_is_present(self) -> None:
-        for field in (
-            "Plan start anchor",
-            "Observed end anchor: `(side, original_line)`",
-            "original_start_line",
-            "order-independent multisets",
-            "Nonmatching markers never suppress",
-        ):
-            with self.subTest(field=field):
-                self.assertIn(field, self.contract)
+        self.assertIn(
+            """\
+Use REST anchors:
+
+- Plan end anchor: `(side, line)`.
+- Plan start anchor: `(start_side, start_line)` for a multi-line comment;
+  otherwise the end anchor.
+- Observed end anchor: `(side, original_line)`.
+- Observed start anchor: `(start_side, original_start_line)` when present;
+  otherwise the observed end anchor.
+""",
+            self.contract,
+        )
+        self.assertIn("order-independent multisets", self.contract)
+        self.assertIn("Nonmatching markers never suppress", self.contract)
         self.assertIn(
             "`(path, start_anchor, end_anchor, normalized_body)`",
             self.contract,

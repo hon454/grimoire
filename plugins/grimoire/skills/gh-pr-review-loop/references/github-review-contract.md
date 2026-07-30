@@ -48,27 +48,51 @@ Also record:
 
 - `base_sha`: PR base commit SHA.
 - `merge_base_sha`: merge base of the base and head.
+- `comparison_base_sha`: exact commit GitHub PR Files uses as the old side of
+  its changed-file inventory and anchors.
 - `head_sha`: PR head commit SHA.
-- `snapshot_tuple`: `(base_sha, merge_base_sha, head_sha)`.
+- `snapshot_tuple`:
+  `(base_sha, merge_base_sha, comparison_base_sha, head_sha)`.
 
 Use that complete tuple for all analysis, anchors, plans, checks, keys,
 prepublication validation, and readback. Mixed, incomplete, or later tuples are
 invalid.
 
-Compute `contract_sha256` from the exact bytes of this file. Do not include
-`SKILL.md`, `agents/openai.yaml`, user prose, PR data, paths, or sidecar changes.
-Compute `review_key` as SHA-256 of:
+Compute `contract_sha256` as lowercase hexadecimal SHA-256 of the exact bytes of
+this file. Do not include `SKILL.md`, `agents/openai.yaml`, user prose, PR data,
+paths, or sidecar changes. Compute `review_key` as lowercase hexadecimal
+SHA-256 of the exact UTF-8 bytes formed by concatenating:
 
 ```
-contract_source_identifier=github-review-contract/v1\n
-contract_sha256=<SHA-256 of the exact bytes of github-review-contract.md>\n
-host=<verified GitHub host>\n
-principal_id=<authenticated principal node ID>\n
-repository_id=<repository node ID>\n
-pull_request_id=<pull request node ID>\n
-base_sha=<base_sha>\n
-merge_base_sha=<merge_base_sha>\n
-head_sha=<head_sha>\n
+contract_source_identifier=github-review-contract/v1<LF>
+contract_sha256=<lowercase hexadecimal contract_sha256><LF>
+host=<verified GitHub host><LF>
+principal_id=<authenticated principal node ID><LF>
+repository_id=<repository node ID><LF>
+pull_request_id=<pull request node ID><LF>
+base_sha=<base_sha><LF>
+merge_base_sha=<merge_base_sha><LF>
+comparison_base_sha=<comparison_base_sha><LF>
+head_sha=<head_sha><LF>
+```
+
+Each displayed `<LF>` is exactly one byte `0x0a`, not the four literal
+characters, and the final `head_sha` field includes that trailing LF. Add no
+other whitespace, CR, separator, or encoding transformation. This fixed vector
+must produce the shown result:
+
+```
+contract_source_identifier=github-review-contract/v1
+contract_sha256=0000000000000000000000000000000000000000000000000000000000000000
+host=github.com
+principal_id=U_1
+repository_id=R_2
+pull_request_id=PR_3
+base_sha=1111111111111111111111111111111111111111
+merge_base_sha=2222222222222222222222222222222222222222
+comparison_base_sha=3333333333333333333333333333333333333333
+head_sha=4444444444444444444444444444444444444444
+review_key=cd88cf1e826606ba34a5d64888a39489e79ff9833b243189ed7a4e4ec053dcf3
 ```
 
 Include this exact standalone marker in the final body:
@@ -104,11 +128,15 @@ The changed-file inventory is complete only when its unique entry count equals
 the PR's `changed_files` and every page is complete while `snapshot_tuple`
 remains current. A successful response or pagination end alone does not prove
 completeness across the REST 3,000-file or compare 300-file cap. Do not rebuild
-an over-cap inventory by traversing full Git trees. When the inventory is
-complete but a known entry has a missing or truncated patch, fetch its exact
-base/head blobs and text-or-binary evidence from the immutable tuple. If any
-inventory, fallback blob, rename, deletion, submodule, or binary evidence
-remains incomplete or ambiguous, review-content evidence is incomplete.
+an over-cap inventory by traversing full Git trees. Prove
+`comparison_base_sha` is the old side GitHub PR Files actually used; never
+substitute a graph merge base or compare-page merge base. Bind inventory,
+anchors, and fallback to `comparison_base_sha` and `head_sha`. When the inventory
+is complete but a known entry has a missing or truncated patch, fetch its exact
+comparison-base/head blobs, text-or-binary evidence, and Git tree mode and
+object type at both commits. If any comparison-base, inventory, fallback blob,
+mode, type, rename, deletion, submodule, or binary evidence remains incomplete
+or ambiguous, review-content evidence is incomplete.
 
 Identify `check_source_sha` as the exact commit whose checks GitHub currently
 applies to the PR: the current test merge commit when GitHub uses one, otherwise
@@ -125,14 +153,15 @@ source has at least one matching current record. Retain every matching check
 kind; when both a check run and commit status have the required context, both
 must succeed. Optional results and same-context results from a nonmatching
 source never satisfy the requirement.
-Classify that current evidence as:
+Classify that current evidence by evaluating these rows in order and selecting
+the first match:
 
 | Evidence | Classification | Approval eligible |
 | --- | --- | --- |
-| No reported checks, and complete configuration evidence proves no checks are required | `NOT_CONFIGURED` | Yes |
-| Required-result join is complete, and every current result completed as `success`, `skipped`, or `neutral` | `PASS` | Yes |
-| Any `queued`, `pending`, `requested`, `waiting`, `expected`, or `in_progress` result | `PENDING` | No |
 | Any missing required result, source mismatch, unverifiable source or kind, other conclusion, unidentified check source, incomplete configuration or pagination, or unverifiable result | `FAIL_OR_UNVERIFIABLE` | No |
+| Otherwise, any `queued`, `pending`, `requested`, `waiting`, `expected`, or `in_progress` result | `PENDING` | No |
+| Otherwise, no reported checks, and complete configuration evidence proves no checks are required | `NOT_CONFIGURED` | Yes |
+| Otherwise, the required-result join is complete, at least one current result exists, and every current result completed as `success`, `skipped`, or `neutral` | `PASS` | Yes |
 
 Classify each finding with this minimum rubric:
 
