@@ -7,6 +7,7 @@ import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -20,15 +21,36 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 SCHEMA_VERSION = 1
 SAFE_SEGMENT = re.compile(r"^[A-Za-z0-9._-]+$")
-TERMINAL_DECISIONS = {"decided", "deferred", "not_applicable"}
-TERMINAL_WORKFLOW = {"completed", "not_applicable", "skipped", "blocked"}
-WORKFLOW_KEYS = {
-    "implementation",
-    "verification",
-    "reply",
-    "resolve",
-    "remote_write",
+FINGERPRINT = re.compile(r"^[0-9a-f]{64}$")
+PHASES = {
+    "collected",
+    "deciding",
+    "planned",
+    "implementing",
+    "verifying",
+    "responding",
+    "completed",
 }
+PULL_REQUEST_STATES = {"open", "closed"}
+SOURCE_KINDS = {"review", "review_thread", "review_comment", "issue_comment"}
+SOURCE_STATES = {"unresolved", "resolved", "outdated", "draft", "inaccessible"}
+DECISION_TYPES = {"fix", "explain", "question", "defer_reject", "duplicate", "outdated"}
+DECISION_STATUSES = {"pending", "decided", "not_applicable"}
+IMPLEMENTATION_STATUSES = {"pending", "completed", "not_applicable", "blocked"}
+VERIFICATION_STATUSES = {"pending", "completed", "skipped", "not_applicable", "blocked"}
+REPLY_STATUSES = {"pending", "completed", "not_applicable", "blocked"}
+RESOLVE_ACTIONS = {
+    "auto_resolve",
+    "approved_resolve",
+    "leave_unresolved",
+    "not_applicable",
+}
+REMOTE_WRITE_STATUSES = {"pending", "completed", "not_applicable", "blocked"}
+TERMINAL_DECISIONS = {"decided", "not_applicable"}
+TERMINAL_IMPLEMENTATION = {"completed", "not_applicable", "blocked"}
+TERMINAL_VERIFICATION = {"completed", "skipped", "not_applicable", "blocked"}
+TERMINAL_REPLY = {"completed", "not_applicable", "blocked"}
+TERMINAL_REMOTE_WRITE = {"completed", "not_applicable", "blocked"}
 
 
 class StateError(ValueError):
@@ -58,11 +80,35 @@ def _nonempty_string(value: Any, label: str) -> str:
     return value
 
 
+def _enum(value: Any, allowed: set, label: str) -> str:
+    member = _nonempty_string(value, label)
+    if member not in allowed:
+        raise StateError(f"{label} must be one of {sorted(allowed)}")
+    return member
+
+
 def _safe_segment(value: Any, label: str) -> str:
     segment = _nonempty_string(value, label)
     if segment in {".", ".."} or not SAFE_SEGMENT.fullmatch(segment):
         raise StateError(f"{label} contains unsafe characters")
     return segment
+
+
+def source_fingerprint(value: Any) -> str:
+    if not isinstance(value, dict):
+        raise StateError("fingerprint input must be a JSON object")
+    _exact_keys(value, {"id", "updated_at", "body"}, "fingerprint input")
+    _nonempty_string(value["id"], "fingerprint input.id")
+    _nonempty_string(value["updated_at"], "fingerprint input.updated_at")
+    if not isinstance(value["body"], str):
+        raise StateError("fingerprint input.body must be a string")
+    encoded = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def validate_checkpoint(value: Any) -> Dict[str, Any]:
@@ -79,7 +125,7 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
         "phase",
         "source_items",
         "decisions",
-        "workflow_status",
+        "remote_write_status",
         "updated_at",
     }
     _exact_keys(value, expected, "checkpoint")
@@ -116,9 +162,9 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
     _positive_int(pull_request["number"], "pull_request.number")
     _nonempty_string(pull_request["url"], "pull_request.url")
     _nonempty_string(pull_request["head_sha"], "pull_request.head_sha")
-    _nonempty_string(pull_request["state"], "pull_request.state")
+    _enum(pull_request["state"], PULL_REQUEST_STATES, "pull_request.state")
 
-    _nonempty_string(value["phase"], "phase")
+    _enum(value["phase"], PHASES, "phase")
     _nonempty_string(value["updated_at"], "updated_at")
 
     source_items = value["source_items"]
@@ -137,9 +183,16 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
         if item_id in source_ids:
             raise StateError("source item IDs must be unique")
         source_ids.add(item_id)
-        _nonempty_string(item["kind"], f"source_items[{index}].kind")
-        _nonempty_string(item["fingerprint"], f"source_items[{index}].fingerprint")
-        _nonempty_string(item["state"], f"source_items[{index}].state")
+        _enum(item["kind"], SOURCE_KINDS, f"source_items[{index}].kind")
+        fingerprint = _nonempty_string(
+            item["fingerprint"],
+            f"source_items[{index}].fingerprint",
+        )
+        if not FINGERPRINT.fullmatch(fingerprint):
+            raise StateError(
+                f"source_items[{index}].fingerprint must be 64 lowercase hexadecimal characters"
+            )
+        _enum(item["state"], SOURCE_STATES, f"source_items[{index}].state")
         if not isinstance(item["decision_required"], bool):
             raise StateError(f"source_items[{index}].decision_required must be boolean")
         if item["decision_id"] is not None:
@@ -176,28 +229,28 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
         for source_id in decision["source_ids"]:
             if source_id not in source_ids:
                 raise StateError(f"decisions[{index}] references an unknown source item")
-        for key in (
-            "type",
-            "status",
-            "choice",
-            "implementation_status",
-            "verification_status",
-            "reply_status",
-            "resolve_action",
-        ):
-            _nonempty_string(decision[key], f"decisions[{index}].{key}")
+        _enum(decision["type"], DECISION_TYPES, f"decisions[{index}].type")
+        _enum(decision["status"], DECISION_STATUSES, f"decisions[{index}].status")
+        _nonempty_string(decision["choice"], f"decisions[{index}].choice")
+        _enum(
+            decision["implementation_status"],
+            IMPLEMENTATION_STATUSES,
+            f"decisions[{index}].implementation_status",
+        )
+        _enum(
+            decision["verification_status"],
+            VERIFICATION_STATUSES,
+            f"decisions[{index}].verification_status",
+        )
+        _enum(decision["reply_status"], REPLY_STATUSES, f"decisions[{index}].reply_status")
+        _enum(decision["resolve_action"], RESOLVE_ACTIONS, f"decisions[{index}].resolve_action")
 
     for index, item in enumerate(source_items):
         decision_id = item["decision_id"]
         if decision_id is not None and decision_id not in decision_ids:
             raise StateError(f"source_items[{index}] references an unknown decision")
 
-    workflow = value["workflow_status"]
-    if not isinstance(workflow, dict):
-        raise StateError("workflow_status must be an object")
-    _exact_keys(workflow, WORKFLOW_KEYS, "workflow_status")
-    for key, status_value in workflow.items():
-        _nonempty_string(status_value, f"workflow_status.{key}")
+    _enum(value["remote_write_status"], REMOTE_WRITE_STATUSES, "remote_write_status")
 
     return value
 
@@ -320,7 +373,14 @@ def _completed(value: Dict[str, Any]) -> bool:
                 return False
     if any(decision["status"] not in TERMINAL_DECISIONS for decision in value["decisions"]):
         return False
-    return all(status_value in TERMINAL_WORKFLOW for status_value in value["workflow_status"].values())
+    if any(
+        decision["implementation_status"] not in TERMINAL_IMPLEMENTATION
+        or decision["verification_status"] not in TERMINAL_VERIFICATION
+        or decision["reply_status"] not in TERMINAL_REPLY
+        for decision in value["decisions"]
+    ):
+        return False
+    return value["remote_write_status"] in TERMINAL_REMOTE_WRITE
 
 
 def _state_files(root: Path) -> Iterator[Path]:
@@ -457,6 +517,7 @@ def _parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("write", help="read a checkpoint from stdin and write it atomically")
+    subparsers.add_parser("fingerprint", help="hash one source item from JSON on stdin")
 
     read = subparsers.add_parser("read", help="print one validated checkpoint")
     read.add_argument("--host", required=True)
@@ -474,6 +535,8 @@ def main() -> int:
             value = json.load(sys.stdin)
             path, stored = write_checkpoint(arguments.root, value)
             output = {"path": str(path), "checkpoint": stored}
+        elif arguments.command == "fingerprint":
+            output = {"fingerprint": source_fingerprint(json.load(sys.stdin))}
         elif arguments.command == "read":
             output = read_checkpoint(
                 arguments.root,

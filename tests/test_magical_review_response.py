@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,7 +22,7 @@ STATE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(STATE)
 
 
-def checkpoint(*, phase="completed", workflow=None):
+def checkpoint(*, phase="completed", remote_write_status="completed"):
     return {
         "schema_version": 1,
         "revision": 0,
@@ -36,7 +39,7 @@ def checkpoint(*, phase="completed", workflow=None):
             "number": 874,
             "url": "https://github.com/CINEV/shotloom/pull/874",
             "head_sha": "a" * 40,
-            "state": "OPEN",
+            "state": "open",
         },
         "phase": phase,
         "source_items": [
@@ -62,14 +65,7 @@ def checkpoint(*, phase="completed", workflow=None):
                 "resolve_action": "not_applicable",
             }
         ],
-        "workflow_status": workflow
-        or {
-            "implementation": "completed",
-            "verification": "completed",
-            "reply": "completed",
-            "resolve": "not_applicable",
-            "remote_write": "completed",
-        },
+        "remote_write_status": remote_write_status,
         "updated_at": "2026-08-03T00:00:00+00:00",
     }
 
@@ -131,14 +127,28 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         cls.skill = SKILL.read_text(encoding="utf-8")
         cls.guide = GUIDE.read_text(encoding="utf-8")
 
-    def test_initial_output_has_orientation_translation_and_interview_in_order(self):
-        labels = ("`PR orientation`", "`Full review translation`", "the first decision interview")
+    def test_initial_output_has_orientation_and_translation_in_order(self):
+        labels = ("`PR orientation`", "`Full review translation`")
         positions = [self.skill.index(label) for label in labels]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("A horizontal rule, then `Full review translation`", self.skill)
-        self.assertIn("A horizontal rule, then the first decision interview", self.skill)
         self.assertIn("stable platform item ID when available", self.skill)
         self.assertIn("Do not include interpretation,\n      takeaway, decisions, or recommendations", self.skill)
+
+    def test_first_response_branches_on_whether_decisions_exist(self):
+        self.assertIn(
+            "the first decision interview, when at least one independent decision",
+            self.skill,
+        )
+        self.assertIn(
+            "the consolidated response plan from step 8, when no independent",
+            self.skill,
+        )
+        self.assertIn(
+            "In either branch, do not implement until the consolidated response plan is\n"
+            "   explicitly confirmed",
+            self.skill,
+        )
 
     def test_decision_interview_separates_recommendations_and_requires_evidence(self):
         self.assertIn("**Reviewer recommendation:**", self.skill)
@@ -179,6 +189,91 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
 
 
 class ReviewResponseStateTests(unittest.TestCase):
+    def test_fingerprint_is_canonical_and_rejects_raw_text(self):
+        payload = {
+            "id": "PRRC_123",
+            "updated_at": "2026-08-03T00:00:00Z",
+            "body": "안녕하세요\nReview",
+        }
+        expected = "8fd1e632eaabe0a049b6d332eff280facb475a34807042dd29905520d7b0bc32"
+
+        self.assertEqual(expected, STATE.source_fingerprint(payload))
+        self.assertEqual(
+            expected,
+            STATE.source_fingerprint(dict(reversed(list(payload.items())))),
+        )
+
+        completed = subprocess.run(
+            [sys.executable, str(SCRIPT), "fingerprint"],
+            input=json.dumps(payload, ensure_ascii=False),
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        self.assertEqual({"fingerprint": expected}, json.loads(completed.stdout))
+
+        rejected = subprocess.run(
+            [sys.executable, str(SCRIPT), "fingerprint"],
+            input="raw review body",
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(2, rejected.returncode)
+
+    def test_checkpoint_accepts_only_closed_enum_values(self):
+        fields = (
+            (("phase",), STATE.PHASES),
+            (("pull_request", "state"), STATE.PULL_REQUEST_STATES),
+            (("source_items", 0, "kind"), STATE.SOURCE_KINDS),
+            (("source_items", 0, "state"), STATE.SOURCE_STATES),
+            (("decisions", 0, "type"), STATE.DECISION_TYPES),
+            (("decisions", 0, "status"), STATE.DECISION_STATUSES),
+            (("decisions", 0, "implementation_status"), STATE.IMPLEMENTATION_STATUSES),
+            (("decisions", 0, "verification_status"), STATE.VERIFICATION_STATUSES),
+            (("decisions", 0, "reply_status"), STATE.REPLY_STATUSES),
+            (("decisions", 0, "resolve_action"), STATE.RESOLVE_ACTIONS),
+            (("remote_write_status",), STATE.REMOTE_WRITE_STATUSES),
+        )
+        for path, allowed in fields:
+            for member in allowed:
+                with self.subTest(path=path, member=member):
+                    value = checkpoint()
+                    target = value
+                    for key in path[:-1]:
+                        target = target[key]
+                    target[path[-1]] = member
+                    STATE.validate_checkpoint(value)
+            with self.subTest(path=path, member="UNKNOWN"):
+                value = checkpoint()
+                target = value
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = "UNKNOWN"
+                with self.assertRaises(STATE.StateError):
+                    STATE.validate_checkpoint(value)
+
+        for path, alias in (
+            (("pull_request", "state"), "OPEN"),
+            (("decisions", 0, "type"), "defer/reject"),
+            (("decisions", 0, "resolve_action"), "auto-resolve"),
+        ):
+            with self.subTest(path=path, alias=alias):
+                value = checkpoint()
+                target = value
+                for key in path[:-1]:
+                    target = target[key]
+                target[path[-1]] = alias
+                with self.assertRaises(STATE.StateError):
+                    STATE.validate_checkpoint(value)
+
+    def test_checkpoint_rejects_non_digest_fingerprint(self):
+        for fingerprint in ("review body", "A" * 64, "a" * 63, "a" * 65):
+            with self.subTest(fingerprint=fingerprint):
+                value = checkpoint()
+                value["source_items"][0]["fingerprint"] = fingerprint
+                with self.assertRaises(STATE.StateError):
+                    STATE.validate_checkpoint(value)
+
     def test_write_and_read_increment_revision_without_temp_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -239,8 +334,38 @@ class ReviewResponseStateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             pending = checkpoint()
-            pending["workflow_status"]["reply"] = "pending"
+            pending["decisions"][0]["reply_status"] = "pending"
             path, _ = STATE.write_checkpoint(root, pending)
+            api = FakeApi()
+            api.fail = True
+
+            result = STATE.cleanup_checkpoints(root, api)
+
+            self.assertTrue(path.exists())
+            self.assertEqual([], result["skipped_repositories"])
+
+    def test_cleanup_preserves_each_pending_decision_status(self):
+        for field in ("implementation_status", "verification_status", "reply_status"):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                pending = checkpoint()
+                pending["decisions"][0][field] = "pending"
+                path, _ = STATE.write_checkpoint(root, pending)
+                api = FakeApi()
+                api.fail = True
+
+                result = STATE.cleanup_checkpoints(root, api)
+
+                self.assertTrue(path.exists())
+                self.assertEqual([], result["skipped_repositories"])
+
+    def test_cleanup_preserves_pending_remote_write_without_querying(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path, _ = STATE.write_checkpoint(
+                root,
+                checkpoint(remote_write_status="pending"),
+            )
             api = FakeApi()
             api.fail = True
 

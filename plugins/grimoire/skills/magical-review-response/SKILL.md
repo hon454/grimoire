@@ -77,7 +77,8 @@ helper after these durable transitions:
 - each implementation or verification batch
 - each completed remote reply, resolve, or other write after readback
 
-Store source IDs and fingerprints, user decisions, and workflow statuses. Do
+Store source IDs and fingerprints, user decisions, per-decision statuses, and
+the remote-write status. Do
 not store reviewer bodies, translations, diffs, chat or tool logs, secrets,
 personal data, or hidden reasoning. GitHub remains the authority for review
 state, the repository for code state, and the checkpoint for user decisions.
@@ -149,8 +150,7 @@ merge it into the main ledger only after checking it against the sources.
    current diff, relevant CI state, reviewer identities, and existing review
    requests when available.
 5. Read repository instructions and discover validation commands.
-6. Present the first response as three phases in this exact order. Do not ask
-   whether to begin the interview:
+6. Present the first response as three phases in this exact order:
 
    1. `PR orientation`: identify the repository, PR number and title, state,
       base/head branches, and review-item scope in a compact summary.
@@ -160,7 +160,14 @@ merge it into the main ledger only after checking it against the sources.
       when applicable, and the full translation. Use a stable local ID only for
       ephemeral pasted text without a platform ID. Do not include interpretation,
       takeaway, decisions, or recommendations in this phase.
-   3. A horizontal rule, then the first decision interview.
+   3. A horizontal rule, then either:
+      - the first decision interview, when at least one independent decision
+        exists; do not ask whether to begin the interview
+      - the consolidated response plan from step 8, when no independent
+        decisions exist
+
+   In either branch, do not implement until the consolidated response plan is
+   explicitly confirmed.
 
    Do not use Markdown tables. Localize headings and labels. Translate the full
    reviewer text rather than shortening it, preserve paragraph count and order,
