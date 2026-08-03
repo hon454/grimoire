@@ -42,6 +42,98 @@ Prefer unresolved, non-outdated review threads as actionable by default.
 Resolved or outdated items may still be summarized when they explain reviewer
 intent or the user explicitly asks to revisit them.
 
+## Local Checkpoints
+
+Resolve `scripts/review_response_state.py` relative to the skill directory and
+run it with the available Python 3 launcher, shown as `<python>` below. The helper uses
+`${GRIMOIRE_HOME:-$HOME/.grimoire}/state/review-response/github` unless
+`--root` is supplied. It stores one JSON file per PR at:
+
+```text
+<state-root>/<host>/<repository-id>/<pr-number>.json
+```
+
+Run `cleanup` once near the start of every GitHub-backed invocation. It is
+implicit housekeeping and does not require confirmation:
+
+```text
+<python> <skill-dir>/scripts/review_response_state.py cleanup
+```
+
+Use `read` only after resolving the current repository's immutable REST
+repository ID and PR number:
+
+```text
+<python> <skill-dir>/scripts/review_response_state.py read --host <host> --repository-id <id> --pr-number <number>
+```
+
+Use `write` after each durable transition named in `SKILL.md`. Send one JSON
+object on stdin. The helper validates it, increments `revision`, sets
+`updated_at`, and atomically replaces the PR file. Writes are last-writer-wins;
+do not add CAS, cross-task merging, or a long-lived interview lock. The input
+may omit `revision` and `updated_at`; stored files always contain both.
+
+The checkpoint schema has `schema_version: 1` and exactly these top-level
+fields:
+
+- `schema_version`, `revision`, `platform`, `host`, `phase`, and `updated_at`
+- `repository`: immutable REST `id`, plus display-only `owner`, `name`, and URL
+- `pull_request`: immutable REST `id`, number, URL, `head_sha`, and last state
+- `source_items`: stable ID, kind, source fingerprint, source state,
+  `decision_required`, and linked `decision_id`
+- `decisions`: decision ID, linked source IDs, primary type, decision status,
+  user's choice, and implementation, verification, reply, and resolve status
+- `workflow_status`: `implementation`, `verification`, `reply`, `resolve`, and
+  `remote_write`
+
+Build each source fingerprint from its stable platform ID, platform update
+timestamp, and current body using a deterministic SHA-256 canonical JSON
+encoding. Keep the digest only. Never put source bodies, translations, diffs,
+chat or tool logs, credentials, personal data, or reasoning into the file.
+
+Treat GitHub as the source authority on resume:
+
+- If GitHub cannot be fetched completely, preserve the checkpoint and stop.
+- Keep decisions whose linked source fingerprints are unchanged.
+- Invalidate only decisions linked to a changed fingerprint or source state.
+- When `head_sha` changes, keep user decisions but reset implementation and
+  verification statuses before continuing against the current diff.
+- When an open PR already has `phase: completed`, begin a fresh checkpoint.
+- Unknown or malformed schema is not readable, overwriteable, or deletable.
+
+There is no remote-write crash protocol. Record a reply, resolve, PR body
+update, or re-review request only after the write and readback succeed. On a
+later run, collect normal GitHub state again; do not store pending write intent
+or automatically retry an ambiguous write.
+
+### Completed checkpoint cleanup
+
+The helper deletes no trash or recovery copy. It may directly delete a
+checkpoint only when every condition below holds:
+
+1. Authenticated repository metadata and the complete `state=open` PR list were
+   fetched through the final page without an error, warning, or truncated or
+   malformed response.
+2. The checkpoint PR number is absent from that OPEN list.
+3. An exact follow-up query identifies the same repository and PR and reports
+   it as closed; merged PRs satisfy this through GitHub's closed state.
+4. The checkpoint has the supported schema, `phase: completed`, no undecided
+   source or decision, and only terminal implementation, verification, reply,
+   resolve, and remote-write statuses.
+5. The stored immutable repository ID matches authenticated repository and PR
+   evidence.
+6. After acquiring the file-specific lock, the helper reloads the file and
+   confirms its `revision`, identity, phase, decisions, and workflow statuses
+   are unchanged and still terminal.
+7. The exact target is a regular non-symlink JSON file at its canonical path
+   beneath the state root.
+
+Preserve the file when any condition is unproven. In particular, 401, 403, 404,
+429, timeouts, 5xx responses, GraphQL nulls, incomplete pagination, identity
+mismatch, lock failure, revision drift, invalid paths, or unlink failure never
+justify deletion. Active PR checkpoints remain. A reopened PR creates a fresh
+checkpoint when it is next handled.
+
 ## Useful `gh` Patterns
 
 Use `gh auth status` before relying on GitHub CLI. If auth is missing, explain
