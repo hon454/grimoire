@@ -130,6 +130,50 @@ policy:
         )
         self.assertNotIn("byte-identical retry", self.skill)
 
+    def test_authority_preserves_gh_prefix_and_credential_boundary(self) -> None:
+        authority_contract = self.skill.split(
+            "Use bounded-deadline `gh` REST or GraphQL calls.", 1
+        )[1].split("Perform static review only.", 1)[0]
+        authority_contract = " ".join(authority_contract.split())
+
+        for guard in (
+            "Prefer the executor's native deadline so the actual command prefix "
+            "remains `gh auth status` or `gh api`",
+            "deadline implementation, deadline, actual command prefix, execution "
+            "boundary, applicable approval or escalation prefix and whether it applied",
+            "Do not wrap `gh` with `perl`, `python`, a shell, or a timeout utility",
+            "boundary compatible with the active authentication mechanism, including "
+            "credential-store access when applicable",
+            "record proof that the wrapper did not invalidate the required approval "
+            "or escalation",
+            "If neither a native deadline nor that safe external execution is "
+            "available, do not publish; Authority terminates as `NONE / UNCERTAIN / "
+            "AUTHORITY_UNVERIFIABLE`",
+            "An `invalid token` report, empty or unreadable token, or credential-store "
+            "error observed only inside an isolated sandbox is not a verified "
+            "authentication failure",
+            "Recheck `gh auth status` and `gh api /user` either directly with the "
+            "executor's native deadline or through the proven safe external-wrapper "
+            "path above",
+            "Do not require plaintext token storage or `GH_TOKEN` injection",
+            "Authentication diagnostics are read-only",
+            "Never run secret-revealing diagnostics such as `gh auth token`, "
+            "`gh auth status --show-token`, or raw credential-store queries",
+            "Redact GitHub tokens and credential-store secret values from every "
+            "command, tool, log, test output, and evidence record",
+        ):
+            with self.subTest(guard=guard):
+                self.assertIn(guard, authority_contract)
+
+        authority_row = next(
+            line for line in self.skill.splitlines() if line.startswith("| Authority |")
+        )
+        self.assertIn("directly with a native deadline", authority_row)
+        self.assertIn("through a proven safe external wrapper", authority_row)
+        self.assertIn("compatible with the active authentication mechanism", authority_row)
+        self.assertIn("when credential-store isolation is possible", authority_row)
+        self.assertIn("possible credential-store isolation", authority_row)
+
     def test_static_event_and_check_mappings_are_present(self) -> None:
         for mapping in (
             "`COMMENT` → `COMMENTED`",
