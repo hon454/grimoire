@@ -24,10 +24,36 @@ GitHub provides no conditional or idempotent review creation. This workflow
 makes no concurrent or global exactly-once claim. A known overlap before
 publication is `NONE / BLOCKED / CONCURRENT_INVOCATION_UNSUPPORTED`.
 
-Use bounded-deadline `gh` REST or GraphQL calls. Record target, operation,
-deadline, completion, and response identity for every evidence call. A timeout,
+Use bounded-deadline `gh` REST or GraphQL calls. Prefer the executor's native
+deadline so the actual command prefix remains `gh auth status` or `gh api` and
+any prefix-based approval or escalation still applies. Record target,
+operation, deadline implementation, deadline, actual command prefix, execution
+boundary, applicable approval or escalation prefix and whether it applied,
+completion, and response identity for every evidence call. A timeout,
 interruption, pagination gap, transport error, or incomplete response is not
 evidence.
+
+Do not wrap `gh` with `perl`, `python`, a shell, or a timeout utility merely to
+implement a deadline when authentication may depend on an OS credential store
+or command-prefix elevation. If the execution platform makes an external
+wrapper unavoidable, run it explicitly on a boundary compatible with the
+active authentication mechanism, including credential-store access when
+applicable, and record proof that the wrapper did not invalidate the required
+approval or escalation. If neither a native deadline nor that safe external
+execution is available, do not publish; Authority terminates as `NONE /
+UNCERTAIN / AUTHORITY_UNVERIFIABLE`.
+
+An `invalid token` report, empty or unreadable token, or credential-store error
+observed only inside an isolated sandbox is not a verified authentication
+failure. Recheck `gh auth status` and `gh api /user` either directly with the
+executor's native deadline or through the proven safe external-wrapper path
+above, on a boundary compatible with the active authentication mechanism. If
+credential-store isolation is possible, prove that boundary can access the
+store. Do not require plaintext token storage or `GH_TOKEN` injection.
+Authentication diagnostics are read-only. Never run secret-revealing
+diagnostics such as `gh auth token`, `gh auth status --show-token`, or raw
+credential-store queries. Redact GitHub tokens and credential-store secret
+values from every command, tool, log, test output, and evidence record.
 
 Perform static review only. Never check out or execute target code, tests,
 hooks, CI, generated artifacts, scripts, package commands, or workflows. Read
@@ -191,7 +217,7 @@ failures are `blocked`; missing or ambiguous evidence is `uncertain`.
 
 | Row | Required pass evidence | Failure mapping |
 | --- | --- | --- |
-| Authority | Explicit target; neutral startup; bounded `gh auth status` and `/user` for the same host and principal; exact repository/PR binding. | Verified target, host, auth, principal, or binding failure: `NONE / BLOCKED / AUTHORITY_UNVERIFIED`. Missing or ambiguous evidence: `NONE / UNCERTAIN / AUTHORITY_UNVERIFIABLE`. |
+| Authority | Explicit target; neutral startup; bounded `gh auth status` and `gh api /user` for the same host and principal, run directly with a native deadline or through a proven safe external wrapper; execution boundary compatible with the active authentication mechanism; when credential-store isolation is possible, proof that the boundary can access the store; applicable approval-prefix evidence; exact repository/PR binding. | Verified target, host, auth, principal, or binding failure from that compatible boundary: `NONE / BLOCKED / AUTHORITY_UNVERIFIED`. Missing or ambiguous evidence, including possible credential-store isolation: `NONE / UNCERTAIN / AUTHORITY_UNVERIFIABLE`. |
 | Snapshot | Complete full-SHA `snapshot_tuple`; every artifact bound to it. | Invalid or inconsistent SHA: `NONE / BLOCKED / SNAPSHOT_INVALID`. Missing or ambiguous tuple: `NONE / UNCERTAIN / SNAPSHOT_UNVERIFIABLE`. |
 | Decision | Complete review-content evidence; deterministic event; immutable plan; complete exact review reconciliation; for a selected strong event, complete applicable strong-event evidence. | Forbidden plan, anchor, event, or target: `NONE / BLOCKED / DECISION_INVALID`. Missing, conflicting, or incomplete review-content evidence, or missing evidence for a selected strong event: `NONE / UNCERTAIN / DECISION_UNVERIFIABLE`. |
 | Prepublication | Immediate tuple revalidation; zero exact plan matches; for either strong event, fresh author, permission, queue-absence, check-source, required-check, and current-check evidence; for `APPROVE`, fresh resolved-thread evidence. | Tuple drift: `NONE / ABORTED / SNAPSHOT_CHANGED`. Decision evidence drift: `NONE / ABORTED / DECISION_EVIDENCE_CHANGED`. One exact match: `NONE / NO_OP / NONE`. Missing or multiple-match evidence: `NONE / UNCERTAIN / PREPUBLICATION_UNVERIFIABLE`. |
