@@ -246,15 +246,30 @@ merge it into the main ledger only after checking it against the sources.
      sentences
    - **Decision needed:** the exact choice
    - **Reviewer recommendation:** the reviewer's proposed response
+   - **Relationship to reviewer recommendation:** exactly one localized
+     equivalent of `agreement/refinement`, `partial agreement`, `disagreement`,
+     or `independent supplement`, followed by one concise reason
    - **Agent recommendation:** the recommended response after repository and
      runtime verification
 
-   When the agent recommendation differs from the reviewer recommendation,
+   Classify the relationship as `agreement/refinement` when the outcome is the
+   same and the agent only makes the implementation or validation more concrete;
+   do not present that added specificity as a difference. Use `partial
+   agreement` when the intent is shared but scope, method, sequence, or acceptance
+   criteria change the user's choice, and `disagreement` when the conclusions
+   conflict. Use `independent supplement` only for a verified, optional action
+   that neither answers nor replaces the reviewer ask; split it into a separate
+   decision when it needs user approval, and omit it when immaterial.
+
+   For `partial agreement` or `disagreement`, name the exact difference and
    state the verified repository path, contract, test, or observed runtime
-   behavior that justifies the difference. Do not invent a competing response
-   when the difference cannot be verified. Put a horizontal rule immediately
-   above each later user-facing decision or progress question. Record the
-   user's decision exactly enough to implement or draft a reply later.
+   behavior that justifies it. For `independent supplement`, state why it is optional and
+   what verified evidence supports it. Do not invent a competing response when
+   the difference cannot be verified. Derive this relationship from the current
+   review source and verified evidence; do not persist it in the checkpoint. Put
+   a horizontal rule immediately above each later user-facing decision or
+   progress question. Record the user's decision exactly enough to implement or
+   draft a reply later.
 
    Do not interview decision-free documentation fixes, nits, duplicates,
    outdated items, or verified-behavior synchronization again. Carry them
