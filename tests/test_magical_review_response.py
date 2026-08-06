@@ -136,6 +136,7 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         self.assertIn("Do not include interpretation,\n      takeaway, decisions, or recommendations", self.skill)
 
     def test_first_response_branches_on_whether_decisions_exist(self):
+        self.assertIn("A horizontal rule, then `Decision routing summary`", self.skill)
         self.assertIn(
             "the first decision interview, when at least one independent decision",
             self.skill,
@@ -150,12 +151,39 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
             self.skill,
         )
 
+    def test_decision_routing_accounts_for_every_actionable_item(self):
+        self.assertIn("list every actionable\n      review item exactly once", self.skill)
+        self.assertIn("stable platform item ID", self.skill)
+        self.assertIn("`User decision required`", self.skill)
+        self.assertIn("`Decision-free — auto-include in plan`", self.skill)
+        self.assertIn(
+            "The actionable review-item count must equal the routing-summary item\n"
+            "      count",
+            self.skill,
+        )
+        self.assertIn("one concise reason", self.skill)
+
+    def test_decision_free_items_skip_interview_but_remain_in_plan(self):
+        self.assertIn("Do not interview decision-free documentation fixes", self.skill)
+        self.assertIn("verified-behavior synchronization again", self.skill)
+        self.assertIn(
+            "Carry every decision-free auto-included item forward with the same\n"
+            "   stable ID and its concrete planned action",
+            self.skill,
+        )
+
     def test_decision_interview_separates_recommendations_and_requires_evidence(self):
         self.assertIn("**Reviewer recommendation:**", self.skill)
         self.assertIn("**Agent recommendation:**", self.skill)
         self.assertIn("state the verified repository path, contract, test, or observed runtime", self.skill)
-        self.assertIn("Do not interview decision-free documentation fixes", self.skill)
         self.assertIn("question must ask only about the one current decision", self.skill)
+
+    def test_decision_interview_shows_position_and_total(self):
+        self.assertIn("group linked review items into independent\n   decisions and count them", self.skill)
+        self.assertIn("Exclude decision-free routes from the total", self.skill)
+        self.assertIn("`Decision {current} of {total}`", self.skill)
+        self.assertIn("`결정 2/3` for `ko-KR`", self.skill)
+        self.assertIn("Do not use\n   ordinal-only labels", self.skill)
 
     def test_visual_decision_support_is_active_and_bounded(self):
         self.assertIn("actively assess whether a visual would materially", self.skill)

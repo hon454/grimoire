@@ -51,6 +51,8 @@ Keep an internal ledger for every review item in scope. Track:
 - original reviewer ask summarized in English
 - interpretation in the resolved locale
 - reviewer concern or intent
+- decision routing: user decision required or decision-free auto-include
+- concise routing reason
 - decision type
 - user decision
 - implementation status
@@ -181,7 +183,16 @@ merge it into the main ledger only after checking it against the sources.
       when applicable, and the full translation. Use a stable local ID only for
       ephemeral pasted text without a platform ID. Do not include interpretation,
       takeaway, decisions, or recommendations in this phase.
-   3. A horizontal rule, then either:
+   3. A horizontal rule, then `Decision routing summary`: list every actionable
+      review item exactly once using its stable platform item ID, or the same
+      stable local ID used for pasted text. For each item show exactly one route
+      and one concise reason:
+      - `User decision required` when an independent choice remains
+      - `Decision-free — auto-include in plan` when the item is an obvious fix,
+        nit, duplicate, outdated item, or synchronization with verified behavior
+
+      The actionable review-item count must equal the routing-summary item
+      count. Immediately after the summary, show either:
       - the first decision interview, when at least one independent decision
         exists; do not ask whether to begin the interview
       - the consolidated response plan from step 8, when no independent
@@ -202,6 +213,11 @@ merge it into the main ledger only after checking it against the sources.
 
 7. Interview one independent decision at a time. A decision may link multiple
    review items, but show the full translation again only for its linked items.
+   Before the first interview, group linked review items into independent
+   decisions and count them. Exclude decision-free routes from the total.
+   Prefix every interview with a localized progress label equivalent to
+   `Decision {current} of {total}`, such as `결정 2/3` for `ko-KR`. Do not use
+   ordinal-only labels such as `First decision` or `Second decision`.
    Use this localized detail shape:
 
    - **Translation:** full linked source translation
@@ -219,15 +235,17 @@ merge it into the main ledger only after checking it against the sources.
    above each later user-facing decision or progress question. Record the
    user's decision exactly enough to implement or draft a reply later.
 
-   Do not interview decision-free documentation fixes, nits, duplicates, or
-   outdated items. Carry them directly into the consolidated response plan.
-   Keep them out of the current recommendation and question: the user-facing
-   question must ask only about the one current decision.
+   Do not interview decision-free documentation fixes, nits, duplicates,
+   outdated items, or verified-behavior synchronization again. Carry them
+   directly into the consolidated response plan. Keep them out of the current
+   recommendation and question.
+   The user-facing question must ask only about the one current decision.
 8. After all decision points are decided, present one consolidated response plan
    for final review. Include items to change, items to explain, questions to
    ask, deferred/rejected items, duplicate/outdated items, planned validation,
    planned platform writes, per-thread resolve actions, and optional PR/MR body
-   updates.
+   updates. Carry every decision-free auto-included item forward with the same
+   stable ID and its concrete planned action.
 9. Implement only the confirmed plan. Keep changes traceable to review item
    numbers. For broad work, batch by review item or component and update the
    ledger after each batch.
