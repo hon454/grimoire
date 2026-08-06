@@ -157,6 +157,17 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         self.assertIn("Do not interview decision-free documentation fixes", self.skill)
         self.assertIn("question must ask only about the one current decision", self.skill)
 
+    def test_visual_decision_support_is_active_and_bounded(self):
+        self.assertIn("actively assess whether a visual would materially", self.skill)
+        self.assertIn("`$visualize:visualize`", self.skill)
+        self.assertIn("Use Mermaid for verified static structure", self.skill)
+        self.assertIn(
+            "Place a decision visual after **Takeaway** and before **Decision needed**",
+            self.skill,
+        )
+        self.assertIn("Do not include visuals\nin the full-translation phase", self.skill)
+        self.assertIn("Visuals supplement, never replace", self.skill)
+
     def test_checkpoint_scope_and_non_goals_are_explicit(self):
         self.assertIn("Keep pasted or copied review text in conversation\nmemory only", self.skill)
         self.assertIn("not store reviewer bodies, translations, diffs, chat or tool logs", self.skill)

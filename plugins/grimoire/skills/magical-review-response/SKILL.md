@@ -124,6 +124,27 @@ If the current repository has CodeGraph configured and CodeGraph tools are
 available, use CodeGraph exploration before non-trivial implementation. Then
 verify with `rg`, direct file reads, tests, typecheck, lint, and manual review.
 
+## Visual Decision Support
+
+After review collection, before each independent decision, and before the
+consolidated response plan, actively assess whether a visual would materially
+improve the user's decision. When it would and `$visualize:visualize` is
+available, load and use that skill.
+
+Use Mermaid for verified static structure, control or data flow, review-item
+dependencies, and implementation sequences. Use an interactive visualization
+only for adjustable tradeoffs, UI states, or scenario exploration.
+
+Place a decision visual after **Takeaway** and before **Decision needed**. Place
+a plan visual immediately after the related plan items. Do not include visuals
+in the full-translation phase. Visuals supplement, never replace, the full
+translation, verified evidence, decision question, consolidated plan, or final
+report.
+
+Derive every visual from verified repository or runtime evidence, redact
+sensitive data, and continue with localized text when visualization is
+unavailable or adds no clarity.
+
 ## Multi-Agent Use
 
 Use subagents only when they can inspect independent slices without mutating
