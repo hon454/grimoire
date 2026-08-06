@@ -188,9 +188,22 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         )
 
     def test_decision_interview_separates_recommendations_and_requires_evidence(self):
-        self.assertIn("**Reviewer recommendation:**", self.skill)
-        self.assertIn("**Agent recommendation:**", self.skill)
+        reviewer = self.skill.index("**Reviewer recommendation:**")
+        relationship = self.skill.index("**Relationship to reviewer recommendation:**")
+        agent = self.skill.index("**Agent recommendation:**")
+        self.assertLess(reviewer, relationship)
+        self.assertLess(relationship, agent)
+        for classification in (
+            "`agreement/refinement`",
+            "`partial agreement`",
+            "`disagreement`",
+            "`independent supplement`",
+        ):
+            self.assertIn(classification, self.skill)
+        self.assertIn("do not present that added specificity as a difference", self.skill)
+        self.assertIn("split it into a separate\n   decision when it needs user approval", self.skill)
         self.assertIn("state the verified repository path, contract, test, or observed runtime", self.skill)
+        self.assertIn("do not persist it in the checkpoint", self.skill)
         self.assertIn("question must ask only about the one current decision", self.skill)
 
     def test_decision_interview_shows_position_and_total(self):
