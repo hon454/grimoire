@@ -132,8 +132,23 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         positions = [self.skill.index(label) for label in labels]
         self.assertEqual(positions, sorted(positions))
         self.assertIn("A horizontal rule, then `Full review translation`", self.skill)
-        self.assertIn("stable platform item ID when available", self.skill)
+        self.assertIn("user-facing item label, source state, inline file and line location", self.skill)
         self.assertIn("Do not include interpretation,\n      takeaway, decisions, or recommendations", self.skill)
+
+    def test_platform_ids_stay_internal_and_local_labels_remain_stable(self):
+        self.assertIn("`Review body`, `Inline comment 1`, and `Inline comment 2`", self.skill)
+        self.assertIn("Do not expose them in user-facing output", self.skill)
+        self.assertIn("unless the user explicitly requests platform IDs", self.skill)
+        self.assertIn("internal ID-to-label mapping stable for the response cycle", self.skill)
+        for prefix in ("`PRR_*`", "`PRRC_*`", "`PRRT_*`"):
+            self.assertIn(prefix, self.skill)
+
+    def test_item_labels_link_to_exact_permalinks_without_visible_ids(self):
+        self.assertIn("render the label itself as a Markdown link", self.skill)
+        self.assertIn("localized label as the only visible link text", self.skill)
+        self.assertIn("never print the permalink, its\nanchor, or an embedded platform ID", self.skill)
+        self.assertIn("keep the label as plain text", self.skill)
+        self.assertIn("canonical source-item permalinks", self.skill)
 
     def test_first_response_branches_on_whether_decisions_exist(self):
         self.assertIn("A horizontal rule, then `Decision routing summary`", self.skill)
@@ -153,7 +168,7 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
 
     def test_decision_routing_accounts_for_every_actionable_item(self):
         self.assertIn("list every actionable\n      review item exactly once", self.skill)
-        self.assertIn("stable platform item ID", self.skill)
+        self.assertIn("same user-facing item label", self.skill)
         self.assertIn("`User decision required`", self.skill)
         self.assertIn("`Decision-free — auto-include in plan`", self.skill)
         self.assertIn(
@@ -168,7 +183,7 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         self.assertIn("verified-behavior synchronization again", self.skill)
         self.assertIn(
             "Carry every decision-free auto-included item forward with the same\n"
-            "   stable ID and its concrete planned action",
+            "   user-facing item label and its concrete planned action",
             self.skill,
         )
 

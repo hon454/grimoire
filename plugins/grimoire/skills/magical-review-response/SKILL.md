@@ -45,7 +45,7 @@ for in-scope review text.
 
 Keep an internal ledger for every review item in scope. Track:
 
-- platform item ID or stable local number
+- internal platform item ID or stable local source key, plus a user-facing label
 - source state: unresolved, resolved, outdated, draft, inaccessible, or copied
   from user text
 - original reviewer ask summarized in English
@@ -63,6 +63,29 @@ Keep an internal ledger for every review item in scope. Track:
 
 Do not finalize implementation or write review replies until every actionable
 decision point has an explicit decision or a recorded reason for deferral.
+
+## User-Facing Item Labels
+
+Assign each review item a localized, readable label once per response cycle, in
+source order, and reuse that label in translations, routing summaries, decision
+interviews, plans, progress updates, and final reports. Prefer labels equivalent
+to `Review body`, `Inline comment 1`, and `Inline comment 2`; include the file
+path and line location separately for inline comments.
+
+When the platform provides a verified canonical permalink for the exact source
+item, render the label itself as a Markdown link to that permalink. Keep the
+localized label as the only visible link text; never print the permalink, its
+anchor, or an embedded platform ID as adjacent text. If no exact permalink is
+available, keep the label as plain text rather than linking to an approximate
+location. Reuse the same label and permalink throughout the response cycle.
+
+Keep GraphQL node IDs such as `PRR_*`, `PRRC_*`, and `PRRT_*`, and REST review
+or comment IDs, only in the internal ledger, checkpoints, fingerprints, and
+GitHub reply or resolve mappings. Do not expose them in user-facing output
+unless the user explicitly requests platform IDs. A platform ID embedded in a
+canonical permalink destination is allowed, but it must not appear as visible
+text. Keep the internal ID-to-label mapping stable for the response cycle so
+follow-up references remain unambiguous.
 
 ## Persistent Checkpoints
 
@@ -170,8 +193,8 @@ merge it into the main ledger only after checking it against the sources.
 3. Load the matching platform guide when available.
 4. Collect review state: PR or MR status, target branch, review threads, inline
    comments, requested changes, resolved/unresolved state, outdated state,
-   current diff, relevant CI state, reviewer identities, and existing review
-   requests when available.
+   canonical source-item permalinks, current diff, relevant CI state, reviewer
+   identities, and existing review requests when available.
 5. Read repository instructions and discover validation commands.
 6. Present the first response as three phases in this exact order:
 
@@ -179,14 +202,12 @@ merge it into the main ledger only after checking it against the sources.
       base/head branches, and review-item scope in a compact summary.
    2. A horizontal rule, then `Full review translation`: translate every
       in-scope review body and inline comment in source order. Show only its
-      stable platform item ID when available, source state, inline file location
-      when applicable, and the full translation. Use a stable local ID only for
-      ephemeral pasted text without a platform ID. Do not include interpretation,
+      user-facing item label, source state, inline file and line location when
+      applicable, and the full translation. Do not include interpretation,
       takeaway, decisions, or recommendations in this phase.
    3. A horizontal rule, then `Decision routing summary`: list every actionable
-      review item exactly once using its stable platform item ID, or the same
-      stable local ID used for pasted text. For each item show exactly one route
-      and one concise reason:
+      review item exactly once using the same user-facing item label. For each
+      item show exactly one route and one concise reason:
       - `User decision required` when an independent choice remains
       - `Decision-free — auto-include in plan` when the item is an obvious fix,
         nit, duplicate, outdated item, or synchronization with verified behavior
@@ -245,9 +266,9 @@ merge it into the main ledger only after checking it against the sources.
    ask, deferred/rejected items, duplicate/outdated items, planned validation,
    planned platform writes, per-thread resolve actions, and optional PR/MR body
    updates. Carry every decision-free auto-included item forward with the same
-   stable ID and its concrete planned action.
+   user-facing item label and its concrete planned action.
 9. Implement only the confirmed plan. Keep changes traceable to review item
-   numbers. For broad work, batch by review item or component and update the
+   labels. For broad work, batch by review item or component and update the
    ledger after each batch.
 10. Verify with project-appropriate tests, typecheck, lint, docs validation,
     build, or targeted manual checks. Record any skipped verification and why.
