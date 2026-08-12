@@ -34,7 +34,8 @@ Classify the bounded result once:
 - If the outside-boundary probes succeed for the intended principal, classify
   the sandbox result as an execution-boundary mismatch and run only the required
   scoped operation there.
-- If they confirm an authentication failure, ask the user to reauthenticate.
+- If they confirm an authentication failure, ask the user to repair or
+  reauthenticate the active credential source.
 - If they confirm a different principal, do not write; request the intended
   account or an explicit authentication change.
 - If approval is denied, the probes time out, transport fails, or evidence
