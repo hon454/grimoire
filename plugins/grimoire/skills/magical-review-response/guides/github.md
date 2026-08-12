@@ -22,8 +22,10 @@ then use GitHub tooling to find the open PR for the branch when available.
 
 ## Collection
 
-Use the GitHub app when available. If thread-level state, resolution status, or
-inline context is needed and the app cannot provide it, use `gh` GraphQL.
+Follow the `using-grimoire`
+[GitHub Operations](../../using-grimoire/references/github-operations.md)
+rules. Use `gh` GraphQL when thread-level state, resolution status, or inline
+context is needed.
 
 Collect:
 
@@ -168,9 +170,6 @@ justify deletion. Active PR checkpoints remain. A reopened PR creates a fresh
 checkpoint when it is next handled.
 
 ## Useful `gh` Patterns
-
-Use `gh auth status` before relying on GitHub CLI. If auth is missing, explain
-the gap and continue with local or pasted context when possible.
 
 Common read commands:
 

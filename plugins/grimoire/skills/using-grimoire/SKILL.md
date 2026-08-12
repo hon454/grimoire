@@ -23,6 +23,12 @@ Within those constraints, user instructions define what to do. Grimoire skills d
 
 Inspect the available Codex skill names and descriptions, then read each applicable skill's `SKILL.md` when available.
 
+## GitHub Operations
+
+Before reading or changing GitHub state, read and follow
+[GitHub Operations](references/github-operations.md). Apply it to tool
+selection, authentication verification, security, and execution boundaries.
+
 ## Session Config
 
 Prefer the Grimoire session config cache created by the Grimoire SessionStart

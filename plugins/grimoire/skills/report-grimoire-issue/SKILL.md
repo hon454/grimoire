@@ -46,11 +46,10 @@ Return `MODE=local` when the issue is project-local rather than Grimoire-side.
 
 ## Tool Use
 
-Use the best available GitHub capability:
-
-1. Prefer an available GitHub connector or app for issue search and creation.
-2. Otherwise use `gh` CLI when it is installed and authenticated.
-3. If neither is available, produce a draft only.
+Follow the `using-grimoire`
+[GitHub Operations](../using-grimoire/references/github-operations.md) rules. If
+neither verified `gh` access nor a permitted connector is available, produce a
+draft only.
 
 When using `gh`, target `hon454/grimoire` explicitly.
 
