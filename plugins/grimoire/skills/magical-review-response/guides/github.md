@@ -24,8 +24,7 @@ then use GitHub tooling to find the open PR for the branch when available.
 
 Follow the `using-grimoire`
 [GitHub Operations](../../using-grimoire/references/github-operations.md)
-rules. Use `gh` GraphQL when thread-level state, resolution status, or inline
-context is needed.
+rules.
 
 Collect:
 

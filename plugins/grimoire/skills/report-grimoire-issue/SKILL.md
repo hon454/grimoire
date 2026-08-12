@@ -47,9 +47,7 @@ Return `MODE=local` when the issue is project-local rather than Grimoire-side.
 ## Tool Use
 
 Follow the `using-grimoire`
-[GitHub Operations](../using-grimoire/references/github-operations.md) rules. If
-neither verified `gh` access nor a permitted connector is available, produce a
-draft only.
+[GitHub Operations](../using-grimoire/references/github-operations.md) rules.
 
 When using `gh`, target `hon454/grimoire` explicitly.
 

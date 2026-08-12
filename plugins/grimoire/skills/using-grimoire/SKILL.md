@@ -23,11 +23,19 @@ Within those constraints, user instructions define what to do. Grimoire skills d
 
 Inspect the available Codex skill names and descriptions, then read each applicable skill's `SKILL.md` when available.
 
-## GitHub Operations
+## GitHub Safety Gate
+
+Prefer GitHub CLI (`gh`) for GitHub operations. Never mutate GitHub
+authentication from inside an isolated agent sandbox. Treat an authentication
+failure observed only inside that sandbox as inconclusive, and never expose a
+token or choose insecure credential storage as a workaround.
 
 Before reading or changing GitHub state, read and follow
-[GitHub Operations](references/github-operations.md). Apply it to tool
-selection, authentication verification, security, and execution boundaries.
+[GitHub Operations](references/github-operations.md). If `gh` reports an
+authentication failure, cannot verify the intended account, or may be isolated
+from its credential source, also read and follow
+[GitHub Authentication](references/github-authentication.md) before choosing
+the next action.
 
 ## Session Config
 

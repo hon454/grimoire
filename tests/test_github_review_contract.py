@@ -8,6 +8,13 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILL_DIR = ROOT / "plugins/grimoire/skills/gh-pr-review-loop"
 SKILL = SKILL_DIR / "SKILL.md"
 SIDECAR = SKILL_DIR / "agents/openai.yaml"
+USING_GRIMOIRE = ROOT / "plugins/grimoire/skills/using-grimoire/SKILL.md"
+GITHUB_OPERATIONS = (
+    ROOT / "plugins/grimoire/skills/using-grimoire/references/github-operations.md"
+)
+GITHUB_AUTHENTICATION = (
+    ROOT / "plugins/grimoire/skills/using-grimoire/references/github-authentication.md"
+)
 
 
 class GitHubReviewPackageStaticGuards(unittest.TestCase):
@@ -15,6 +22,9 @@ class GitHubReviewPackageStaticGuards(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.skill = SKILL.read_text()
         cls.sidecar_text = SIDECAR.read_text()
+        cls.using_grimoire = USING_GRIMOIRE.read_text()
+        cls.github_operations = GITHUB_OPERATIONS.read_text()
+        cls.github_authentication = GITHUB_AUTHENTICATION.read_text()
 
     def test_runtime_package_has_only_two_files(self) -> None:
         files = {
@@ -130,49 +140,64 @@ policy:
         )
         self.assertNotIn("byte-identical retry", self.skill)
 
-    def test_authority_preserves_gh_prefix_and_credential_boundary(self) -> None:
+    def test_authority_uses_shared_github_policy(self) -> None:
         authority_contract = self.skill.split(
-            "Use bounded-deadline `gh` REST or GraphQL calls.", 1
+            "Follow the `using-grimoire`", 1
         )[1].split("Perform static review only.", 1)[0]
         authority_contract = " ".join(authority_contract.split())
 
         for guard in (
-            "Prefer the executor's native deadline so the actual command prefix "
-            "remains `gh auth status` or `gh api`",
+            "[GitHub Operations](../using-grimoire/references/github-operations.md)",
+            "[GitHub Authentication](../using-grimoire/references/github-authentication.md)",
             "deadline implementation, deadline, actual command prefix, execution "
             "boundary, applicable approval or escalation prefix and whether it applied",
-            "Do not wrap `gh` with `perl`, `python`, a shell, or a timeout utility",
-            "boundary compatible with the active authentication mechanism, including "
-            "credential-store access when applicable",
-            "record proof that the wrapper did not invalidate the required approval "
-            "or escalation",
-            "If neither a native deadline nor that safe external execution is "
-            "available, do not publish; Authority terminates as `NONE / UNCERTAIN / "
-            "AUTHORITY_UNVERIFIABLE`",
-            "An `invalid token` report, empty or unreadable token, or credential-store "
-            "error observed only inside an isolated sandbox is not a verified "
-            "authentication failure",
-            "Recheck `gh auth status` and `gh api /user` either directly with the "
-            "executor's native deadline or through the proven safe external-wrapper "
-            "path above",
-            "Do not require plaintext token storage or `GH_TOKEN` injection",
-            "Authentication diagnostics are read-only",
-            "Never run secret-revealing diagnostics such as `gh auth token`, "
-            "`gh auth status --show-token`, or raw credential-store queries",
+            "shared gates cannot verify the host and intended principal at a compatible "
+            "boundary",
             "Redact GitHub tokens and credential-store secret values from every "
             "command, tool, log, test output, and evidence record",
         ):
             with self.subTest(guard=guard):
                 self.assertIn(guard, authority_contract)
 
+        self.assertNotIn("gh auth status", authority_contract)
         authority_row = next(
             line for line in self.skill.splitlines() if line.startswith("| Authority |")
         )
-        self.assertIn("directly with a native deadline", authority_row)
-        self.assertIn("through a proven safe external wrapper", authority_row)
-        self.assertIn("compatible with the active authentication mechanism", authority_row)
-        self.assertIn("when credential-store isolation is possible", authority_row)
+        self.assertIn("shared GitHub Operations and GitHub Authentication gates", authority_row)
+        self.assertIn("intended principal at a compatible boundary", authority_row)
         self.assertIn("possible credential-store isolation", authority_row)
+
+    def test_shared_github_policy_closes_authentication_branches(self) -> None:
+        using_grimoire = " ".join(self.using_grimoire.split())
+        github_authentication = " ".join(self.github_authentication.split())
+
+        for guard in (
+            "Prefer GitHub CLI (`gh`)",
+            "Never mutate GitHub authentication from inside an isolated agent sandbox",
+            "[GitHub Operations](references/github-operations.md)",
+            "[GitHub Authentication](references/github-authentication.md)",
+        ):
+            with self.subTest(guard=guard):
+                self.assertIn(guard, using_grimoire)
+
+        self.assertIn("permitted connector fallback", self.github_operations)
+        self.assertIn("return a draft instead", self.github_operations)
+
+        for guard in (
+            "gh auth status --active --hostname HOST",
+            "Require the `/user` response to match the intended principal",
+            "Retry the same probes exactly once outside the sandbox",
+            "If they confirm an authentication failure, ask the user to reauthenticate",
+            "If approval is denied, the probes time out, transport fails, or evidence",
+            "Do not run `gh auth login`, `gh auth logout`, `gh auth refresh`, or",
+            "Never select `--insecure-storage` or plaintext storage automatically",
+            "### macOS",
+            "### Windows",
+            "### Linux",
+            "### WSL",
+        ):
+            with self.subTest(guard=guard):
+                self.assertIn(guard, github_authentication)
 
     def test_static_event_and_check_mappings_are_present(self) -> None:
         for mapping in (
