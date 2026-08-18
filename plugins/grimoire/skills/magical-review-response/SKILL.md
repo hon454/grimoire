@@ -149,6 +149,23 @@ If the current repository has CodeGraph configured and CodeGraph tools are
 available, use CodeGraph exploration before non-trivial implementation. Then
 verify with `rg`, direct file reads, tests, typecheck, lint, and manual review.
 
+## Recommendation Standard
+
+Recommend the smallest complete change that is directionally consistent with
+verified repository architecture, not merely the change with the fewest files
+or the fastest path to closing the review. Compare viable choices by current
+contract coverage, documented ownership and architectural convergence, blast
+radius and validation evidence, and the cost and reversibility of deferral.
+
+Do not recommend exclusion or a follow-up solely because integration is broader
+than the current diff. When one choice converges on verified shared ownership
+and another preserves a known transitional path or adjusts tests or docs to
+accept inconsistent behavior, prefer convergence unless a verified blocker
+makes it unsafe or genuinely outside the acceptance criteria. If recommending
+deferral, state that blocker, why the interim behavior remains acceptable, and
+the concrete condition that should trigger the follow-up. When architectural
+direction is not verified, present the tradeoff without inventing one.
+
 ## Visual Decision Support
 
 After review collection, before each independent decision, and before the
@@ -250,7 +267,8 @@ merge it into the main ledger only after checking it against the sources.
      equivalent of `agreement/refinement`, `partial agreement`, `disagreement`,
      or `independent supplement`, followed by one concise reason
    - **Agent recommendation:** the recommended response after repository and
-     runtime verification
+     runtime verification, applying the Recommendation Standard and naming the
+     decisive tradeoff
 
    Classify the relationship as `agreement/refinement` when the outcome is the
    same and the agent only makes the implementation or validation more concrete;

@@ -206,6 +206,15 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         self.assertIn("do not persist it in the checkpoint", self.skill)
         self.assertIn("question must ask only about the one current decision", self.skill)
 
+    def test_agent_recommendation_balances_scope_with_architectural_convergence(self):
+        self.assertIn("smallest complete change", self.skill)
+        self.assertIn("not merely the change with the fewest files", self.skill)
+        self.assertIn("documented ownership and architectural convergence", self.skill)
+        self.assertIn("Do not recommend exclusion or a follow-up solely because integration is broader", self.skill)
+        self.assertIn("prefer convergence unless a verified blocker", self.skill)
+        self.assertIn("why the interim behavior remains acceptable", self.skill)
+        self.assertIn("applying the Recommendation Standard", self.skill)
+
     def test_decision_interview_shows_position_and_total(self):
         self.assertIn("group linked review items into independent\n   decisions and count them", self.skill)
         self.assertIn("Exclude decision-free routes from the total", self.skill)
