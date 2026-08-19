@@ -97,11 +97,33 @@ def _safe_segment(value: Any, label: str) -> str:
 def source_fingerprint(value: Any) -> str:
     if not isinstance(value, dict):
         raise StateError("fingerprint input must be a JSON object")
-    _exact_keys(value, {"id", "updated_at", "body"}, "fingerprint input")
-    _nonempty_string(value["id"], "fingerprint input.id")
-    _nonempty_string(value["updated_at"], "fingerprint input.updated_at")
-    if not isinstance(value["body"], str):
-        raise StateError("fingerprint input.body must be a string")
+    if "comments" in value:
+        _exact_keys(value, {"id", "comments"}, "fingerprint input")
+        _nonempty_string(value["id"], "fingerprint input.id")
+        if not isinstance(value["comments"], list) or not value["comments"]:
+            raise StateError("fingerprint input.comments must be a non-empty array")
+        comments = []
+        comment_ids = set()
+        for index, comment in enumerate(value["comments"]):
+            if not isinstance(comment, dict):
+                raise StateError(f"fingerprint input.comments[{index}] must be an object")
+            label = f"fingerprint input.comments[{index}]"
+            _exact_keys(comment, {"id", "updated_at", "body"}, label)
+            comment_id = _nonempty_string(comment["id"], f"{label}.id")
+            if comment_id in comment_ids:
+                raise StateError("fingerprint input comment IDs must be unique")
+            comment_ids.add(comment_id)
+            _nonempty_string(comment["updated_at"], f"{label}.updated_at")
+            if not isinstance(comment["body"], str):
+                raise StateError(f"{label}.body must be a string")
+            comments.append(comment)
+        value = {"id": value["id"], "comments": sorted(comments, key=lambda item: item["id"])}
+    else:
+        _exact_keys(value, {"id", "updated_at", "body"}, "fingerprint input")
+        _nonempty_string(value["id"], "fingerprint input.id")
+        _nonempty_string(value["updated_at"], "fingerprint input.updated_at")
+        if not isinstance(value["body"], str):
+            raise StateError("fingerprint input.body must be a string")
     encoded = json.dumps(
         value,
         ensure_ascii=False,
@@ -171,6 +193,7 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
     if not isinstance(source_items, list):
         raise StateError("source_items must be an array")
     source_ids = set()
+    source_decisions = {}
     for index, item in enumerate(source_items):
         if not isinstance(item, dict):
             raise StateError(f"source_items[{index}] must be an object")
@@ -197,11 +220,13 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
             raise StateError(f"source_items[{index}].decision_required must be boolean")
         if item["decision_id"] is not None:
             _nonempty_string(item["decision_id"], f"source_items[{index}].decision_id")
+        source_decisions[item_id] = item["decision_id"]
 
     decisions = value["decisions"]
     if not isinstance(decisions, list):
         raise StateError("decisions must be an array")
     decision_ids = set()
+    decision_sources = {}
     for index, decision in enumerate(decisions):
         if not isinstance(decision, dict):
             raise StateError(f"decisions[{index}] must be an object")
@@ -226,9 +251,12 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
         decision_ids.add(decision_id)
         if not isinstance(decision["source_ids"], list) or not decision["source_ids"]:
             raise StateError(f"decisions[{index}].source_ids must be a non-empty array")
+        decision_sources[decision_id] = set()
         for source_id in decision["source_ids"]:
+            _nonempty_string(source_id, f"decisions[{index}].source_ids member")
             if source_id not in source_ids:
                 raise StateError(f"decisions[{index}] references an unknown source item")
+            decision_sources[decision_id].add(source_id)
         _enum(decision["type"], DECISION_TYPES, f"decisions[{index}].type")
         _enum(decision["status"], DECISION_STATUSES, f"decisions[{index}].status")
         _nonempty_string(decision["choice"], f"decisions[{index}].choice")
@@ -249,6 +277,12 @@ def validate_checkpoint(value: Any) -> Dict[str, Any]:
         decision_id = item["decision_id"]
         if decision_id is not None and decision_id not in decision_ids:
             raise StateError(f"source_items[{index}] references an unknown decision")
+        if decision_id is not None and item["id"] not in decision_sources[decision_id]:
+            raise StateError(f"source_items[{index}] and its decision disagree")
+
+    for decision_id, linked_sources in decision_sources.items():
+        if any(source_decisions[source_id] != decision_id for source_id in linked_sources):
+            raise StateError(f"decision {decision_id} and its source items disagree")
 
     _enum(value["remote_write_status"], REMOTE_WRITE_STATUSES, "remote_write_status")
 

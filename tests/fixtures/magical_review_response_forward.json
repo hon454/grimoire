@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "linked-decision-and-auto-include-ko",
+      "locale": "ko-KR",
+      "request": "Magical Review Response로 아래 복사된 리뷰를 처리해줘.",
+      "review_context": {
+        "orientation": "Draft PR #101, main <- feat/fallback, CI green.",
+        "items": [
+          "Review body: Two issues remain: choose whether the supported compatibility path joins the shared compiler, and deduplicate diagnostics per source.",
+          "Inline 1: Route the compatibility path through the shared compiler, or explicitly exclude it from the contract.",
+          "Inline 2: Deduplicate diagnostics by source ID and add a regression test."
+        ],
+        "evidence": [
+          "The shared compiler is the documented owner of fallback behavior.",
+          "No blocker or contract incompatibility is verified."
+        ]
+      },
+      "expected_invariants": [
+        "Translate every source item in ko-KR before interpretation.",
+        "Route the review body as a duplicate, Inline 1 as one user decision, and Inline 2 as decision-free.",
+        "Recommend shared-compiler convergence without including Inline 2 in the current question.",
+        "Do not implement before the consolidated plan is confirmed."
+      ],
+      "forbidden": [
+        "Recommend exclusion merely because it changes more files.",
+        "Ask the user to decide the diagnostic deduplication fix."
+      ]
+    },
+    {
+      "id": "verified-disagreement-and-deferral",
+      "locale": "ko-KR",
+      "request": "Magical Review Response로 아래 복사된 리뷰를 처리해줘.",
+      "review_context": {
+        "orientation": "Draft PR #102, main <- fix/legacy-parser, CI green.",
+        "items": [
+          "Inline 1: Remove the legacy parser and route all manifests through canonical_parser in this PR."
+        ],
+        "evidence": [
+          "ADR 17 requires isolation until v3 removal because canonical_parser rejects supported v1 syntax.",
+          "This PR must preserve the v1 input contract and has no migration plan."
+        ]
+      },
+      "expected_invariants": [
+        "Classify the relationship as disagreement and cite ADR 17 and the supported v1 contract.",
+        "Recommend deferring or rejecting parser integration in this PR.",
+        "Ask only whether to preserve isolation and explain the decision."
+      ],
+      "forbidden": [
+        "Agree with integration because it is architecturally cleaner.",
+        "Invent a migration plan or regression evidence."
+      ]
+    },
+    {
+      "id": "duplicate-and-outdated-without-interview",
+      "locale": "ko-KR",
+      "request": "Magical Review Response로 아래 복사된 리뷰를 처리해줘.",
+      "review_context": {
+        "orientation": "Draft PR #103, main <- fix/cache-key, CI green.",
+        "items": [
+          "Review body: Please fix the cache-key bug described in Inline 1.",
+          "Inline 1, outdated: Rename cache_key; the current diff already removed this symbol.",
+          "Inline 2: Add the missing regression assertion for the already-fixed cache-key bug."
+        ],
+        "evidence": [
+          "The current diff no longer contains cache_key.",
+          "The regression assertion is absent."
+        ]
+      },
+      "expected_invariants": [
+        "Route the review body as duplicate, Inline 1 as outdated, and Inline 2 as decision-free.",
+        "Present the consolidated response plan immediately because no independent decision remains.",
+        "Carry the regression assertion into that plan."
+      ],
+      "forbidden": [
+        "Interview the user about the duplicate or outdated items.",
+        "Implement before plan confirmation."
+      ]
+    },
+    {
+      "id": "confirmation-and-write-boundary",
+      "locale": "ko-KR",
+      "request": "Magical Review Response로 아래 복사된 리뷰를 처리해줘.",
+      "review_context": {
+        "orientation": "Draft PR #104, main <- fix/null-guard, CI green.",
+        "items": [
+          "Inline 1: Add the missing null guard and its focused regression test."
+        ],
+        "evidence": [
+          "The contract rejects null input and the shared entry point lacks the guard."
+        ]
+      },
+      "expected_invariants": [
+        "Route Inline 1 as decision-free and include it in the consolidated response plan.",
+        "List implementation, validation, reply, and resolve actions in the plan.",
+        "Wait for explicit plan confirmation before editing or writing to the platform."
+      ],
+      "forbidden": [
+        "Edit files, reply, resolve, push, or request re-review in the first response.",
+        "Ask whether to include the obvious null-guard fix."
+      ]
+    }
+  ]
+}

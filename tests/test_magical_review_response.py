@@ -15,6 +15,7 @@ SKILL = SKILL_DIR / "SKILL.md"
 GUIDE = SKILL_DIR / "guides" / "github.md"
 SCRIPT = SKILL_DIR / "scripts" / "review_response_state.py"
 SIDECAR = SKILL_DIR / "agents" / "openai.yaml"
+FORWARD_FIXTURE = ROOT / "tests" / "fixtures" / "magical_review_response_forward.json"
 
 SPEC = importlib.util.spec_from_file_location("review_response_state", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
@@ -206,6 +207,15 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         self.assertIn("do not persist it in the checkpoint", self.skill)
         self.assertIn("question must ask only about the one current decision", self.skill)
 
+    def test_agent_recommendation_balances_scope_with_architectural_convergence(self):
+        self.assertIn("smallest complete change", self.skill)
+        self.assertIn("not merely the change with the fewest files", self.skill)
+        self.assertIn("documented ownership and architectural convergence", self.skill)
+        self.assertIn("Do not recommend exclusion or a follow-up solely because integration is broader", self.skill)
+        self.assertIn("prefer convergence unless a verified blocker", self.skill)
+        self.assertIn("why the interim behavior remains acceptable", self.skill)
+        self.assertIn("applying the Recommendation Standard", self.skill)
+
     def test_decision_interview_shows_position_and_total(self):
         self.assertIn("group linked review items into independent\n   decisions and count them", self.skill)
         self.assertIn("Exclude decision-free routes from the total", self.skill)
@@ -226,7 +236,7 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
 
     def test_checkpoint_scope_and_non_goals_are_explicit(self):
         self.assertIn("Keep pasted or copied review text in conversation\nmemory only", self.skill)
-        self.assertIn("not store reviewer bodies, translations, diffs, chat or tool logs", self.skill)
+        self.assertIn("Never put source bodies, translations, diffs, chat or tool logs", self.guide)
         self.assertIn("Writes are last-writer-wins", self.guide)
         self.assertIn("There is no remote-write crash protocol", self.guide)
         self.assertIn("Unknown or malformed schema is not readable, overwriteable, or deletable", self.guide)
@@ -250,6 +260,28 @@ class MagicalReviewResponseContractTests(unittest.TestCase):
         sidecar = SIDECAR.read_text(encoding="utf-8")
         self.assertIn('display_name: "Magical Review Response"', sidecar)
         self.assertIn("translate and handle this PR review feedback end to end", sidecar)
+
+    def test_forward_fixture_covers_behavioral_boundaries(self):
+        fixture = json.loads(FORWARD_FIXTURE.read_text(encoding="utf-8"))
+        self.assertEqual(1, fixture["schema_version"])
+        cases = {case["id"]: case for case in fixture["cases"]}
+        self.assertEqual(
+            {
+                "linked-decision-and-auto-include-ko",
+                "verified-disagreement-and-deferral",
+                "duplicate-and-outdated-without-interview",
+                "confirmation-and-write-boundary",
+            },
+            set(cases),
+        )
+        for case in cases.values():
+            self.assertEqual(
+                {"id", "locale", "request", "review_context", "expected_invariants", "forbidden"},
+                set(case),
+            )
+            self.assertEqual("ko-KR", case["locale"])
+            self.assertTrue(case["expected_invariants"])
+            self.assertTrue(case["forbidden"])
 
     def test_script_uses_python_39_compatible_type_syntax(self):
         self.assertNotIn(" | None", SCRIPT.read_text(encoding="utf-8"))
@@ -286,6 +318,31 @@ class ReviewResponseStateTests(unittest.TestCase):
             capture_output=True,
         )
         self.assertEqual(2, rejected.returncode)
+
+    def test_thread_fingerprint_is_order_independent_and_reply_sensitive(self):
+        root = {"id": "C1", "updated_at": "2026-08-01T00:00:00Z", "body": "root"}
+        reply = {"id": "C2", "updated_at": "2026-08-02T00:00:00Z", "body": "reply"}
+
+        expected = STATE.source_fingerprint({"id": "T1", "comments": [root, reply]})
+
+        self.assertEqual(
+            expected,
+            STATE.source_fingerprint({"id": "T1", "comments": [reply, root]}),
+        )
+        self.assertNotEqual(
+            expected,
+            STATE.source_fingerprint({"id": "T1", "comments": [root]}),
+        )
+        changed = {**reply, "body": "updated reply"}
+        self.assertNotEqual(
+            expected,
+            STATE.source_fingerprint({"id": "T1", "comments": [root, changed]}),
+        )
+
+    def test_thread_fingerprint_rejects_duplicate_comment_ids(self):
+        comment = {"id": "C1", "updated_at": "2026-08-01T00:00:00Z", "body": "root"}
+        with self.assertRaises(STATE.StateError):
+            STATE.source_fingerprint({"id": "T1", "comments": [comment, comment]})
 
     def test_checkpoint_accepts_only_closed_enum_values(self):
         fields = (
@@ -340,6 +397,21 @@ class ReviewResponseStateTests(unittest.TestCase):
                 value["source_items"][0]["fingerprint"] = fingerprint
                 with self.assertRaises(STATE.StateError):
                     STATE.validate_checkpoint(value)
+
+    def test_checkpoint_rejects_crossed_source_decision_links(self):
+        value = checkpoint()
+        value["source_items"][0]["id"] = "S1"
+        value["source_items"][0]["decision_id"] = "D1"
+        value["source_items"].append(
+            {**value["source_items"][0], "id": "S2", "decision_id": "D2"}
+        )
+        value["decisions"][0]["source_ids"] = ["S2"]
+        value["decisions"].append(
+            {**value["decisions"][0], "id": "D2", "source_ids": ["S1"]}
+        )
+
+        with self.assertRaises(STATE.StateError):
+            STATE.validate_checkpoint(value)
 
     def test_write_and_read_increment_revision_without_temp_files(self):
         with tempfile.TemporaryDirectory() as directory:
