@@ -6,9 +6,6 @@ description: Translate and handle PR/code review feedback in the user's resolved
 # Magical Review Response
 
 Turn PR or code review feedback into an agreed response plan, then execute it.
-Use this when a user asks to handle review comments, requested changes, review
-threads, inline review comments, PR comments, or review feedback that needs
-translation, interpretation, decisions, implementation, and reviewer follow-up.
 
 ## Output Locale
 
@@ -102,17 +99,8 @@ helper after these durable transitions:
 - each implementation or verification batch
 - each completed remote reply, resolve, or other write after readback
 
-Store source IDs and fingerprints, user decisions, per-decision statuses, and
-the remote-write status. Do
-not store reviewer bodies, translations, diffs, chat or tool logs, secrets,
-personal data, or hidden reasoning. GitHub remains the authority for review
-state, the repository for code state, and the checkpoint for user decisions.
-
-On resume, fetch GitHub again before using stored decisions. Preserve the file
-and stop when the source cannot be fetched. Keep decisions for unchanged source
-fingerprints, invalidate only decisions linked to changed source items, and
-reset implementation and verification status when the PR head SHA changes.
-Treat an open PR with a completed checkpoint as a fresh review-response cycle.
+Follow the guide for checkpoint schema, data minimization, source fingerprint,
+reconciliation, resume, and cleanup rules.
 
 ## Decision Types
 
