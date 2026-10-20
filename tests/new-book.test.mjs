@@ -7,11 +7,12 @@ import { makeSandbox } from "./helpers.mjs";
 test("new-book scaffolds a plugin that passes check and lands in both marketplaces", () => {
   const sb = makeSandbox();
   try {
+    // A fixture name no real plugin uses: the sandbox is a copy of plugins/, so a real book would collide.
     const r = sb.tool([
       "new-book",
-      "book-of-engineering",
+      "book-of-fixture",
       "--description",
-      "Engineering workflows.",
+      "Fixture workflows.",
       "--category",
       "Engineering",
       "--skill",
@@ -19,7 +20,7 @@ test("new-book scaffolds a plugin that passes check and lands in both marketplac
     ]);
     assert.equal(r.code, 0, r.out);
 
-    const root = join(sb.dir, "plugins", "book-of-engineering");
+    const root = join(sb.dir, "plugins", "book-of-fixture");
     for (const rel of [
       "VERSION",
       "CHANGELOG.md",
@@ -36,17 +37,20 @@ test("new-book scaffolds a plugin that passes check and lands in both marketplac
     const codex = JSON.parse(readFileSync(join(root, ".codex-plugin", "plugin.json"), "utf8"));
     assert.deepEqual(codex.hooks, {});
     assert.equal(codex.interface.category, "Engineering");
-    assert.equal(codex.description, "Engineering workflows.");
+    assert.equal(codex.description, "Fixture workflows.");
 
     const claudeMp = JSON.parse(readFileSync(join(sb.dir, ".claude-plugin", "marketplace.json"), "utf8"));
     const codexMp = JSON.parse(readFileSync(join(sb.dir, ".agents", "plugins", "marketplace.json"), "utf8"));
     const claudeNames = claudeMp.plugins.map((p) => p.name);
-    assert.ok(claudeNames.includes("archmage") && claudeNames.includes("book-of-engineering"), claudeNames.join(","));
+    assert.ok(claudeNames.includes("archmage") && claudeNames.includes("book-of-fixture"), claudeNames.join(","));
     assert.deepEqual([...claudeNames].sort(), claudeNames, "Claude marketplace is sorted by name");
-    assert.deepEqual(codexMp.plugins.map((p) => p.name), ["archmage", "book-of-engineering"]);
-    const book = codexMp.plugins.find((p) => p.name === "book-of-engineering");
+    const codexNames = codexMp.plugins.map((p) => p.name);
+    assert.ok(codexNames.includes("archmage") && codexNames.includes("book-of-fixture"), codexNames.join(","));
+    assert.deepEqual([...codexNames].sort(), codexNames, "Codex marketplace is sorted by name");
+    assert.ok(codexNames.every((n) => n === "archmage" || n.startsWith("book-of-")), "Codex marketplace lists no mods");
+    const book = codexMp.plugins.find((p) => p.name === "book-of-fixture");
     assert.equal(book.category, "Engineering");
-    assert.equal(book.source.path, "./plugins/book-of-engineering");
+    assert.equal(book.source.path, "./plugins/book-of-fixture");
 
     const c = sb.tool(["check"]);
     assert.equal(c.code, 0, c.out);

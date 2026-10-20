@@ -21,6 +21,21 @@
       ]
     },
     {
+      "name": "book-of-engineering",
+      "source": "./plugins/book-of-engineering",
+      "description": "Engineering practice skills for the grimoire: test-driven development and architecture decision records.",
+      "version": "0.1.0",
+      "category": "Developer Tools",
+      "tags": [
+        "grimoire",
+        "engineering",
+        "tdd",
+        "testing",
+        "adr",
+        "architecture-decisions"
+      ]
+    },
+    {
       "name": "token-weather",
       "source": "./claude-code-mods/token-weather",
       "description": "One line above the prompt: context tokens with their weather, a bar per recent prompt, your 5-hour and 7-day limits against the time elapsed, the prompt cache with its time left, the session cost and the agents running. Labels in English or Korean. A port of token-weather-usage by Eric Cologni (Apache-2.0).",

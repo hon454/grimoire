@@ -1,0 +1,40 @@
+{
+  "name": "book-of-engineering",
+  "version": "0.1.0",
+  "description": "Engineering practice skills for the grimoire: test-driven development and architecture decision records.",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "homepage": "https://github.com/hon454/grimoire",
+  "repository": "https://github.com/hon454/grimoire",
+  "license": "MIT",
+  "keywords": [
+    "grimoire",
+    "engineering",
+    "tdd",
+    "testing",
+    "adr",
+    "architecture-decisions"
+  ],
+  "skills": "./skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "Book of Engineering",
+    "shortDescription": "Engineering practice skills: TDD and architecture decision records",
+    "longDescription": "Book of Engineering is the grimoire's book of software engineering practice. The tdd skill runs the red-green-refactor loop at agreed seams and keeps every test honest. The adr skill decides whether a decision deserves a record, finds the repository's decision log, and writes one immutable MADR-style record with a Y-statement.",
+    "developerName": "hon454",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/hon454/grimoire",
+    "defaultPrompt": [
+      "Implement this feature test-first with TDD.",
+      "Record the decision we just made as an ADR."
+    ],
+    "brandColor": "#6D28D9"
+  }
+}
