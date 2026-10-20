@@ -23,3 +23,4 @@ grimoire의 구조와 규약을 바꾼 결정을 한 건씩 불변 문서로 남
 | [0007](0007-skills-only-component-policy.md) | 스킬 전용 컴포넌트 정책 | accepted |
 | [0008](0008-versioning-and-changelog.md) | 버전과 변경 기록 | accepted |
 | [0009](0009-dev-install-swap-model.md) | 개발용 로컬 설치 swap 모델 | accepted |
+| [0010](0010-claude-only-mods-family.md) | Claude 전용 mod 계열 `claude-code-mods/` | accepted |

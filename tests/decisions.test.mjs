@@ -24,7 +24,7 @@ test("check rejects a gap in ADR numbering, a bad status and a missing date", ()
   const sb = makeSandbox();
   try {
     const dir = withDocs(sb);
-    writeFileSync(join(dir, "0011-skipped-number.md"), "---\nstatus: approved\ndate: today\n---\n# x\n");
+    writeFileSync(join(dir, "0012-skipped-number.md"), "---\nstatus: approved\ndate: today\n---\n# x\n");
     const r = sb.tool(["check"]);
     assert.equal(r.code, 1);
     assert.match(r.stdout, /ADR numbers must be consecutive/);

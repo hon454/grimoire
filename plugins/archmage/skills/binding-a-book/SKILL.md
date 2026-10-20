@@ -41,7 +41,7 @@ Never add `commands/`, `bin/`, a root `plugin.json`, a symlink, or a `CLAUDE.md`
 
 ```
 node tools/grimoire.mjs check
-node --test
+node tools/run-tests.mjs
 claude plugin validate . --strict
 ```
 

@@ -18,7 +18,8 @@ plugins/<plugin>/                   one plugin per directory
   skills/<skill>/agents/openai.yaml Codex UI metadata sidecar
   hooks/hooks.json                  shared body, read by both harnesses (optional)
   scripts/*.mjs                     Node scripts called by hooks and skills
-tools/grimoire.mjs                  maintainer tool: check, stamp, new-book, dev-install (tools/dev.mjs)
+claude-code-mods/<mod>/             Claude-only function-hook mod (ADR 0010): Claude manifest, hooks/hooks.json with "modules", tests/*.test.ts; never in the Codex marketplace
+tools/grimoire.mjs                  maintainer tool: check, stamp, new-book, new-mod, dev-install (tools/dev.mjs)
 tests/                              node --test suites for the tool, templates and hooks
 docs/ARCHITECTURE.md                living overview of the current shape (Korean)
 docs/PLUGIN-AUTHORING.md            how to make a book (Korean)
@@ -38,11 +39,12 @@ docs/research/YYYY-MM-DD-*.md       immutable research notes that feed decisions
 node tools/grimoire.mjs check              # validate every plugin and both marketplaces
 node tools/grimoire.mjs stamp [plugin]     # write VERSION into manifests, regenerate marketplaces
 node tools/grimoire.mjs new-book <name>    # scaffold plugins/<name> (name must be book-of-*)
+node tools/grimoire.mjs new-mod <name>     # scaffold claude-code-mods/<name> (Claude-only, plain name)
 node tools/grimoire.mjs dev-status         # how Claude Code and Codex currently register grimoire
 node tools/grimoire.mjs dev-install        # swap the registered marketplace to this checkout and install the plugins (asks first)
 node tools/grimoire.mjs dev-refresh        # re-copy plugins into both harnesses after an edit
 node tools/grimoire.mjs dev-uninstall      # swap the marketplace back to GitHub
-node --test                         # run the test suites
+node tools/run-tests.mjs                         # run the test suites
 claude plugin validate . --strict          # official Claude Code validator (marketplace root)
 ```
 
@@ -61,6 +63,7 @@ Run `check` before every commit. CI runs `check`, the tests, and `claude plugin 
 - `hooks/hooks.json` uses only events both harnesses support and matchers in Claude's names (`Bash`, `Edit|Write`, `Agent`), which Codex aliases. Every `${CLAUDE_PLUGIN_ROOT}/...` path it references must exist.
 - No personal absolute paths (`C:\Users\...`, `/Users/...`, `/home/...`) inside `plugins/`.
 - Both marketplace files are up to date with the plugins on disk.
+- A mod under `claude-code-mods/` has a Claude manifest, a `hooks/hooks.json` whose only key is `modules` (each an existing module exporting `register`), no `.codex-plugin/`, and a name that no plugin uses. Mods are listed in the Claude marketplace only, tagged `claude-code-mod`.
 - `docs/decisions/` files are named `NNNN-kebab-title.md` with consecutive numbers from 0001, and each has frontmatter `status` (`proposed`, `accepted`, `deprecated`, `superseded`) and `date` (`YYYY-MM-DD`). Every ADR that `docs/ARCHITECTURE.md` links to exists.
 
 ## Conventions
@@ -69,6 +72,8 @@ Run `check` before every commit. CI runs `check`, the tests, and `claude plugin 
 - Invoke scripts through the interpreter in prose and hooks (`node "${CLAUDE_PLUGIN_ROOT}/scripts/x.mjs"`), never by bare path: some packagers strip executable bits.
 - Use `${CLAUDE_PLUGIN_ROOT}` for plugin-relative paths. Codex sets the same variable for compatibility.
 - Plugins never reference files outside their own root and never depend on another plugin.
+- Mods (`claude-code-mods/`) are the one Claude-only family. Keep every hook a pass-through unless the mod's purpose is to change behaviour, keep `on(...)` and `$.noun.method(...)` spelled out at top level (the engine reads them from the source), and wrap host calls in try/catch so a failure keeps the previous state. A mod adapted from another project carries that project's LICENSE and NOTICE in its own directory and names the license in `plugin.json`.
+- Validate and test a mod with `claude plugin validate claude-code-mods/<mod> --strict` and `claude plugin test claude-code-mods/<mod>`. Develop it with `claude --plugin-dir claude-code-mods/<mod>` only while it is not also installed from the marketplace; otherwise use `dev-refresh`.
 - Claude-only components (`agents/`, `userConfig`) go only in the Claude manifest. Codex-only metadata (`interface`) goes only in the Codex manifest.
 - Line endings are LF everywhere (`.gitattributes`).
 - Local testing uses the swap model (ADR 0009): one marketplace name, `grimoire`, whose source is swapped between GitHub and this checkout by `dev-install` / `dev-uninstall`. Never register a second name such as `grimoire-dev` and never load a plugin with `--plugin-dir` next to an installed copy; both duplicate skills and run hooks twice. Both harnesses copy plugins into a cache, so run `dev-refresh` after editing a plugin. Editing `hooks/hooks.json` changes its hash and Codex asks for `/hooks` trust again.
@@ -77,5 +82,5 @@ Run `check` before every commit. CI runs `check`, the tests, and `claude plugin 
 
 1. `node tools/grimoire.mjs new-book book-of-<domain> --description "..." [--category "..."] [--skill <gerund-name>]`
 2. Write the skills. Keep `SKILL.md` frontmatter to the allowed keys; put anything else under `metadata`.
-3. `node tools/grimoire.mjs check`, then `node --test`.
+3. `node tools/grimoire.mjs check`, then `node tools/run-tests.mjs`.
 4. Add a `CHANGELOG.md` entry, commit, and tag `<plugin>/v<version>` when releasing.

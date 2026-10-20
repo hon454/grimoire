@@ -161,7 +161,11 @@ function unionIds(state, repoPlugins) {
   return [...new Set([...state.plugins.map((p) => p.id), ...repoPlugins.map((n) => `${n}@${MARKETPLACE_NAME}`)])].sort();
 }
 
-export function buildPlan(state, mode, { repoRoot, repoPlugins }) {
+// `repoPlugins` is either one list of names for both harnesses, or
+// `{ claude: [...], codex: [...] }` when some plugins (mods) are Claude-only.
+export function buildPlan(state, mode, { repoRoot, repoPlugins: repo }) {
+  const perHarness = Array.isArray(repo) ? { claude: repo, codex: repo } : repo;
+  const repoPluginsFor = { claude: perHarness.claude || [], codex: perHarness.codex || [] };
   const steps = [];
   const notes = [];
   const step = (harness, title, argv, destructive) => steps.push({ harness, title, argv, destructive });
@@ -171,10 +175,10 @@ export function buildPlan(state, mode, { repoRoot, repoPlugins }) {
 
   if (mode === "install") {
     // Claude: removing the marketplace also uninstalls its plugins, so swap first, then install.
-    const claudeIds = pluginIds(state.claude, repoPlugins);
+    const claudeIds = pluginIds(state.claude, repoPluginsFor.claude);
     if (state.claude.local) {
       notes.push("claude: marketplace already points at this checkout; plugins are refreshed in place.");
-      for (const id of unionIds(state.claude, repoPlugins)) {
+      for (const id of unionIds(state.claude, repoPluginsFor.claude)) {
         if (claudeInstalled.has(id)) step("claude", `refresh ${id} (uninstall --keep-data, install)`, ["claude", "plugin", "uninstall", id, "--keep-data"]);
         step("claude", `install ${id}`, ["claude", "plugin", "install", id]);
       }
@@ -187,10 +191,10 @@ export function buildPlan(state, mode, { repoRoot, repoPlugins }) {
     }
 
     // Codex: remove plugins while their marketplace is still registered, swap, then add them back.
-    const codexIds = pluginIds(state.codex, repoPlugins);
+    const codexIds = pluginIds(state.codex, repoPluginsFor.codex);
     if (state.codex.local) {
       notes.push("codex: marketplace already points at this checkout; plugins are re-copied.");
-      for (const id of unionIds(state.codex, repoPlugins)) {
+      for (const id of unionIds(state.codex, repoPluginsFor.codex)) {
         if (codexInstalled.has(id)) step("codex", `remove ${id} (refresh)`, ["codex", "plugin", "remove", id]);
         step("codex", `add ${id}`, ["codex", "plugin", "add", id]);
       }
@@ -206,7 +210,7 @@ export function buildPlan(state, mode, { repoRoot, repoPlugins }) {
       throw new Error(`neither harness has marketplace "${MARKETPLACE_NAME}" pointing at ${repoRoot}; run dev-install first`);
     }
     if (state.claude.local) {
-      for (const id of unionIds(state.claude, repoPlugins)) {
+      for (const id of unionIds(state.claude, repoPluginsFor.claude)) {
         if (claudeInstalled.has(id)) step("claude", `refresh ${id} (uninstall --keep-data, install)`, ["claude", "plugin", "uninstall", id, "--keep-data"]);
         step("claude", `install ${id}`, ["claude", "plugin", "install", id]);
       }
@@ -214,7 +218,7 @@ export function buildPlan(state, mode, { repoRoot, repoPlugins }) {
       notes.push("claude: marketplace is not this checkout; skipped (run dev-install to swap).");
     }
     if (state.codex.local) {
-      for (const id of unionIds(state.codex, repoPlugins)) {
+      for (const id of unionIds(state.codex, repoPluginsFor.codex)) {
         if (codexInstalled.has(id)) step("codex", `remove ${id} (refresh)`, ["codex", "plugin", "remove", id]);
         step("codex", `add ${id}`, ["codex", "plugin", "add", id]);
       }

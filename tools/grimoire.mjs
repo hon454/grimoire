@@ -40,6 +40,11 @@ const MARKETPLACE = {
 
 const META_PLUGIN = "archmage";
 const BOOK_PREFIX = "book-of-";
+// Claude-only mods (function-hook modules) live beside plugins/, never inside it:
+// they have no Codex manifest and are left out of the Codex marketplace (ADR 0010).
+const MODS_DIR = "claude-code-mods";
+const MOD_CATEGORY = "Developer Tools";
+const MOD_MODULE_EXT = /\.(ts|tsx|jsx|js|mjs|cjs|mts|cts)$/;
 const DEFAULT_CATEGORY = "Developer Tools";
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SEMVER = /^\d+\.\d+\.\d+$/;
@@ -186,26 +191,57 @@ function loadPlugins(root) {
   return listDirs(pluginsDir(root)).map((d) => loadPlugin(root, d));
 }
 
+function modsDir(root) {
+  return join(root, MODS_DIR);
+}
+
+function loadMod(root, dir) {
+  const path = join(modsDir(root), dir);
+  const read = (rel) => (existsSync(join(path, rel)) ? readJson(join(path, rel)) : null);
+  return {
+    dir,
+    path,
+    kind: "mod",
+    version: existsSync(join(path, "VERSION")) ? readText(join(path, "VERSION")).trim() : null,
+    claude: read(".claude-plugin/plugin.json"),
+  };
+}
+
+function loadMods(root) {
+  return listDirs(modsDir(root)).map((d) => loadMod(root, d));
+}
+
 // ---------------------------------------------------------------------------
 // Marketplaces (generated)
 // ---------------------------------------------------------------------------
 
-export function buildMarketplaces(plugins) {
+export function buildMarketplaces(plugins, mods = []) {
   const entries = plugins
     .filter((p) => p.claude && p.codex)
     .sort((a, b) => a.dir.localeCompare(b.dir));
+  const modEntries = mods.filter((m) => m.claude).sort((a, b) => a.dir.localeCompare(b.dir));
   const claude = {
     name: MARKETPLACE.name,
     owner: MARKETPLACE.owner,
     description: MARKETPLACE.description,
-    plugins: entries.map((p) => ({
-      name: p.claude.name,
-      source: `./plugins/${p.dir}`,
-      description: p.claude.description,
-      version: p.version,
-      category: p.codex.interface?.category || DEFAULT_CATEGORY,
-      tags: p.claude.keywords || [],
-    })),
+    plugins: [
+      ...entries.map((p) => ({
+        name: p.claude.name,
+        source: `./plugins/${p.dir}`,
+        description: p.claude.description,
+        version: p.version,
+        category: p.codex.interface?.category || DEFAULT_CATEGORY,
+        tags: p.claude.keywords || [],
+      })),
+      ...modEntries.map((m) => ({
+        name: m.claude.name,
+        source: `./${MODS_DIR}/${m.dir}`,
+        description: m.claude.description,
+        version: m.version,
+        category: MOD_CATEGORY,
+        tags: [...new Set([...(m.claude.keywords || []), "claude-code-mod"])],
+      })),
+    ].sort((a, b) => a.name.localeCompare(b.name)),
   };
   const codex = {
     name: MARKETPLACE.name,
@@ -228,7 +264,7 @@ function marketplaceFiles(root) {
 }
 
 function writeMarketplaces(root) {
-  const built = buildMarketplaces(loadPlugins(root));
+  const built = buildMarketplaces(loadPlugins(root), loadMods(root));
   const files = marketplaceFiles(root);
   mkdirSync(dirname(files.claude), { recursive: true });
   mkdirSync(dirname(files.codex), { recursive: true });
@@ -417,8 +453,94 @@ function checkSkill(p, skill, report, id, seenSkills) {
   }
 }
 
-function checkMarketplaces(root, plugins, report) {
-  const built = buildMarketplaces(plugins);
+function checkVersionFiles(p, report, id) {
+  if (!p.version) report.error(id, "missing VERSION file");
+  else if (!SEMVER.test(p.version)) report.error(id, `VERSION "${p.version}" is not MAJOR.MINOR.PATCH`);
+  const changelog = join(p.path, "CHANGELOG.md");
+  if (!existsSync(changelog)) {
+    report.error(id, "missing CHANGELOG.md");
+    return;
+  }
+  const latest = changelogLatestVersion(readText(changelog));
+  if (!latest) report.error(id, "CHANGELOG.md has no versioned heading like \"## [0.1.0] - 2026-01-01\"");
+  else if (p.version && latest !== p.version) report.error(id, `CHANGELOG.md newest entry is ${latest} but VERSION is ${p.version}`);
+}
+
+function checkTree(p, report, id) {
+  for (const [entry, why] of FORBIDDEN_ENTRIES) {
+    if (existsSync(join(p.path, entry))) report.error(id, `"${entry}" is not allowed: ${why}`);
+  }
+  walk(p.path, (full, entry) => {
+    const rel = posix(relative(p.path, full));
+    if (lstatSync(full).isSymbolicLink()) {
+      report.error(id, `symlink "${rel}" is not allowed: Codex drops symlinks when copying plugins`);
+      return;
+    }
+    if (entry.isFile()) {
+      const ext = full.slice(full.lastIndexOf("."));
+      if (TEXT_EXTENSIONS.has(ext) && PERSONAL_PATH.test(readText(full))) {
+        report.error(id, `"${rel}" contains a personal absolute path`);
+      }
+    }
+  });
+}
+
+// A mod: Claude-only function hooks. One Claude manifest, hooks/hooks.json
+// naming modules, no Codex manifest, no skills required.
+function checkMod(m, report) {
+  const id = `${MODS_DIR}/${m.dir}`;
+  if (!KEBAB.test(m.dir)) report.error(id, "mod directory name must be kebab-case");
+  if (m.dir.startsWith(BOOK_PREFIX) || m.dir === META_PLUGIN) {
+    report.error(id, `mod names must not use the book-of- prefix or "${META_PLUGIN}"; those are dual-harness plugins`);
+  }
+  checkVersionFiles(m, report, id);
+
+  if (!m.claude) {
+    report.error(id, "missing .claude-plugin/plugin.json");
+  } else {
+    if (m.claude.name !== m.dir) report.error(id, `claude manifest name "${m.claude.name}" does not equal directory name`);
+    if (m.version && m.claude.version !== m.version) report.error(id, `claude manifest version "${m.claude.version}" does not equal VERSION ${m.version}`);
+    if (!m.claude.description) report.error(id, "claude manifest has no description");
+    if (!m.claude.author?.name) report.error(id, "claude manifest has no author.name");
+    if (!m.claude.license) report.warn(id, "claude manifest has no license; a mod adapted from another project must carry that project's license");
+    if (m.claude.types && !existsSync(join(m.path, m.claude.types))) report.error(id, `claude manifest "types" path "${m.claude.types}" does not exist`);
+  }
+  if (existsSync(join(m.path, ".codex-plugin"))) {
+    report.error(id, "a mod must not have .codex-plugin/: mods are Claude-only and are left out of the Codex marketplace");
+  }
+  checkTree(m, report, id);
+
+  const hooksFile = join(m.path, "hooks", "hooks.json");
+  if (!existsSync(hooksFile)) {
+    report.error(id, "missing hooks/hooks.json");
+    return;
+  }
+  let data;
+  try {
+    data = readJson(hooksFile);
+  } catch (e) {
+    report.error(id, `hooks/hooks.json is not valid JSON: ${e.message}`);
+    return;
+  }
+  if (!Array.isArray(data.modules) || data.modules.length === 0 || !data.modules.every((x) => typeof x === "string")) {
+    report.error(id, 'hooks/hooks.json must declare "modules": ["./<module>"] (a mod is function hooks, not command hooks)');
+    return;
+  }
+  if (data.hooks) report.error(id, 'hooks/hooks.json of a mod must not also declare command "hooks"; put command hooks in a plugin under plugins/');
+  for (const rel of data.modules) {
+    const file = join(m.path, "hooks", rel);
+    if (!existsSync(file)) report.error(id, `module "${rel}" named in hooks/hooks.json does not exist`);
+    else if (!MOD_MODULE_EXT.test(rel)) report.error(id, `module "${rel}" must be .ts/.tsx/.jsx/.js/.mjs/.cjs/.mts/.cts to load`);
+    else if (!/export\s+(const|function|async function)\s+register\b/.test(readText(file))) {
+      report.error(id, `module "${rel}" does not export register(on, options)`);
+    }
+  }
+  const tests = readdirSync(m.path, { recursive: true }).filter((f) => /\.test\.tsx?$/.test(String(f)));
+  if (tests.length === 0) report.warn(id, "mod has no *.test.ts for claude plugin test");
+}
+
+function checkMarketplaces(root, plugins, mods, report) {
+  const built = buildMarketplaces(plugins, mods);
   const files = marketplaceFiles(root);
   for (const [label, file] of Object.entries(files)) {
     const rel = posix(relative(root, file));
@@ -477,11 +599,18 @@ function checkDecisions(root, report) {
 export function check(root) {
   const report = new Report();
   const plugins = loadPlugins(root);
+  const mods = loadMods(root);
   if (plugins.length === 0) report.error("plugins", "no plugins found");
   const seenSkills = new Map();
   for (const p of plugins) checkPlugin(p, report, seenSkills);
-  checkMarketplaces(root, plugins, report);
+  for (const m of mods) checkMod(m, report);
+  // One marketplace, so plugin and mod names share a namespace.
+  for (const m of mods) {
+    if (plugins.some((p) => p.dir === m.dir)) report.error(`${MODS_DIR}/${m.dir}`, `name collides with plugins/${m.dir}; marketplace names must be unique`);
+  }
+  checkMarketplaces(root, plugins, mods, report);
   checkDecisions(root, report);
+  report.counts = { plugins: plugins.length, mods: mods.length };
   return report;
 }
 
@@ -490,8 +619,8 @@ export function check(root) {
 // ---------------------------------------------------------------------------
 
 export function stamp(root, pluginName, setVersion) {
-  const plugins = loadPlugins(root).filter((p) => !pluginName || p.dir === pluginName);
-  if (pluginName && plugins.length === 0) throw new Error(`plugin "${pluginName}" not found under plugins/`);
+  const plugins = [...loadPlugins(root), ...loadMods(root)].filter((p) => !pluginName || p.dir === pluginName);
+  if (pluginName && plugins.length === 0) throw new Error(`plugin "${pluginName}" not found under plugins/ or ${MODS_DIR}/`);
   for (const p of plugins) {
     let version = p.version;
     if (setVersion) {
@@ -507,7 +636,7 @@ export function stamp(root, pluginName, setVersion) {
       manifest.version = version;
       writeJson(file, manifest);
     }
-    console.log(`stamped plugins/${p.dir} at ${version}`);
+    console.log(`stamped ${p.kind === "mod" ? MODS_DIR : "plugins"}/${p.dir} at ${version}`);
   }
   const files = writeMarketplaces(root);
   console.log(`regenerated ${posix(relative(root, files.claude))} and ${posix(relative(root, files.codex))}`);
@@ -567,6 +696,33 @@ export function newBook(root, name, opts = {}) {
   console.log("next: write skills under skills/<gerund-name>/SKILL.md, then run: node tools/grimoire.mjs check");
 }
 
+// Scaffold a Claude-only mod under claude-code-mods/<name>.
+export function newMod(root, name, opts = {}) {
+  if (!name) throw new Error("usage: new-mod <name> [--description ...]");
+  if (!KEBAB.test(name)) throw new Error(`"${name}" is not kebab-case`);
+  if (name.startsWith(BOOK_PREFIX) || name === META_PLUGIN) throw new Error(`"${name}" reads as a dual-harness plugin; mods use plain names`);
+  if (existsSync(join(pluginsDir(root), name))) throw new Error(`plugins/${name} already exists; marketplace names must be unique`);
+  const path = join(modsDir(root), name);
+  if (existsSync(path)) throw new Error(`${MODS_DIR}/${name} already exists`);
+  const vars = {
+    NAME: name,
+    TITLE: titleCase(name),
+    DESCRIPTION: opts.description || `Claude Code mod: ${name.replaceAll("-", " ")}.`,
+    DATE: today(),
+    VERSION: "0.1.0",
+  };
+  writeText(join(path, "VERSION"), vars.VERSION + "\n");
+  writeText(join(path, "CHANGELOG.md"), renderTemplate("CHANGELOG.md", { ...vars }));
+  writeText(join(path, "README.md"), renderTemplate("mod-README.md", vars));
+  writeText(join(path, ".claude-plugin", "plugin.json"), renderTemplate("mod-plugin.json", vars));
+  writeText(join(path, "hooks", "hooks.json"), renderTemplate("mod-hooks.json", vars));
+  writeText(join(path, "hooks", `${name}.mjs`), renderTemplate("mod-module.mjs", vars));
+  writeText(join(path, "tests", `${name}.test.ts`), renderTemplate("mod-test.ts", vars));
+  writeMarketplaces(root);
+  console.log(`created ${MODS_DIR}/${name}`);
+  console.log(`next: edit hooks/${name}.mjs, then run: claude plugin validate ${MODS_DIR}/${name} && node tools/grimoire.mjs check`);
+}
+
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
@@ -577,6 +733,7 @@ function usage() {
   node tools/grimoire.mjs check
   node tools/grimoire.mjs stamp [plugin] [--set X.Y.Z]
   node tools/grimoire.mjs new-book <book-of-name> [--description "..."] [--category "..."] [--skill <gerund-name>]
+  node tools/grimoire.mjs new-mod <name> [--description "..."]       Claude-only mod under ${MODS_DIR}/
   node tools/grimoire.mjs marketplaces
 
   node tools/grimoire.mjs dev-status                 show how Claude Code and Codex currently register grimoire
@@ -597,9 +754,12 @@ async function main(argv) {
       usage();
       return 1;
     }
+    const books = loadPlugins(root).map((p) => p.dir);
+    const mods = loadMods(root).map((m) => m.dir);
     return runDev(mode, {
       repoRoot: root,
-      repoPlugins: loadPlugins(root).map((p) => p.dir),
+      // Mods are Claude-only: Codex never sees them.
+      repoPlugins: { claude: [...books, ...mods], codex: books },
       yes: flags.yes === true,
       dryRun: flags["dry-run"] === true,
     });
@@ -609,12 +769,12 @@ async function main(argv) {
       const report = check(root);
       for (const w of report.warnings) console.log(`warning  ${w}`);
       for (const e of report.errors) console.log(`error    ${e}`);
-      const plugins = loadPlugins(root).length;
+      const scope = `${report.counts.plugins} plugin(s), ${report.counts.mods} mod(s)`;
       if (report.errors.length) {
-        console.log(`\ncheck failed: ${report.errors.length} error(s), ${report.warnings.length} warning(s) across ${plugins} plugin(s)`);
+        console.log(`\ncheck failed: ${report.errors.length} error(s), ${report.warnings.length} warning(s) across ${scope}`);
         return 1;
       }
-      console.log(`check passed: ${plugins} plugin(s), ${report.warnings.length} warning(s)`);
+      console.log(`check passed: ${scope}, ${report.warnings.length} warning(s)`);
       return 0;
     }
     case "stamp":
@@ -626,6 +786,9 @@ async function main(argv) {
         category: typeof flags.category === "string" ? flags.category : undefined,
         skill: typeof flags.skill === "string" ? flags.skill : undefined,
       });
+      return 0;
+    case "new-mod":
+      newMod(root, rest[0], { description: typeof flags.description === "string" ? flags.description : undefined });
       return 0;
     case "marketplaces":
       writeMarketplaces(root);

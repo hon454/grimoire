@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -16,11 +16,12 @@ export function runTool(args, opts = {}) {
   return { code: r.status, stdout: r.stdout, stderr: r.stderr, out: r.stdout + r.stderr };
 }
 
-// Copies plugins/ and tools/ into a temporary directory so tests can mutate freely.
+// Copies plugins/, claude-code-mods/ and tools/ into a temporary directory so tests can mutate freely.
 export function makeSandbox() {
   const dir = mkdtempSync(join(tmpdir(), "grimoire-test-"));
-  cpSync(join(REPO_ROOT, "plugins"), join(dir, "plugins"), { recursive: true });
-  cpSync(join(REPO_ROOT, "tools"), join(dir, "tools"), { recursive: true });
+  for (const sub of ["plugins", "claude-code-mods", "tools"]) {
+    if (existsSync(join(REPO_ROOT, sub))) cpSync(join(REPO_ROOT, sub), join(dir, sub), { recursive: true });
+  }
   runTool(["marketplaces", "--root", dir]);
   return {
     dir,

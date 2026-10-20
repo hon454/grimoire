@@ -17,6 +17,6 @@
     "check": "node tools/grimoire.mjs check",
     "stamp": "node tools/grimoire.mjs stamp",
     "new-book": "node tools/grimoire.mjs new-book",
-    "test": "node --test"
+    "test": "node tools/run-tests.mjs"
   }
 }

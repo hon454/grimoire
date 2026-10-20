@@ -53,7 +53,7 @@ metadata:
 
 ```bash
 node tools/grimoire.mjs check
-node --test
+node tools/run-tests.mjs
 claude plugin validate . --strict
 claude plugin validate ./plugins/book-of-<domain> --strict
 ```

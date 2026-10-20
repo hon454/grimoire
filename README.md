@@ -6,6 +6,7 @@ Claude Code와 Codex에서 동시에 쓰는 플러그인 모음입니다. 플러
 |---|---|
 | `archmage` | 필독서. 그리모어 사용법을 세션 시작 시 주입하고, 새 책을 제본하는 스킬을 제공합니다. |
 | `book-of-*` | 도메인별 책. 각 책은 자기 스킬과 훅만으로 자립하며 다른 책에 의존하지 않습니다. |
+| `claude-code-mods/*` | Claude Code 전용 mod. 프롬프트 위 밴드 같은 인터페이스 확장이라 Codex에는 없고 Codex 마켓플레이스에도 실리지 않습니다. |
 
 ## 설치
 
@@ -38,8 +39,9 @@ plugins/<plugin>/                   플러그인 한 권
   skills/<skill>/agents/openai.yaml Codex UI 메타데이터
   hooks/hooks.json                  두 하네스가 함께 읽는 훅 (선택)
   scripts/*.mjs                     훅과 스킬이 호출하는 Node 스크립트
-tools/grimoire.mjs                  운영 도구: check, stamp, new-book, dev-install
-tests/                              node --test
+claude-code-mods/<mod>/             Claude Code 전용 mod (Codex에는 설치되지 않음)
+tools/grimoire.mjs                  운영 도구: check, stamp, new-book, new-mod, dev-install
+tests/                              node tools/run-tests.mjs
 docs/ARCHITECTURE.md                현재 구조 개요 (살아있는 문서)
 docs/PLUGIN-AUTHORING.md            새 책 만드는 절차
 docs/decisions/                     결정 기록 (ADR, 불변)
@@ -54,7 +56,7 @@ Node 20 이상만 필요하고 외부 의존성은 없습니다.
 
 ```bash
 node tools/grimoire.mjs check     # 모든 플러그인과 마켓플레이스 검증
-node --test                       # 테스트
+node tools/run-tests.mjs                       # 테스트
 node tools/grimoire.mjs dev-install  # 두 하네스에 이 체크아웃을 마켓플레이스로 등록하고 설치 (확인 후 실행)
 node tools/grimoire.mjs dev-refresh  # 플러그인을 고친 뒤 양쪽 캐시에 다시 복사
 claude plugin validate . --strict # 공식 Claude 검증기

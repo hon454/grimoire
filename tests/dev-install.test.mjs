@@ -83,6 +83,14 @@ test("dev-install from a GitHub registration swaps both harnesses and keeps plug
   assert.deepEqual(plannedIds(plan), ["archmage@grimoire"]);
 });
 
+test("dev-install installs Claude-only mods in Claude Code only", () => {
+  const plan = buildPlan(state(), "install", { repoRoot: REPO, repoPlugins: { claude: [...PLUGINS, "token-weather"], codex: PLUGINS } });
+  const argv = plan.steps.map((s) => s.argv.join(" "));
+  assert.ok(argv.includes("claude plugin install token-weather@grimoire"));
+  assert.ok(!argv.some((a) => a.startsWith("codex") && a.includes("token-weather")), "Codex never sees a mod");
+  assert.ok(argv.includes("codex plugin add archmage@grimoire"));
+});
+
 test("dev-install with nothing installed yet installs every plugin in the repo", () => {
   const plan = buildPlan(state(), "install", { repoRoot: REPO, repoPlugins: PLUGINS });
   assert.deepEqual(plannedIds(plan), ["archmage@grimoire", "book-of-engineering@grimoire"]);

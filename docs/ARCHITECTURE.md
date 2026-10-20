@@ -25,9 +25,16 @@ plugins/<plugin>/                   플러그인 한 권
   hooks/hooks.json                  두 하네스가 함께 읽는 훅 (선택)
   scripts/*.mjs                     훅과 스킬이 호출하는 Node 스크립트
   README.md                         플러그인의 살아있는 스펙 (한국어)
-tools/grimoire.mjs                  운영 도구: check, stamp, new-book, dev-install, marketplaces
-tools/templates/                    new-book이 쓰는 뼈대
-tests/*.test.mjs                    node --test
+claude-code-mods/<mod>/             Claude Code 전용 mod (ADR 0010; Codex 마켓플레이스에서 제외)
+  VERSION, CHANGELOG.md, README.md  플러그인과 같은 규칙
+  .claude-plugin/plugin.json        Claude 매니페스트만
+  hooks/hooks.json                  { "modules": ["./<mod>.mjs"] } 함수 훅 모듈
+  hooks/<mod>.mjs                   register(on, options)를 내보내는 모듈
+  tests/*.test.ts                   claude plugin test
+  LICENSE, NOTICE                   다른 프로젝트에서 채용한 mod는 그 라이선스를 동봉
+tools/grimoire.mjs                  운영 도구: check, stamp, new-book, new-mod, dev-install, marketplaces
+tools/templates/                    new-book과 new-mod가 쓰는 뼈대
+tests/*.test.mjs                    node tools/run-tests.mjs
 docs/ARCHITECTURE.md                이 문서
 docs/PLUGIN-AUTHORING.md            새 책 만드는 절차
 docs/decisions/NNNN-*.md            결정 기록 (불변)
@@ -37,6 +44,8 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 
 현재 플러그인은 `archmage` 하나다. 메타 플러그인이며 `reading-the-grimoire`(세션 시작 시 주입되는 필독서)와 `binding-a-book`(새 책 제본 절차) 스킬, SessionStart 훅을 담는다. 다른 모든 도메인은 `book-of-<domain>` 플러그인으로 첫 스킬부터 분리된다.
 
+Claude 전용 mod는 `claude-code-mods/`에 둔다. mod는 Claude Code의 함수 훅 모듈이라 Codex로 옮길 수 없으므로 Codex 마켓플레이스와 `dev-install`의 Codex 목록에서 빠지며, 이름은 접두사 없는 보통 이름이다. 두 계열은 마켓플레이스 하나를 공유하므로 이름은 통틀어 유일해야 한다(ADR 0010).
+
 ## 3. 동작 흐름
 
 **설치.** 사용자는 `claude plugin marketplace add hon454/grimoire` 또는 `codex plugin marketplace add hon454/grimoire`로 마켓플레이스를 등록하고 `archmage@grimoire`처럼 플러그인을 고른다. Claude는 디렉토리 마켓플레이스를 제자리에서 읽고, Codex는 플러그인 디렉토리를 `~/.codex/plugins/cache/grimoire/<plugin>/<version>/`로 통째로 복사한다.
@@ -45,7 +54,7 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 
 **개발용 로컬 설치 (swap 모델, ADR 0009).** `tools/grimoire.mjs dev-install`은 두 하네스에서 마켓플레이스 `grimoire`의 등록 상태를 읽어 출력하고, GitHub 등록이면 제거한 뒤 이 체크아웃을 디렉토리 마켓플레이스로 등록하고, 전과 같은 플러그인 ID(`archmage@grimoire` 등)를 다시 설치한다. 이미 이 체크아웃이면 교체 없이 재설치만 한다. 두 하네스 모두 플러그인을 캐시에 복사하므로 수정 뒤에는 `dev-refresh`(Claude는 `uninstall --keep-data` 후 `install`, Codex는 `remove` 후 `add`)로 다시 복사한다. `dev-uninstall`은 로컬 등록을 제거하고 GitHub 소스로 되돌린다. 계획을 먼저 출력하고 `--yes`가 없으면 확인을 받으며, Claude 마켓플레이스 제거가 그 플러그인들의 데이터·옵션·시크릿을 지운다는 경고를 해당 단계에 붙인다. `dev-status`는 상태만 보여 준다. `tools/dev.mjs`의 계획 생성은 순수 함수라 `tests/dev-install.test.mjs`가 ID 불변식을 검사한다.
 
-**검증.** `check`는 플러그인마다 이름 규칙, `VERSION`과 CHANGELOG와 매니페스트의 일치, 금지 항목(루트 `plugin.json`, `commands/`, `bin/`, 심볼릭 링크, `CLAUDE.md`), Codex `hooks` 필드 명시, 스킬 이름·프론트매터·사이드카, 훅 이벤트와 참조 경로, 개인 경로 유출, 마켓플레이스 신선도를 검사한다. 레포 수준에서는 `docs/decisions/`의 순번과 프론트매터, 이 문서가 참조하는 ADR의 존재를 검사한다. CI는 ubuntu와 windows, Node 20과 22에서 `check`와 테스트를 돌리고 `claude plugin validate --strict`를 별도 잡으로 실행한다.
+**검증.** `check`는 mod마다 Claude 매니페스트, `modules`만 가진 `hooks/hooks.json`과 모듈의 `register` 내보내기, `.codex-plugin/` 부재, 플러그인과의 이름 충돌을 검사한다. 플러그인마다 이름 규칙, `VERSION`과 CHANGELOG와 매니페스트의 일치, 금지 항목(루트 `plugin.json`, `commands/`, `bin/`, 심볼릭 링크, `CLAUDE.md`), Codex `hooks` 필드 명시, 스킬 이름·프론트매터·사이드카, 훅 이벤트와 참조 경로, 개인 경로 유출, 마켓플레이스 신선도를 검사한다. 레포 수준에서는 `docs/decisions/`의 순번과 프론트매터, 이 문서가 참조하는 ADR의 존재를 검사한다. CI는 ubuntu와 windows, Node 20과 22에서 `check`와 테스트를 돌리고 `claude plugin validate --strict`를 별도 잡으로 실행한다.
 
 **훅 실행.** 두 하네스 모두 `hooks/hooks.json`을 읽고 `node "${CLAUDE_PLUGIN_ROOT}/scripts/session-start.mjs"`를 실행한다. 스크립트는 `PLUGIN_ROOT` 유무로 하네스를 판별해 Claude에는 `hookSpecificOutput` JSON을, Codex에는 평문을 출력한다. Codex는 플러그인 훅을 비관리 훅으로 취급해 사용자가 `/hooks`에서 한 번 신뢰하기 전까지 건너뛴다.
 
@@ -67,7 +76,7 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 규칙의 전문은 `AGENTS.md`에 있고, ADR로 다루지 않은 사소한 규약은 다음과 같다.
 
 - author는 `{ "name": "hon454", "url": "https://github.com/hon454" }`, 이메일 없음. 라이선스 MIT.
-- Node 20 이상, 외부 의존성 0, 테스트는 `node --test` 기본 탐색.
+- Node 20 이상, 외부 의존성 0, 테스트는 `node tools/run-tests.mjs`.
 - Codex `category` 기본값은 `Developer Tools`, 플러그인별로 `interface.category`에서 덮어쓴다.
 - 하네스가 읽는 파일은 영어, 사람이 읽는 문서는 한국어.
 - 줄 끝은 LF(`.gitattributes`).
@@ -85,6 +94,7 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 | [0007](decisions/0007-skills-only-component-policy.md) | 스킬만, `commands/`와 `bin/` 금지, 동명사 이름, 프론트매터 허용 목록, 사이드카 | accepted |
 | [0008](decisions/0008-versioning-and-changelog.md) | 플러그인별 semver와 `CHANGELOG.md`, `check`가 일치 강제 | accepted |
 | [0009](decisions/0009-dev-install-swap-model.md) | 개발용 로컬 설치는 swap 모델 (`dev-install`/`dev-refresh`/`dev-uninstall`) | accepted |
+| [0010](decisions/0010-claude-only-mods-family.md) | Claude 전용 mod는 `claude-code-mods/` 별도 계열, Codex 마켓플레이스 제외 | accepted |
 
 조사 노트: [SDD 도구와 ADR 규격의 문서 구조](research/2026-10-20-sdd-doc-structures.md), [레퍼런스 플러그인 레포 다섯 곳](research/2026-10-20-reference-plugin-repos.md).
 
