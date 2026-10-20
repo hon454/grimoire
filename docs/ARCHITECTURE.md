@@ -88,9 +88,9 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 
 ## 7. 열린 위험과 확인 항목
 
-- **Codex 훅 실행.** 2026-10-20 로컬 마켓플레이스 설치에서 스킬 발견은 확인했으나 SessionStart 훅은 `/hooks` 신뢰 전이라 실행되지 않았다. 신뢰 후 `codex exec` 프로브로 주입 여부를 확인해야 한다. `codex exec`에는 `--dangerously-bypass-hook-trust` 플래그가 있지만 쓰지 않는다.
-- **Codex SessionStart 세부.** 평문 출력 처리와 `matcher` 값(`startup|resume|clear|compact`)은 문서 기반이며 실측 전이다.
+- **Codex 훅 실행 (해소, 2026-10-21).** 로컬 마켓플레이스로 설치한 archmage의 SessionStart 훅이 `/hooks` 신뢰 후 `codex exec`에서 실행되어, 스크립트의 평문 출력이 `developer` 역할 메시지로 컨텍스트에 들어가는 것을 확인했다. 플러그인 훅은 비관리 훅이라 사용자가 한 번 신뢰해야 하며, `hooks.json`이 바뀌면 해시가 달라져 다시 신뢰해야 한다. Codex `/hooks` 화면에는 이름 없는 훅으로 표시되므로, 두 하네스가 모두 받아들이는 표시용 필드가 확인되면 추가한다.
+- **Codex SessionStart 세부.** 평문 출력은 실측으로 확인했다. `matcher` 값(`startup|resume|clear|compact`)이 Codex에서 어떤 소스 이름과 대응하는지는 아직 문서 기반이다.
 - **Codex 프론트매터 허용 목록**은 ECC의 기록에 의존한다.
-- **CI의 `claude plugin validate` 잡**은 CLI가 인증 없이 검증을 수행한다는 가정이다. 첫 푸시에서 확인한다.
+- **CI의 `claude plugin validate` 잡 (해소, 2026-10-20).** 첫 푸시의 워크플로우에서 인증 없이 통과했다.
 - **Windows의 Claude 훅 셸.** `node "<경로>"` 형태는 어느 셸에서든 동작해야 하지만 실제 세션으로 확인해야 한다.
 - **`dev-install`**은 ADR 0009가 `proposed` 상태이며 구현 전이다. 그 전까지는 `docs/PLUGIN-AUTHORING.md`의 수동 절차를 쓴다.
