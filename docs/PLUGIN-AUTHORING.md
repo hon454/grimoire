@@ -62,28 +62,24 @@ claude plugin validate ./plugins/book-of-<domain> --strict
 
 ## 5. 로컬 설치로 확인
 
-`dev-install` 도구는 2차 커밋에서 추가됩니다. 그 전까지는 아래 수동 절차를 씁니다.
-
-Claude Code: 디렉토리 마켓플레이스는 파일을 제자리에서 읽으므로 수정이 바로 반영됩니다.
+두 하네스 모두 플러그인을 캐시에 **복사**해 설치하므로, 체크아웃을 고쳐도 재설치 전에는 반영되지 않습니다. 이 반복을 `tools/grimoire.mjs`의 dev 명령이 맡습니다(ADR 0009, swap 모델).
 
 ```bash
-claude plugin marketplace add G:/grimoire
-claude plugin install book-of-<domain>@grimoire
+node tools/grimoire.mjs dev-status      # 두 하네스의 grimoire 등록 상태와 설치된 플러그인
+node tools/grimoire.mjs dev-install     # 처음 한 번: 마켓플레이스 grimoire를 이 체크아웃으로 교체하고 플러그인 설치
+node tools/grimoire.mjs dev-refresh     # 고칠 때마다: 양쪽 캐시에 플러그인을 다시 복사
+node tools/grimoire.mjs dev-uninstall   # 끝나면: 마켓플레이스를 GitHub(hon454/grimoire)로 되돌림
 ```
 
-Codex: `~/.codex/config.toml`에 로컬 마켓플레이스를 등록한 뒤 설치합니다. Codex는 플러그인을 캐시로 복사하므로 수정 후에는 `codex plugin remove` 후 다시 `add` 해야 반영됩니다.
+동작 규칙:
 
-```toml
-[marketplaces.grimoire]
-source_type = "local"
-source = 'G:\grimoire'
-```
+- 마켓플레이스 이름은 `grimoire` 하나만 씁니다. `grimoire-dev` 같은 두 번째 이름이나 `--plugin-dir` 동시 로드는 스킬이 두 번 보이고 훅이 두 번 돌기 때문에 쓰지 않습니다.
+- 모든 명령은 현재 상태와 실행할 단계를 먼저 출력하고, `--yes`가 없으면 확인을 받습니다. `--dry-run`은 계획만 보여 줍니다. 비대화형 셸에서는 `--yes`가 필요합니다.
+- Claude에서 마켓플레이스를 제거하면 그 마켓플레이스 플러그인들의 데이터·옵션·시크릿이 삭제됩니다. `dev-install`(GitHub에서 교체할 때)과 `dev-uninstall`은 이 단계에 경고를 붙입니다. `dev-refresh`는 `uninstall --keep-data`를 써서 데이터를 보존합니다.
+- 플러그인 ID(`archmage@grimoire`)는 교체 전후로 같아서 `enabledPlugins`를 건드리지 않습니다. 교체 전에 설치되어 있던 플러그인만 다시 설치하고, 아무것도 없었다면 레포의 모든 플러그인을 설치합니다.
+- Codex의 훅 신뢰는 플러그인 ID와 `hooks.json` 해시 기준으로 `config.toml`에 남으므로 `dev-refresh` 뒤에도 유지됩니다. `hooks.json`을 고치면 Codex 대화형 화면의 `/hooks`에서 다시 신뢰해야 합니다.
 
-```bash
-codex plugin add book-of-<domain>@grimoire
-```
-
-같은 이름 `grimoire`로 GitHub 마켓플레이스가 이미 등록되어 있으면 충돌합니다. Claude는 등록을 거부하고 Codex는 TOML 테이블을 덮어씁니다. 개발 중에는 GitHub 등록을 제거하고 로컬을 등록했다가 끝나면 되돌리는 방식(swap)을 쓰며, 이것이 `dev-install`/`dev-uninstall`이 자동화할 절차입니다. Claude에서 마켓플레이스를 제거하면 그 마켓플레이스 플러그인의 데이터와 설정도 함께 삭제되니 주의합니다.
+도구 없이 손으로 할 때의 명령은 다음과 같습니다. Claude는 `claude plugin marketplace add <체크아웃 경로>` 뒤 `claude plugin install <plugin>@grimoire`, Codex는 `codex plugin marketplace add <체크아웃 경로>` 뒤 `codex plugin add <plugin>@grimoire`입니다. 같은 이름의 GitHub 등록이 이미 있으면 먼저 `marketplace remove grimoire`를 해야 합니다.
 
 ## 6. 릴리스
 

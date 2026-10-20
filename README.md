@@ -38,7 +38,7 @@ plugins/<plugin>/                   플러그인 한 권
   skills/<skill>/agents/openai.yaml Codex UI 메타데이터
   hooks/hooks.json                  두 하네스가 함께 읽는 훅 (선택)
   scripts/*.mjs                     훅과 스킬이 호출하는 Node 스크립트
-tools/grimoire.mjs                  운영 도구: check, stamp, new-book
+tools/grimoire.mjs                  운영 도구: check, stamp, new-book, dev-install
 tests/                              node --test
 docs/ARCHITECTURE.md                현재 구조 개요 (살아있는 문서)
 docs/PLUGIN-AUTHORING.md            새 책 만드는 절차
@@ -55,6 +55,8 @@ Node 20 이상만 필요하고 외부 의존성은 없습니다.
 ```bash
 node tools/grimoire.mjs check     # 모든 플러그인과 마켓플레이스 검증
 node --test                       # 테스트
+node tools/grimoire.mjs dev-install  # 두 하네스에 이 체크아웃을 마켓플레이스로 등록하고 설치 (확인 후 실행)
+node tools/grimoire.mjs dev-refresh  # 플러그인을 고친 뒤 양쪽 캐시에 다시 복사
 claude plugin validate . --strict # 공식 Claude 검증기
 ```
 

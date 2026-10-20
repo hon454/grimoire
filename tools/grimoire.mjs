@@ -5,6 +5,8 @@
 //   node tools/grimoire.mjs stamp [plugin] [--set X]   write VERSION into manifests, regenerate marketplaces
 //   node tools/grimoire.mjs new-book <name> [...]      scaffold a new book-of-* plugin
 //   node tools/grimoire.mjs marketplaces               regenerate both marketplace files only
+//   node tools/grimoire.mjs dev-status|dev-install|dev-refresh|dev-uninstall
+//                                                      local development install (swap model, ADR 0009; see tools/dev.mjs)
 //
 // Every command accepts --root <dir> (defaults to the repository root).
 
@@ -19,6 +21,7 @@ import {
 } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { GITHUB_SOURCE, runDev } from "./dev.mjs";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -576,13 +579,31 @@ function usage() {
   node tools/grimoire.mjs new-book <book-of-name> [--description "..."] [--category "..."] [--skill <gerund-name>]
   node tools/grimoire.mjs marketplaces
 
+  node tools/grimoire.mjs dev-status                 show how Claude Code and Codex currently register grimoire
+  node tools/grimoire.mjs dev-install  [--yes|--dry-run]   swap the registered marketplace to this checkout, install plugins
+  node tools/grimoire.mjs dev-refresh  [--yes|--dry-run]   re-copy plugins into both harnesses after edits
+  node tools/grimoire.mjs dev-uninstall [--yes|--dry-run]  swap the marketplace back to GitHub (${GITHUB_SOURCE})
+
   --root <dir>   operate on another checkout (default: this repository)`);
 }
 
-function main(argv) {
+async function main(argv) {
   const { positional, flags } = parseArgs(argv);
   const root = resolve(flags.root || DEFAULT_ROOT);
   const [command, ...rest] = positional;
+  if (command && command.startsWith("dev-")) {
+    const mode = command.slice(4);
+    if (!["status", "install", "refresh", "uninstall"].includes(mode)) {
+      usage();
+      return 1;
+    }
+    return runDev(mode, {
+      repoRoot: root,
+      repoPlugins: loadPlugins(root).map((p) => p.dir),
+      yes: flags.yes === true,
+      dryRun: flags["dry-run"] === true,
+    });
+  }
   switch (command) {
     case "check": {
       const report = check(root);
@@ -617,10 +638,13 @@ function main(argv) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try {
-    process.exitCode = main(process.argv.slice(2));
-  } catch (e) {
-    console.error(`error: ${e.message}`);
-    process.exitCode = 1;
-  }
+  main(process.argv.slice(2)).then(
+    (code) => {
+      process.exitCode = code;
+    },
+    (e) => {
+      console.error(`error: ${e.message}`);
+      process.exitCode = 1;
+    },
+  );
 }

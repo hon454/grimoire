@@ -18,7 +18,7 @@ plugins/<plugin>/                   one plugin per directory
   skills/<skill>/agents/openai.yaml Codex UI metadata sidecar
   hooks/hooks.json                  shared body, read by both harnesses (optional)
   scripts/*.mjs                     Node scripts called by hooks and skills
-tools/grimoire.mjs                  maintainer tool: check, stamp, new-book
+tools/grimoire.mjs                  maintainer tool: check, stamp, new-book, dev-install (tools/dev.mjs)
 tests/                              node --test suites for the tool, templates and hooks
 docs/ARCHITECTURE.md                living overview of the current shape (Korean)
 docs/PLUGIN-AUTHORING.md            how to make a book (Korean)
@@ -38,6 +38,10 @@ docs/research/YYYY-MM-DD-*.md       immutable research notes that feed decisions
 node tools/grimoire.mjs check              # validate every plugin and both marketplaces
 node tools/grimoire.mjs stamp [plugin]     # write VERSION into manifests, regenerate marketplaces
 node tools/grimoire.mjs new-book <name>    # scaffold plugins/<name> (name must be book-of-*)
+node tools/grimoire.mjs dev-status         # how Claude Code and Codex currently register grimoire
+node tools/grimoire.mjs dev-install        # swap the registered marketplace to this checkout and install the plugins (asks first)
+node tools/grimoire.mjs dev-refresh        # re-copy plugins into both harnesses after an edit
+node tools/grimoire.mjs dev-uninstall      # swap the marketplace back to GitHub
 node --test                         # run the test suites
 claude plugin validate . --strict          # official Claude Code validator (marketplace root)
 ```
@@ -67,6 +71,7 @@ Run `check` before every commit. CI runs `check`, the tests, and `claude plugin 
 - Plugins never reference files outside their own root and never depend on another plugin.
 - Claude-only components (`agents/`, `userConfig`) go only in the Claude manifest. Codex-only metadata (`interface`) goes only in the Codex manifest.
 - Line endings are LF everywhere (`.gitattributes`).
+- Local testing uses the swap model (ADR 0009): one marketplace name, `grimoire`, whose source is swapped between GitHub and this checkout by `dev-install` / `dev-uninstall`. Never register a second name such as `grimoire-dev` and never load a plugin with `--plugin-dir` next to an installed copy; both duplicate skills and run hooks twice. Both harnesses copy plugins into a cache, so run `dev-refresh` after editing a plugin. Editing `hooks/hooks.json` changes its hash and Codex asks for `/hooks` trust again.
 
 ## Adding a plugin
 

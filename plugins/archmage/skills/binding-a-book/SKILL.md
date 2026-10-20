@@ -47,6 +47,16 @@ claude plugin validate . --strict
 
 Fix everything `check` reports before committing. It also regenerates nothing; if it says a marketplace is stale, run `node tools/grimoire.mjs stamp`.
 
+To try the book in a real session, install this checkout into both harnesses from the repository root:
+
+```
+node tools/grimoire.mjs dev-install    # first time: swaps marketplace "grimoire" from GitHub to this checkout (asks before deleting Claude plugin data)
+node tools/grimoire.mjs dev-refresh    # after every edit: both harnesses copy plugins into a cache, so re-copy
+node tools/grimoire.mjs dev-uninstall  # when done: swap back to GitHub
+```
+
+Never register a second marketplace name or use `--plugin-dir` beside an installed copy; skills would appear twice and hooks would run twice. In Codex, a changed `hooks/hooks.json` must be trusted again in `/hooks`.
+
 ## 5. Release
 
 1. Edit `plugins/<book>/VERSION` to the new semver.

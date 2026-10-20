@@ -4,6 +4,10 @@ All notable changes to the `archmage` plugin are documented here. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- `binding-a-book` now documents the `dev-install` / `dev-refresh` / `dev-uninstall` loop for trying a book locally.
+
 ## [0.1.0] - 2026-10-20
 
 ### Added

@@ -25,7 +25,7 @@ plugins/<plugin>/                   플러그인 한 권
   hooks/hooks.json                  두 하네스가 함께 읽는 훅 (선택)
   scripts/*.mjs                     훅과 스킬이 호출하는 Node 스크립트
   README.md                         플러그인의 살아있는 스펙 (한국어)
-tools/grimoire.mjs                  운영 도구: check, stamp, new-book, marketplaces
+tools/grimoire.mjs                  운영 도구: check, stamp, new-book, dev-install, marketplaces
 tools/templates/                    new-book이 쓰는 뼈대
 tests/*.test.mjs                    node --test
 docs/ARCHITECTURE.md                이 문서
@@ -42,6 +42,8 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 **설치.** 사용자는 `claude plugin marketplace add hon454/grimoire` 또는 `codex plugin marketplace add hon454/grimoire`로 마켓플레이스를 등록하고 `archmage@grimoire`처럼 플러그인을 고른다. Claude는 디렉토리 마켓플레이스를 제자리에서 읽고, Codex는 플러그인 디렉토리를 `~/.codex/plugins/cache/grimoire/<plugin>/<version>/`로 통째로 복사한다.
 
 **매니페스트에서 마켓플레이스로.** `tools/grimoire.mjs stamp`가 각 플러그인의 `VERSION`을 두 매니페스트의 `version`에 쓰고, 매니페스트의 이름·설명·키워드·`interface.category`를 읽어 마켓플레이스 2장을 다시 생성한다. `check`는 생성물이 최신인지 비교만 한다.
+
+**개발용 로컬 설치 (swap 모델, ADR 0009).** `tools/grimoire.mjs dev-install`은 두 하네스에서 마켓플레이스 `grimoire`의 등록 상태를 읽어 출력하고, GitHub 등록이면 제거한 뒤 이 체크아웃을 디렉토리 마켓플레이스로 등록하고, 전과 같은 플러그인 ID(`archmage@grimoire` 등)를 다시 설치한다. 이미 이 체크아웃이면 교체 없이 재설치만 한다. 두 하네스 모두 플러그인을 캐시에 복사하므로 수정 뒤에는 `dev-refresh`(Claude는 `uninstall --keep-data` 후 `install`, Codex는 `remove` 후 `add`)로 다시 복사한다. `dev-uninstall`은 로컬 등록을 제거하고 GitHub 소스로 되돌린다. 계획을 먼저 출력하고 `--yes`가 없으면 확인을 받으며, Claude 마켓플레이스 제거가 그 플러그인들의 데이터·옵션·시크릿을 지운다는 경고를 해당 단계에 붙인다. `dev-status`는 상태만 보여 준다. `tools/dev.mjs`의 계획 생성은 순수 함수라 `tests/dev-install.test.mjs`가 ID 불변식을 검사한다.
 
 **검증.** `check`는 플러그인마다 이름 규칙, `VERSION`과 CHANGELOG와 매니페스트의 일치, 금지 항목(루트 `plugin.json`, `commands/`, `bin/`, 심볼릭 링크, `CLAUDE.md`), Codex `hooks` 필드 명시, 스킬 이름·프론트매터·사이드카, 훅 이벤트와 참조 경로, 개인 경로 유출, 마켓플레이스 신선도를 검사한다. 레포 수준에서는 `docs/decisions/`의 순번과 프론트매터, 이 문서가 참조하는 ADR의 존재를 검사한다. CI는 ubuntu와 windows, Node 20과 22에서 `check`와 테스트를 돌리고 `claude plugin validate --strict`를 별도 잡으로 실행한다.
 
@@ -82,7 +84,7 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 | [0006](decisions/0006-hook-runtime.md) | Node 20+ 의존성 0, 단일 `hooks.json`, 환경변수로 하네스 판별 | accepted |
 | [0007](decisions/0007-skills-only-component-policy.md) | 스킬만, `commands/`와 `bin/` 금지, 동명사 이름, 프론트매터 허용 목록, 사이드카 | accepted |
 | [0008](decisions/0008-versioning-and-changelog.md) | 플러그인별 semver와 `CHANGELOG.md`, `check`가 일치 강제 | accepted |
-| [0009](decisions/0009-dev-install-swap-model.md) | 개발용 로컬 설치는 swap 모델 (`dev-install`/`dev-refresh`/`dev-uninstall`) | proposed |
+| [0009](decisions/0009-dev-install-swap-model.md) | 개발용 로컬 설치는 swap 모델 (`dev-install`/`dev-refresh`/`dev-uninstall`) | accepted |
 
 조사 노트: [SDD 도구와 ADR 규격의 문서 구조](research/2026-10-20-sdd-doc-structures.md), [레퍼런스 플러그인 레포 다섯 곳](research/2026-10-20-reference-plugin-repos.md).
 
@@ -93,4 +95,4 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 - **Codex 프론트매터 허용 목록**은 ECC의 기록에 의존한다.
 - **CI의 `claude plugin validate` 잡 (해소, 2026-10-20).** 첫 푸시의 워크플로우에서 인증 없이 통과했다.
 - **Windows의 Claude 훅 (해소, 2026-10-21).** 로컬 디렉토리 마켓플레이스로 설치한 archmage의 SessionStart 훅이 Windows의 Claude Code 데스크톱 세션에서 실행되어 `<grimoire_required_reading>` 블록이 컨텍스트에 들어가고 스킬이 `archmage:<skill>`로 노출되는 것을 확인했다. 훅 오류나 경고는 없었다.
-- **`dev-install`**은 ADR 0009가 `proposed` 상태이며 구현 전이다. 그 전까지는 `docs/PLUGIN-AUTHORING.md`의 수동 절차를 쓴다. 실측에서 Claude도 디렉토리 마켓플레이스의 플러그인을 `~/.claude/plugins/cache/grimoire/<plugin>/<version>`에 **복사**해 설치했으므로(제자리 로드가 아님), 수정 반영에는 Codex와 마찬가지로 재설치 또는 버전 변경이 필요하다. 구현 시 `dev-refresh`가 두 하네스 모두를 갱신해야 한다.
+- **`dev-install` (해소, 2026-10-21).** ADR 0009를 `tools/dev.mjs`로 구현했고 실제 머신에서 `dev-refresh`가 두 하네스를 갱신하는 것을 확인했다. Codex 훅 신뢰(`config.toml`의 `[hooks.state]`, 플러그인 ID와 훅 해시 기준)는 remove/add 뒤에도 유지되었고, Claude 플러그인 데이터 디렉토리는 `--keep-data`로 보존되었다. GitHub 등록에서 로컬로의 교체 경로는 계획 출력(dry-run)과 단위 테스트로만 검증했다.
