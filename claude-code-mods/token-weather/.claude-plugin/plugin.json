@@ -1,0 +1,22 @@
+{
+  "name": "token-weather",
+  "displayName": "Token Weather",
+  "version": "0.1.0",
+  "description": "One line above the prompt: context tokens with their weather, a bar per recent prompt, your 5-hour and 7-day limits against the time elapsed, the prompt cache with its time left, the session cost and the agents running. Labels in English or Korean. A port of token-weather-usage by Eric Cologni (Apache-2.0).",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "homepage": "https://github.com/hon454/grimoire",
+  "repository": "https://github.com/hon454/grimoire",
+  "license": "Apache-2.0",
+  "keywords": ["grimoire", "mod", "statusline", "usage", "rate-limits", "prompt-cache", "context", "token-weather"],
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Labels in English (en) or Korean (ko), or auto: follows LC_ALL, LC_MESSAGES or LANG, and falls back to English.",
+      "default": "auto"
+    }
+  }
+}

@@ -40,10 +40,13 @@ test("new-book scaffolds a plugin that passes check and lands in both marketplac
 
     const claudeMp = JSON.parse(readFileSync(join(sb.dir, ".claude-plugin", "marketplace.json"), "utf8"));
     const codexMp = JSON.parse(readFileSync(join(sb.dir, ".agents", "plugins", "marketplace.json"), "utf8"));
-    assert.deepEqual(claudeMp.plugins.map((p) => p.name), ["archmage", "book-of-engineering"]);
+    const claudeNames = claudeMp.plugins.map((p) => p.name);
+    assert.ok(claudeNames.includes("archmage") && claudeNames.includes("book-of-engineering"), claudeNames.join(","));
+    assert.deepEqual([...claudeNames].sort(), claudeNames, "Claude marketplace is sorted by name");
     assert.deepEqual(codexMp.plugins.map((p) => p.name), ["archmage", "book-of-engineering"]);
-    assert.equal(codexMp.plugins[1].category, "Engineering");
-    assert.equal(codexMp.plugins[1].source.path, "./plugins/book-of-engineering");
+    const book = codexMp.plugins.find((p) => p.name === "book-of-engineering");
+    assert.equal(book.category, "Engineering");
+    assert.equal(book.source.path, "./plugins/book-of-engineering");
 
     const c = sb.tool(["check"]);
     assert.equal(c.code, 0, c.out);

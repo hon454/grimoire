@@ -44,7 +44,7 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 
 현재 플러그인은 `archmage` 하나다. 메타 플러그인이며 `reading-the-grimoire`(세션 시작 시 주입되는 필독서)와 `binding-a-book`(새 책 제본 절차) 스킬, SessionStart 훅을 담는다. 다른 모든 도메인은 `book-of-<domain>` 플러그인으로 첫 스킬부터 분리된다.
 
-Claude 전용 mod는 `claude-code-mods/`에 둔다. mod는 Claude Code의 함수 훅 모듈이라 Codex로 옮길 수 없으므로 Codex 마켓플레이스와 `dev-install`의 Codex 목록에서 빠지며, 이름은 접두사 없는 보통 이름이다. 두 계열은 마켓플레이스 하나를 공유하므로 이름은 통틀어 유일해야 한다(ADR 0010).
+Claude 전용 mod는 `claude-code-mods/`에 둔다. mod는 Claude Code의 함수 훅 모듈이라 Codex로 옮길 수 없으므로 Codex 마켓플레이스와 `dev-install`의 Codex 목록에서 빠지며, 이름은 접두사 없는 보통 이름이다. 두 계열은 마켓플레이스 하나를 공유하므로 이름은 통틀어 유일해야 한다(ADR 0010). 첫 mod는 `token-weather`로, Eric Cologni의 token-weather-usage(Apache-2.0)를 옮긴 것이다. 프롬프트 위 한 줄에 컨텍스트 날씨, 5시간·7일 한도 게이지, 캐시 카운트다운, 세션 비용, 에이전트를 그리며 라벨은 영어와 한국어다. 원본 라이선스와 NOTICE를 자기 디렉토리에 동봉한다.
 
 ## 3. 동작 흐름
 

@@ -1,28 +1,28 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { makeSandbox } from "./helpers.mjs";
 
 test("new-mod scaffolds a Claude-only mod that passes check and appears only in the Claude marketplace", () => {
   const sb = makeSandbox();
   try {
-    const r = sb.tool(["new-mod", "token-weather", "--description", "A band above the prompt."]);
+    const r = sb.tool(["new-mod", "weather-probe", "--description", "A band above the prompt."]);
     assert.equal(r.code, 0, r.out);
-    const root = join(sb.dir, "claude-code-mods", "token-weather");
-    for (const rel of ["VERSION", "CHANGELOG.md", "README.md", ".claude-plugin/plugin.json", "hooks/hooks.json", "hooks/token-weather.mjs", "tests/token-weather.test.ts"]) {
+    const root = join(sb.dir, "claude-code-mods", "weather-probe");
+    for (const rel of ["VERSION", "CHANGELOG.md", "README.md", ".claude-plugin/plugin.json", "hooks/hooks.json", "hooks/weather-probe.mjs", "tests/weather-probe.test.ts"]) {
       assert.ok(existsSync(join(root, rel)), `missing ${rel}`);
     }
     assert.ok(!existsSync(join(root, ".codex-plugin")), "mods have no Codex manifest");
-    assert.deepEqual(JSON.parse(readFileSync(join(root, "hooks", "hooks.json"), "utf8")), { modules: ["./token-weather.mjs"] });
+    assert.deepEqual(JSON.parse(readFileSync(join(root, "hooks", "hooks.json"), "utf8")), { modules: ["./weather-probe.mjs"] });
 
     const claudeMp = JSON.parse(readFileSync(join(sb.dir, ".claude-plugin", "marketplace.json"), "utf8"));
     const codexMp = JSON.parse(readFileSync(join(sb.dir, ".agents", "plugins", "marketplace.json"), "utf8"));
-    const entry = claudeMp.plugins.find((p) => p.name === "token-weather");
+    const entry = claudeMp.plugins.find((p) => p.name === "weather-probe");
     assert.ok(entry, "mod listed in the Claude marketplace");
-    assert.equal(entry.source, "./claude-code-mods/token-weather");
+    assert.equal(entry.source, "./claude-code-mods/weather-probe");
     assert.ok(entry.tags.includes("claude-code-mod"));
-    assert.ok(!codexMp.plugins.some((p) => p.name === "token-weather"), "mod absent from the Codex marketplace");
+    assert.ok(!codexMp.plugins.some((p) => p.name === "weather-probe"), "mod absent from the Codex marketplace");
 
     const c = sb.tool(["check"]);
     assert.equal(c.code, 0, c.out);
