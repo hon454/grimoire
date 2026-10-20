@@ -436,6 +436,41 @@ function checkMarketplaces(root, plugins, report) {
   }
 }
 
+const ADR_STATUSES = new Set(["proposed", "accepted", "deprecated", "superseded"]);
+
+function checkDecisions(root, report) {
+  const dir = join(root, "docs", "decisions");
+  if (!isDir(dir)) return;
+  const files = readdirSync(dir).filter((f) => f.endsWith(".md") && f !== "README.md" && f !== "template.md").sort();
+  const numbers = [];
+  for (const file of files) {
+    const id = `docs/decisions/${file}`;
+    const m = /^(\d{4})-[a-z0-9]+(-[a-z0-9]+)*\.md$/.exec(file);
+    if (!m) {
+      report.error(id, "ADR file name must be NNNN-kebab-title.md");
+      continue;
+    }
+    numbers.push(Number(m[1]));
+    const fm = parseFrontmatter(readText(join(dir, file)));
+    if (!fm) {
+      report.error(id, "ADR has no YAML frontmatter");
+      continue;
+    }
+    if (!ADR_STATUSES.has(fm.status)) report.error(id, `ADR status "${fm.status}" must be one of ${[...ADR_STATUSES].join(", ")}`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fm.date || "")) report.error(id, "ADR date must be YYYY-MM-DD");
+  }
+  numbers.sort((a, b) => a - b);
+  numbers.forEach((n, i) => {
+    if (n !== i + 1) report.error("docs/decisions", `ADR numbers must be consecutive from 0001; found ${String(n).padStart(4, "0")} at position ${i + 1}`);
+  });
+  const arch = join(root, "docs", "ARCHITECTURE.md");
+  if (existsSync(arch)) {
+    for (const m of readText(arch).matchAll(/\(decisions\/([^)\s]+\.md)\)/g)) {
+      if (!existsSync(join(dir, m[1]))) report.error("docs/ARCHITECTURE.md", `links to missing ADR "${m[1]}"`);
+    }
+  }
+}
+
 export function check(root) {
   const report = new Report();
   const plugins = loadPlugins(root);
@@ -443,6 +478,7 @@ export function check(root) {
   const seenSkills = new Map();
   for (const p of plugins) checkPlugin(p, report, seenSkills);
   checkMarketplaces(root, plugins, report);
+  checkDecisions(root, report);
   return report;
 }
 

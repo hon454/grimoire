@@ -40,10 +40,13 @@ plugins/<plugin>/                   플러그인 한 권
   scripts/*.mjs                     훅과 스킬이 호출하는 Node 스크립트
 tools/grimoire.mjs                  운영 도구: check, stamp, new-book
 tests/                              node --test
-docs/                               설계와 저작 문서
+docs/ARCHITECTURE.md                현재 구조 개요 (살아있는 문서)
+docs/PLUGIN-AUTHORING.md            새 책 만드는 절차
+docs/decisions/                     결정 기록 (ADR, 불변)
+docs/research/                      조사 노트 (불변)
 ```
 
-설계 배경과 결정 사항은 [docs/DESIGN.md](docs/DESIGN.md), 새 책을 만드는 절차는 [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md)에 있습니다. 에이전트와 기여자를 위한 규약은 영문 [AGENTS.md](AGENTS.md)가 단일 소스입니다.
+구조 설명은 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), 새 책을 만드는 절차는 [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md)에 있습니다. 에이전트와 기여자를 위한 규약은 영문 [AGENTS.md](AGENTS.md)가 단일 소스입니다.
 
 ## 개발
 

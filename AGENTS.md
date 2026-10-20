@@ -20,8 +20,17 @@ plugins/<plugin>/                   one plugin per directory
   scripts/*.mjs                     Node scripts called by hooks and skills
 tools/grimoire.mjs                  maintainer tool: check, stamp, new-book
 tests/                              node --test suites for the tool, templates and hooks
-docs/                               design and authoring docs (Korean)
+docs/ARCHITECTURE.md                living overview of the current shape (Korean)
+docs/PLUGIN-AUTHORING.md            how to make a book (Korean)
+docs/decisions/NNNN-*.md            immutable decision records, MADR minimal + Y-statement (Korean)
+docs/research/YYYY-MM-DD-*.md       immutable research notes that feed decisions (Korean)
 ```
+
+## Documentation layers
+
+- `AGENTS.md` holds the rules (this file). `docs/ARCHITECTURE.md` describes the current shape. `docs/decisions/` holds why, one decision per file, never edited after the fact except `status` and `superseded-by`. `docs/research/` holds dated research notes.
+- A change that alters a rule ships the ADR, the `AGENTS.md` edit and the `ARCHITECTURE.md` edit in the same commit. To reverse a decision, write a new ADR and mark the old one `superseded`.
+- Plans are not committed. Keep them in the session; the outcome goes to `CHANGELOG.md` and, when a rule changed, to an ADR.
 
 ## Commands
 
@@ -48,6 +57,7 @@ Run `check` before every commit. CI runs `check`, the tests, and `claude plugin 
 - `hooks/hooks.json` uses only events both harnesses support and matchers in Claude's names (`Bash`, `Edit|Write`, `Agent`), which Codex aliases. Every `${CLAUDE_PLUGIN_ROOT}/...` path it references must exist.
 - No personal absolute paths (`C:\Users\...`, `/Users/...`, `/home/...`) inside `plugins/`.
 - Both marketplace files are up to date with the plugins on disk.
+- `docs/decisions/` files are named `NNNN-kebab-title.md` with consecutive numbers from 0001, and each has frontmatter `status` (`proposed`, `accepted`, `deprecated`, `superseded`) and `date` (`YYYY-MM-DD`). Every ADR that `docs/ARCHITECTURE.md` links to exists.
 
 ## Conventions
 
