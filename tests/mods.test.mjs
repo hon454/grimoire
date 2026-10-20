@@ -26,7 +26,9 @@ test("new-mod scaffolds a Claude-only mod that passes check and appears only in 
 
     const c = sb.tool(["check"]);
     assert.equal(c.code, 0, c.out);
-    assert.match(c.stdout, /1 mod\(s\)/);
+    // Every mod in the sandbox counts, the repository's own ones included.
+    const mods = readdirSync(join(sb.dir, "claude-code-mods")).length;
+    assert.match(c.stdout, new RegExp(`${mods} mod\\(s\\)`));
   } finally {
     sb.cleanup();
   }
