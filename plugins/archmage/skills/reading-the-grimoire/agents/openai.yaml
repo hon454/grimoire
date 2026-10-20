@@ -1,0 +1,6 @@
+interface:
+  display_name: "Reading the Grimoire"
+  short_description: "How grimoire books and skills work in this session"
+  default_prompt: "Explain which grimoire books are installed and how to use them."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "{{SKILL_TITLE}}"
+  short_description: "<one line shown in the Codex skill picker>"
+  default_prompt: "<example prompt that should trigger this skill>"
+policy:
+  allow_implicit_invocation: true

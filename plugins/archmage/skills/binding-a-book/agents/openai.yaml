@@ -1,0 +1,6 @@
+interface:
+  display_name: "Binding a Book"
+  short_description: "Scaffold, validate and release a new grimoire plugin"
+  default_prompt: "Bind a new book called book-of-engineering with a first skill."
+policy:
+  allow_implicit_invocation: true

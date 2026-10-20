@@ -1,0 +1,26 @@
+{
+  "name": "{{NAME}}",
+  "version": "{{VERSION}}",
+  "description": "{{DESCRIPTION}}",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "homepage": "https://github.com/hon454/grimoire",
+  "repository": "https://github.com/hon454/grimoire",
+  "license": "MIT",
+  "keywords": ["grimoire", "{{DOMAIN}}"],
+  "skills": "./skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "{{TITLE}}",
+    "shortDescription": "{{DESCRIPTION}}",
+    "longDescription": "{{DESCRIPTION}}",
+    "developerName": "hon454",
+    "category": "{{CATEGORY}}",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://github.com/hon454/grimoire",
+    "defaultPrompt": [],
+    "brandColor": "#6D28D9"
+  }
+}

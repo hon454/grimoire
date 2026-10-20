@@ -1,0 +1,49 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check and test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: grimoire check
+        run: node tools/grimoire.mjs check
+      - name: tests
+        run: node --test
+
+  claude-plugin-validate:
+    name: claude plugin validate --strict
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      - name: validate marketplace
+        run: claude plugin validate . --strict
+      - name: validate each plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          for dir in plugins/*/; do
+            echo "== $dir"
+            claude plugin validate "$dir" --strict
+          done

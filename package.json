@@ -1,0 +1,22 @@
+{
+  "name": "grimoire",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A spellbook of plugins for Claude Code and Codex. Each plugin is a book; archmage is the required reading.",
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "repository": "https://github.com/hon454/grimoire",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node tools/grimoire.mjs check",
+    "stamp": "node tools/grimoire.mjs stamp",
+    "new-book": "node tools/grimoire.mjs new-book",
+    "test": "node --test"
+  }
+}

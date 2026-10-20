@@ -1,0 +1,14 @@
+{
+  "name": "archmage",
+  "displayName": "Archmage",
+  "version": "0.1.0",
+  "description": "Required reading for the grimoire: teaches the agent how to use grimoire plugins and how to bind new books.",
+  "author": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "homepage": "https://github.com/hon454/grimoire",
+  "repository": "https://github.com/hon454/grimoire",
+  "license": "MIT",
+  "keywords": ["grimoire", "meta", "skills", "plugin-authoring", "bootstrap"]
+}

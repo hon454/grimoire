@@ -1,0 +1,24 @@
+{
+  "name": "grimoire",
+  "owner": {
+    "name": "hon454",
+    "url": "https://github.com/hon454"
+  },
+  "description": "A spellbook of plugins for Claude Code and Codex. Each plugin is a book; archmage is the required reading.",
+  "plugins": [
+    {
+      "name": "archmage",
+      "source": "./plugins/archmage",
+      "description": "Required reading for the grimoire: teaches the agent how to use grimoire plugins and how to bind new books.",
+      "version": "0.1.0",
+      "category": "Developer Tools",
+      "tags": [
+        "grimoire",
+        "meta",
+        "skills",
+        "plugin-authoring",
+        "bootstrap"
+      ]
+    }
+  ]
+}
