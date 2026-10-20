@@ -1,12 +1,12 @@
 // Token Weather: one line above the prompt.
 //   Terminal, blocks split by a thin rule:
-//   ☁ 440k ▃▄▂▇▆ ▲ +8.4k │ 5h ━━╍╍── 37% · 2h22 │ 7d ━━━╍── 60% · 2d23h │ cache 52 min │ ≈ $4.32 (+$0.84 · +2% 5h) │ 2 agents
-//   Desktop app: the same blocks as tinted, outlined pills; the cost pill keeps the total (the last
-//   prompt in its card) and the agents pill stays, its card splitting the cost by model and effort.
+//   ☁ 440k ▃▄▂▇▆ ▲ +8.4k │ 5h ━━╍╍── 37% · 2h22 │ 7d ━━━╍── 60% · 2d23h │ cache 52 min │ 2 agents
+//   Desktop app: the same blocks as tinted, outlined pills; the agents pill stays, its card listing
+//   the agents running, their latest tool call and the last batch's receipt.
 //
 // A port of token-weather-usage by Eric Cologni (https://github.com/augiefra/claude-mods,
-//   Apache-2.0) for the grimoire: Korean labels in place of French and Russian, cell-aware width
-//   for the terminal line, gauge keys by window kind. See NOTICE beside this file.
+//   Apache-2.0) for the grimoire: English labels only, no cost figures or price table, cell-aware
+//   width for the terminal line, gauge keys by window kind. See NOTICE beside this file.
 // Weather, context and recent turns: adapted from the Token Weather example,
 //   Copyright 2026 Anthropic PBC, SPDX-License-Identifier: Apache-2.0 (claude-code-playground).
 // 5-hour and 7-day limits: written after HolyGrail's usage-meter, without copying its code.
@@ -16,181 +16,66 @@
 // The engine reads on(...) and $.noun.method(...) from the source: they stay spelled out,
 // and the functions that take $ live at the top level. No Node, no DOM, no import().
 
-// ---------- Language ----------
+// ---------- Text ----------
 
-// Labels in English or Korean. "auto" follows LC_ALL, LC_MESSAGES or LANG, then the runtime's
-// locale; English unless one of them starts with "ko". The desktop app often sets none of them,
-// so the language option (/config) is the sure way to pick.
-const TEXT = {
-  en: {
-    weather: { clear: "Clear", cloudy: "Cloudy", showers: "Showers", storm: "Storm", compact: "Compact soon" },
-    percent: (n) => `${n}%`,
-    labels: { five_hour: "5h", seven_day: "7d", spend_limit: "$" },
-    // 42 min, 3h02, 2d20h.
-    duration: ({ days, hours, minutes, total }) => {
-      if (total < 60) return `${total} min`;
-      if (days > 0) return `${days}d${String(hours).padStart(2, "0")}h`;
-      return `${hours}h${String(minutes).padStart(2, "0")}`;
-    },
-    // 40 s, 1 min 42.
-    span: (seconds) => (seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min${seconds % 60 ? ` ${String(seconds % 60).padStart(2, "0")}` : ""}`),
-    contextAlt: (word, percent, window) => `${word} · ${percent} of ${window}`,
-    turnsAlt: (n) => `Tokens added by the last ${n} prompts`,
-    gaugeAlt: (label, value) => `${label}: ${value} used`,
-    cache: "cache",
-    expired: "expired",
-    compacted: "compacted",
-    missed: "missed",
-    causes: { model: "model changed", lapsed: "lapsed", prefix: "start changed" },
-    underMinute: "< 1 min",
-    cost: (usd) => (usd >= 100 ? `≈ $${Math.round(usd)}` : `≈ $${usd.toFixed(2)}`),
-    resetsAt: (time) => `Resets at ${time}`,
-    weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-    dayParts: ["night", "morning", "afternoon", "evening"],
-    dayPart: (day, part) => `${day} ${part}`,
-    night: (day) => `${day} night`,
-    date: (day, d, m) => `${day} ${d}/${m}`,
-    runOut: (when) => `⚠ out ${when}`,
-    runOutTip: (gained, over, when, time, reset) => `At this week's pace (+${gained} in ${over}), the 7-day limit runs out ${when} around ${time}, before the reset on ${reset}.`,
-    recentOut: (gained, over, when, time) => `At the last ${over}'s pace (+${gained}): ${when} around ${time}.`,
-    recentLasts: (gained, over) => `At the last ${over}'s pace (+${gained}), it would last until the reset.`,
-    lastPrompt: (usd) => `+$${usd.toFixed(2)}`,
-    lastPrompt5h: (points) => `+${decimal(points)}% 5h`,
-    toRewrite: (tokens) => `${tokens} to rewrite`,
-    newThread: "new thread",
-    // $2.32, $182 from 100 dollars, < $0.01 under a cent.
-    money: (usd) => (usd < 0.01 ? "< $0.01" : `$${amount(usd)}`),
-    atStake: (what) => `${what} at stake`,
-    // The cache's hover card in the app, one line per item.
-    tips: {
-      warm: (time, oneHour, observed) => `Cache warm until ${time} (${oneHour ? "1-hour" : "5-minute"} lifetime, ${observed ? "observed" : "assumed"}).`,
-      lastRead: (share, tokens) => `Last message: ${share} read from the cache (${tokens}).`,
-      costs: (read, rewrite) => `Reading the context: ${read} a message. If it expires: ${rewrite} to write it again.`,
-      saved: (usd) => `This thread: ${usd} saved by the cache.`,
-      soon: (time, tokens, costs) =>
-        `The cache expires at ${time}. Send your next message before then, or it writes ${tokens} tokens again${costs ? ` (${costs.rewrite} instead of ${costs.read})` : ""}.`,
-      expired: (tokens, cost) => `The next message writes the whole context (${tokens}) again at full price${cost ? `, ${cost}` : ""}.`,
-      compact: "/compact before going on: the context written again will be smaller.",
-      newThread: "A new thread avoids this rewrite; a compaction would read it all again.",
-      missed: (share, cause, tokens, surcharge) =>
-        `This message read only ${share} from the cache (${cause}): it wrote ${tokens} tokens again${surcharge ? `, ${surcharge} more than a message served by the cache` : ""}.`,
-      compacted: "Compacted: the next message writes a new, smaller cache.",
-    },
-    agents: (n) => (n === 1 ? "1 agent" : `${n} agents`),
-    agentsRunning: (running, n) => `${running} running · ${n}`,
-    // The cost pill's card in the app.
-    costTips: {
-      total: (usd) => `Thread cost ${usd}`,
-      plan: "At API prices: a subscription is not billed per token, this counts toward its limits.",
-      api: "At API list prices.",
-      last: (what) => `Last prompt: ${what}`,
-    },
-    // The agents pill's card: who spent what, by model and effort.
-    team: {
-      title: (n, running) => `Agents in this thread: ${n}${running ? ` (${running} running)` : ""}`,
-      line: (label, usd, share) => `${label}: ${usd}${share ? ` · ${share}` : ""}`,
-      main: (model) => `${model} · main thread`,
-      group: (model, n) => `${model} · ${n === 1 ? "1 agent" : `${n} agents`}`,
-      detail: (efforts, tokens) => `  ${efforts ? `effort ${efforts} · ` : ""}${tokens} tokens`,
-      efforts: { low: "low", medium: "medium", high: "high", xhigh: "extra high", max: "max" },
-      none: "No subagent in this thread yet.",
-      running: (model, description, time) => `Running: ${model} · “${description}” · ${time}`,
-      saved: (usd, model) => `Delegating: ${usd} saved compared with ${model}.`,
-      doing: (tool, n) => `  ↳ ${tool} · ${n === 1 ? "1 call" : `${n} calls`}`,
-      batch: (n, wall, usd) => `Last batch: ${n} agents in ${wall}${usd ? ` · ${usd}` : ""}`,
-      batchHow: (together, calls) => [together ? `${together.toFixed(1)}× in parallel` : "", calls ? `${calls} ${calls === 1 ? "tool call" : "tool calls"}` : ""].filter(Boolean).join(" · "),
-    },
-    icons: { five_hour: "5-hour limit", seven_day: "7-day limit", spend_limit: "Spend limit", reset: "Resets in", cache: "Prompt cache", cost: "Session cost", lastPrompt: "Last prompt", agents: "Agents" },
+// Every label the band writes, in English.
+const T = {
+  weather: { clear: "Clear", cloudy: "Cloudy", showers: "Showers", storm: "Storm", compact: "Compact soon" },
+  percent: (n) => `${n}%`,
+  labels: { five_hour: "5h", seven_day: "7d", spend_limit: "$" },
+  // 42 min, 3h02, 2d20h.
+  duration: ({ days, hours, minutes, total }) => {
+    if (total < 60) return `${total} min`;
+    if (days > 0) return `${days}d${String(hours).padStart(2, "0")}h`;
+    return `${hours}h${String(minutes).padStart(2, "0")}`;
   },
-  ko: {
-    weather: { clear: "맑음", cloudy: "흐림", showers: "소나기", storm: "폭풍", compact: "곧 압축" },
-    percent: (n) => `${n}%`,
-    labels: { five_hour: "5시간", seven_day: "7일", spend_limit: "$" },
-    // 42분, 3시간 2분, 2일 20시간.
-    duration: ({ days, hours, minutes, total }) => {
-      if (total < 60) return `${total}분`;
-      if (days > 0) return hours ? `${days}일 ${hours}시간` : `${days}일`;
-      return minutes ? `${hours}시간 ${minutes}분` : `${hours}시간`;
-    },
-    // 40초, 1분 42초.
-    span: (seconds) => (seconds < 60 ? `${seconds}초` : `${Math.floor(seconds / 60)}분${seconds % 60 ? ` ${seconds % 60}초` : ""}`),
-    contextAlt: (word, percent, window) => `${word} · ${window} 중 ${percent}`,
-    turnsAlt: (n) => `최근 ${n}개 프롬프트가 더한 토큰`,
-    gaugeAlt: (label, value) => `${label}: ${value} 사용`,
-    cache: "캐시",
-    expired: "만료",
-    compacted: "압축됨",
-    missed: "미스",
-    causes: { model: "모델 변경", lapsed: "시간 경과", prefix: "앞부분 변경" },
-    underMinute: "< 1분",
-    cost: (usd) => (usd >= 100 ? `≈ $${Math.round(usd)}` : `≈ $${usd.toFixed(2)}`),
-    resetsAt: (time) => `${time}에 초기화`,
-    weekdays: ["일", "월", "화", "수", "목", "금", "토"],
-    dayParts: ["새벽", "오전", "오후", "저녁"],
-    dayPart: (day, part) => `${day}요일 ${part}`,
-    // The hours after midnight read as the early morning of the calendar day.
-    night: (day, next) => `${next}요일 새벽`,
-    date: (day, d, m) => `${m}/${d} (${day})`,
-    runOut: (when) => `⚠ ${when} 소진`,
-    runOutTip: (gained, over, when, time, reset) => `이번 주 속도(${over} 동안 +${gained})라면 7일 한도가 ${reset} 초기화 전인 ${when} ${time}쯤 소진됩니다.`,
-    recentOut: (gained, over, when, time) => `최근 ${over} 속도(+${gained})라면 ${when} ${time}쯤.`,
-    recentLasts: (gained, over) => `최근 ${over} 속도(+${gained})라면 초기화까지 버팁니다.`,
-    lastPrompt: (usd) => `+$${usd.toFixed(2)}`,
-    lastPrompt5h: (points) => `+${decimal(points)}% 5시간`,
-    toRewrite: (tokens) => `${tokens} 재작성`,
-    newThread: "새 스레드",
-    money: (usd) => (usd < 0.01 ? "< $0.01" : `$${amount(usd)}`),
-    atStake: (what) => `${what} 손실 위험`,
-    tips: {
-      warm: (time, oneHour, observed) => `캐시는 ${time}까지 유지됩니다 (${oneHour ? "1시간" : "5분"} 수명, ${observed ? "관측값" : "추정값"}).`,
-      lastRead: (share, tokens) => `마지막 메시지: ${share}를 캐시에서 읽음 (${tokens}).`,
-      costs: (read, rewrite) => `컨텍스트 읽기: 메시지당 ${read}. 만료되면 다시 쓰는 데 ${rewrite}.`,
-      saved: (usd) => `이 스레드에서 캐시가 아낀 비용: ${usd}.`,
-      soon: (time, tokens, costs) =>
-        `캐시가 ${time}에 만료됩니다. 그 전에 다음 메시지를 보내지 않으면 ${tokens} 토큰을 다시 씁니다${costs ? ` (${costs.read} 대신 ${costs.rewrite})` : ""}.`,
-      expired: (tokens, cost) => `다음 메시지는 컨텍스트 전체(${tokens})를 정가로 다시 씁니다${cost ? `, ${cost}` : ""}.`,
-      compact: "계속하기 전에 /compact: 다시 쓰는 컨텍스트가 작아집니다.",
-      newThread: "새 스레드를 열면 이 재작성을 피합니다. 압축은 전체를 다시 읽습니다.",
-      missed: (share, cause, tokens, surcharge) =>
-        `이 메시지는 캐시에서 ${share}만 읽었습니다 (${cause}): ${tokens} 토큰을 다시 썼고${surcharge ? `, 캐시가 처리한 메시지보다 ${surcharge} 더 들었습니다` : ""}.`,
-      compacted: "압축됨: 다음 메시지가 더 작은 새 캐시를 씁니다.",
-    },
-    agents: (n) => `에이전트 ${n}`,
-    agentsRunning: (running, n) => `${running} 실행 중 · ${n}`,
-    costTips: {
-      total: (usd) => `스레드 비용 ${usd}`,
-      plan: "API 가격 기준: 구독은 토큰당 과금되지 않고, 이 금액은 한도에 반영됩니다.",
-      api: "API 정가 기준.",
-      last: (what) => `마지막 프롬프트: ${what}`,
-    },
-    team: {
-      title: (n, running) => `이 스레드의 에이전트: ${n}${running ? ` (${running} 실행 중)` : ""}`,
-      line: (label, usd, share) => `${label}: ${usd}${share ? ` · ${share}` : ""}`,
-      main: (model) => `${model} · 메인 스레드`,
-      group: (model, n) => `${model} · 에이전트 ${n}`,
-      detail: (efforts, tokens) => `  ${efforts ? `effort ${efforts} · ` : ""}${tokens} 토큰`,
-      efforts: { low: "낮음", medium: "중간", high: "높음", xhigh: "매우 높음", max: "최대" },
-      none: "아직 이 스레드에 서브에이전트가 없습니다.",
-      running: (model, description, time) => `실행 중: ${model} · “${description}” · ${time}`,
-      saved: (usd, model) => `위임 효과: ${model} 대비 ${usd} 절약.`,
-      doing: (tool, n) => `  ↳ ${tool} · 호출 ${n}회`,
-      batch: (n, wall, usd) => `최근 묶음: 에이전트 ${n} · ${wall}${usd ? ` · ${usd}` : ""}`,
-      batchHow: (together, calls) => [together ? `${together.toFixed(1)}× 병렬` : "", calls ? `도구 호출 ${calls}회` : ""].filter(Boolean).join(" · "),
-    },
-    icons: { five_hour: "5시간 한도", seven_day: "7일 한도", spend_limit: "지출 한도", reset: "초기화까지", cache: "프롬프트 캐시", cost: "세션 비용", lastPrompt: "마지막 프롬프트", agents: "에이전트" },
+  // 40 s, 1 min 42.
+  span: (seconds) => (seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min${seconds % 60 ? ` ${String(seconds % 60).padStart(2, "0")}` : ""}`),
+  contextAlt: (word, percent, window) => `${word} · ${percent} of ${window}`,
+  turnsAlt: (n) => `Tokens added by the last ${n} prompts`,
+  gaugeAlt: (label, value) => `${label}: ${value} used`,
+  cache: "cache",
+  expired: "expired",
+  compacted: "compacted",
+  missed: "missed",
+  causes: { model: "model changed", lapsed: "lapsed", prefix: "start changed" },
+  underMinute: "< 1 min",
+  resetsAt: (time) => `Resets at ${time}`,
+  weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  dayParts: ["night", "morning", "afternoon", "evening"],
+  dayPart: (day, part) => `${day} ${part}`,
+  night: (day) => `${day} night`,
+  date: (day, d, m) => `${day} ${d}/${m}`,
+  runOut: (when) => `⚠ out ${when}`,
+  runOutTip: (gained, over, when, time, reset) => `At this week's pace (+${gained} in ${over}), the 7-day limit runs out ${when} around ${time}, before the reset on ${reset}.`,
+  recentOut: (gained, over, when, time) => `At the last ${over}'s pace (+${gained}): ${when} around ${time}.`,
+  recentLasts: (gained, over) => `At the last ${over}'s pace (+${gained}), it would last until the reset.`,
+  toRewrite: (tokens) => `${tokens} to rewrite`,
+  newThread: "new thread",
+  // The cache's hover card in the app, one line per item.
+  tips: {
+    warm: (time, oneHour, observed) => `Cache warm until ${time} (${oneHour ? "1-hour" : "5-minute"} lifetime, ${observed ? "observed" : "assumed"}).`,
+    lastRead: (share, tokens) => `Last message: ${share} read from the cache (${tokens}).`,
+    soon: (time, tokens) => `The cache expires at ${time}. Send your next message before then, or it writes ${tokens} tokens again.`,
+    expired: (tokens) => `The next message writes the whole context (${tokens}) again.`,
+    compact: "/compact before going on: the context written again will be smaller.",
+    newThread: "A new thread avoids this rewrite; a compaction would read it all again.",
+    missed: (share, cause, tokens) => `This message read only ${share} from the cache (${cause}): it wrote ${tokens} tokens again.`,
+    compacted: "Compacted: the next message writes a new, smaller cache.",
   },
+  agents: (n) => (n === 1 ? "1 agent" : `${n} agents`),
+  agentsRunning: (running, n) => `${running} running · ${n}`,
+  // The agents pill's card: the agents running, their latest tool call, the last batch.
+  team: {
+    title: (n, running) => `Agents in this thread: ${n}${running ? ` (${running} running)` : ""}`,
+    none: "No subagent in this thread yet.",
+    running: (model, description, time) => `Running: ${model} · “${description}” · ${time}`,
+    doing: (tool, n) => `  ↳ ${tool} · ${n === 1 ? "1 call" : `${n} calls`}`,
+    batch: (n, wall) => `Last batch: ${n} agents in ${wall}`,
+    batchHow: (together, calls) => [together ? `${together.toFixed(1)}× in parallel` : "", calls ? `${calls} ${calls === 1 ? "tool call" : "tool calls"}` : ""].filter(Boolean).join(" · "),
+  },
+  icons: { five_hour: "5-hour limit", seven_day: "7-day limit", spend_limit: "Spend limit", reset: "Resets in", cache: "Prompt cache", agents: "Agents" },
 };
-let T = TEXT.en;
-
-// 2.32, or 182 from 100 dollars (cents dropped).
-function amount(usd) {
-  return Math.round(usd * 100) >= 10_000 ? String(Math.round(usd)) : usd.toFixed(2);
-}
-
-// "≈ $2.32"; under a cent, "< $0.01" alone.
-function approx(usd) {
-  return usd < 0.01 ? T.money(usd) : `≈ ${T.money(usd)}`;
-}
 
 // Terminal cells a string takes: Hangul, CJK and other East Asian wide characters take two.
 const WIDE = /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꥠ-꥿가-힣豈-﫿︰-﹏＀-｠￠-￦]/;
@@ -320,7 +205,7 @@ const CACHE_SOON = 10 * MINUTE;
 // From this context size, an expired cache suggests /compact before going on.
 const COMPACT_AT = 100_000;
 // From this one, a new thread instead: after a pause the next message writes the whole context
-// again at full price; a new thread avoids that rewrite, a compaction would read it all again.
+// again; a new thread avoids that rewrite, a compaction would read it all again.
 const LARGE_CONTEXT = 300_000;
 // A request that read less than half its prompt from the cache, and wrote more than this, missed.
 const MISS_SHARE = 50;
@@ -334,52 +219,15 @@ let cache = null;
 let compacted = false;
 // Lifetime seen in the traffic ("5m" | "1h"), which beats the rules.
 let seenTtl = null;
-// What the cache saved this session, in dollars: each request's tokens read from the cache,
-// at the input price minus the cache-read price.
-let savedUsd = 0;
-
-// Anthropic first-party list prices, USD per million tokens, as of 2026-10-08: input and cache
-// read. Cache writes follow from input: 1.25× for the 5-minute lifetime, 2× for 1 hour; output
-// is 5× input for every model here (OUTPUT).
-// "over" holds the prices of prompts above "at" tokens, for a model priced by prompt size.
-// Update this table, and its date, when the prices change. A model missing here shows tokens only.
-const PRICES = {
-  "claude-fable-5-1": { input: 10, read: 0.25 },
-  "claude-mythos-5-1": { input: 10, read: 0.25 },
-  "claude-fable-5": { input: 10, read: 1 },
-  "claude-opus-5-5": { input: 4, read: 0.2 },
-  "claude-opus-5": { input: 5, read: 0.5 },
-  "claude-opus-4-8": { input: 5, read: 0.5 },
-  "claude-opus-4-7": { input: 5, read: 0.5 },
-  "claude-opus-4-6": { input: 5, read: 0.5 },
-  "claude-sonnet-5-5": { input: 2, read: 0.1 },
-  "claude-sonnet-5": { input: 2, read: 0.2 },
-  "claude-sonnet-4-6": { input: 3, read: 0.3 },
-  "claude-haiku-5-5": { input: 0.1, read: 0.01, over: { at: 100_000, input: 0.5, read: 0.05 } },
-  "claude-haiku-4-5": { input: 1, read: 0.1 },
-};
-const OUTPUT = 5;
 // Environment switches read at session start.
 let cacheEnv = {};
 let cacheTicker = null;
 let cacheKey = "";
 
-// Session cost in dollars, as /cost totals it; null where the host keeps no ledger.
-let cost = null;
-// What the last prompt added to it (its subagents included), and the total it started from.
-let lastPrompt = null;
-let promptBase = null;
-// The same in points of the 5-hour limit (an account figure: other sessions running at the
-// same time count in it), and the reading it started from.
-let lastPrompt5h = null;
-let promptBase5h = null;
-let promptReset5h = null;
-
 // Subagents running now: { id, description, type }.
 let agents = [];
 let agentsKey = "";
-// Every subagent this thread ran, by id: { model, effort, usd, priced, input, read, write, output,
-// at, description, type }. Its requests are counted at list prices as they come back.
+// Every subagent this thread ran a request for, by id: { model, at, description, type }.
 let team = {};
 // Each agent's latest tool call and its calls so far ({ text, calls }), and when each agent ran
 // ({ from, to, seen, busy, ran, parentId }): the agents card's running lines and last batch. Kept in
@@ -389,7 +237,7 @@ let activity = {};
 let waiting = {};
 let runs = {};
 // The runs that ended before their agent ran again (a teammate woken, an agent resumed), each in its
-// own batch: { id, from, to, ran, parentId, calls, usd, priced }.
+// own batch: { id, from, to, ran, parentId, calls }.
 let past = [];
 let activityDirty = false;
 // A start more than 30 s after everything before it had ended opens a new batch.
@@ -422,7 +270,6 @@ const TINTS = {
   calm: ["rgba(27,161,196,0.11)", "rgba(27,161,196,0.30)"],
   fast: ["rgba(217,150,43,0.14)", "rgba(217,150,43,0.36)"],
   alert: ["rgba(214,69,69,0.12)", "rgba(214,69,69,0.36)"],
-  cost: ["rgba(184,140,40,0.13)", "rgba(184,140,40,0.34)"],
   agents: ["rgba(196,80,127,0.11)", "rgba(196,80,127,0.32)"],
 };
 // Small outlined icons in the app, each in its pill's color (the alt text is required: a
@@ -439,51 +286,39 @@ const ICONS = {
   clock: (c) =>
     `<path d="M4.2 13A8 8 0 1 0 6.6 6.2" fill="none" stroke="${c}" stroke-width="2.1" stroke-linecap="round"/><path d="M3.4 3.6v4.2h4.2" fill="none" stroke="${c}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v4.6l3 1.8" fill="none" stroke="${c}" stroke-width="2.1" stroke-linecap="round"/>`,
   bolt: (c) => `<path d="M13.2 2 4 13.6h7.2L10.4 22l9.2-11.6h-7.2z" fill="${c}" fill-opacity="0.18" stroke="${c}" stroke-width="2" stroke-linejoin="round"/>`,
+  // A coin: the account's spend limit, when it has one.
   coin: (c) =>
     `<circle cx="12" cy="12" r="9.5" fill="${c}" fill-opacity="0.16" stroke="${c}" stroke-width="2"/><path d="M15 8.8c-.5-1-1.6-1.6-3-1.6-1.7 0-3 .9-3 2.2s1.3 1.8 3 2.1 3 .9 3 2.2-1.3 2.3-3 2.3c-1.4 0-2.5-.6-3.1-1.6M12 5.6v1.6M12 16.8v1.6" fill="none" stroke="${c}" stroke-width="1.9" stroke-linecap="round"/>`,
-  // A speech bubble: what the last prompt cost.
-  prompt: (c) =>
-    `<g transform="translate(0 0.5)"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" fill="${c}" fill-opacity="0.14" stroke="${c}" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 8.5h7M8.5 11.5h4.5" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"/></g>`,
   // A small robot: subagents at work.
   agents: (c) =>
     `<rect x="4" y="7.5" width="16" height="12.5" rx="3.5" fill="${c}" fill-opacity="0.14" stroke="${c}" stroke-width="2"/><path d="M12 7.5V4M2 12.5v3M22 12.5v3" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="3.2" r="1.3" fill="${c}"/><circle cx="9" cy="13" r="1.5" fill="${c}"/><circle cx="15" cy="13" r="1.5" fill="${c}"/><path d="M9.5 16.8h5" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/>`,
 };
 // Icon color per block: deeper than the pill's tint, readable on light and dark backgrounds.
-const ICON_COLORS = { five_hour: "#3a9a62", seven_day: "#8a5fd0", spend_limit: "#b8892a", calm: "#1b9cbe", fast: "#d9962b", alert: "#d64545", cost: "#b8892a", agents: "#c4507f" };
+const ICON_COLORS = { five_hour: "#3a9a62", seven_day: "#8a5fd0", spend_limit: "#b8892a", calm: "#1b9cbe", fast: "#d9962b", alert: "#d64545", agents: "#c4507f" };
 const LIMIT_ICONS = { five_hour: "gauge", seven_day: "calendar", spend_limit: "coin" };
 // Columns the terminal may cover at the end of the band.
 const RESERVED_COLUMNS = 2;
 
-export function register(on, options) {
-  const language = options?.language;
-
+export function register(on) {
   on("session.start", async ($, e, next) => {
     ticker?.cancel();
     cacheTicker?.cancel();
-    T = TEXT[await languageOf($, language)];
     readings = [];
     limits = { at: 0, list: [] };
     cache = null;
     compacted = false;
     seenTtl = null;
-    savedUsd = 0;
     team = {};
     activity = {};
     waiting = {};
     runs = {};
     past = [];
-    lastPrompt = null;
-    lastPrompt5h = null;
     cacheKey = "";
     cacheEnv = await cacheEnvOf($);
     turnsKey = TURNS_PREFIX + (await $.session.id());
     await restoreTurns($);
     const usage = await $.session.usage();
     pushReading(usage.context);
-    cost = usage.cost?.usd ?? null;
-    promptBase = cost;
-    promptBase5h = fiveHourOf(usage.rateLimits);
-    promptReset5h = fiveHourReset(usage.rateLimits);
     agents = [];
     agentsKey = "";
     await refreshAgents($);
@@ -522,7 +357,7 @@ export function register(on, options) {
   });
 
   // Each main-loop request: how much of its prompt the cache served (subagents have their own).
-  // A subagent's request goes to its line in the agents card: model, effort, tokens, cost.
+  // A subagent's request counts it among the thread's agents, with its model.
   on("turn.step", async function* ($, e, next) {
     if (e.agentId) {
       const id = e.agentId;
@@ -541,7 +376,7 @@ export function register(on, options) {
           touch(id, await $.clock.now(), -1);
         } catch {}
       }
-      if (result?.usage) recordAgentStep(id, at, result.usage, e.model, e.effort);
+      if (result?.usage) noteAgent(id, at, result.usage.model || e.model);
       // The tools the response asks for, by name only: the card never shows their arguments.
       // Read from the response, the mod never stands in a tool call's way.
       try {
@@ -589,20 +424,6 @@ export function register(on, options) {
     try {
       const usage = await $.session.usage();
       pushReading(usage.context);
-      if (usage.cost) {
-        cost = usage.cost.usd;
-        if (promptBase !== null && cost >= promptBase) lastPrompt = cost - promptBase;
-        promptBase = cost;
-      }
-      // A window that reset in between gives no share, even when its first reading is not lower.
-      const now5h = fiveHourOf(usage.rateLimits);
-      if (now5h !== null) {
-        const reset = fiveHourReset(usage.rateLimits);
-        const same = promptReset5h === null || reset === null || Math.abs(reset - promptReset5h) < MINUTE;
-        lastPrompt5h = promptBase5h !== null && same && now5h >= promptBase5h ? Math.round((now5h - promptBase5h) * 10) / 10 : null;
-        promptBase5h = now5h;
-        promptReset5h = reset;
-      }
       await saveTurns($);
       $.ui.invalidate("ui.render");
     } catch {
@@ -635,7 +456,6 @@ export function register(on, options) {
 
   on("session.measure", async ($, e, next) => {
     if (e.changed.includes("rateLimits") && e.rateLimits.length > 0) await shareLimits($, e.rateLimits);
-    if (e.cost) cost = e.cost.usd;
     $.ui.invalidate("ui.render");
     return next(e);
   });
@@ -652,25 +472,6 @@ export function register(on, options) {
   });
 }
 
-// "en" or "ko": the language option when it names one, otherwise the environment's locale.
-async function languageOf($, choice) {
-  if (choice === "en" || choice === "ko") return choice;
-  let locale = "";
-  try {
-    locale = (await $.env.get("LC_ALL")) || (await $.env.get("LC_MESSAGES")) || (await $.env.get("LANG")) || "";
-  } catch {
-    locale = "";
-  }
-  if (!locale || locale === "C" || locale === "POSIX") {
-    try {
-      locale = Intl.DateTimeFormat().resolvedOptions().locale;
-    } catch {
-      locale = "";
-    }
-  }
-  return /^ko/i.test(locale) ? "ko" : "en";
-}
-
 // ---------- Turns: readings kept per session ----------
 
 // Restores this session's readings and cache, and deletes sessions idle for more than 8 days.
@@ -685,9 +486,6 @@ async function restoreTurns($) {
         if (saved.cache && Number.isFinite(saved.cache.at)) cache = saved.cache;
         compacted = saved.compacted === true;
         if (saved.seenTtl === "5m" || saved.seenTtl === "1h") seenTtl = saved.seenTtl;
-        if (Number.isFinite(saved.saved) && saved.saved >= 0) savedUsd = saved.saved;
-        if (Number.isFinite(saved.lastPrompt)) lastPrompt = saved.lastPrompt;
-        if (Number.isFinite(saved.lastPrompt5h)) lastPrompt5h = saved.lastPrompt5h;
         if (saved.team && typeof saved.team === "object") team = saved.team;
       } else if (!saved || !(now - saved.at < TURNS_KEEP_MS)) await $.store.delete(key);
     }
@@ -699,7 +497,7 @@ async function restoreTurns($) {
 async function saveTurns($) {
   if (!turnsKey) return;
   try {
-    await $.store.set(turnsKey, { at: await $.clock.now(), readings, cache, compacted, seenTtl, saved: savedUsd, lastPrompt, lastPrompt5h, team });
+    await $.store.set(turnsKey, { at: await $.clock.now(), readings, cache, compacted, seenTtl, team });
   } catch {
     // Not saved this turn: the bars come back on the next one.
   }
@@ -806,13 +604,12 @@ function recentPace(limit, used, now, resetMs) {
   return { at: at < resetMs ? at : null, gained: used - base.used, over: now - base.at };
 }
 
-// "Fri evening": the hours after midnight belong to the day before ("Fri night"); the Korean
-// table words them as that calendar day's early morning.
+// "Fri evening": the hours after midnight belong to the day before ("Fri night").
 function dayPartOf(ms) {
   const d = new Date(ms);
   const h = d.getHours();
   const part = h < 6 ? 0 : h < 12 ? 1 : h < 18 ? 2 : 3;
-  if (h < 6) return T.night(T.weekdays[(d.getDay() + 6) % 7], T.weekdays[d.getDay()]);
+  if (h < 6) return T.night(T.weekdays[(d.getDay() + 6) % 7]);
   return T.dayPart(T.weekdays[d.getDay()], T.dayParts[part]);
 }
 
@@ -827,7 +624,7 @@ function dateOf(ms) {
   return T.date(T.weekdays[d.getDay()], String(d.getDate()).padStart(2, "0"), String(d.getMonth() + 1).padStart(2, "0"));
 }
 
-// 3h02, 42 min, 2d23h in English; 3시간 2분, 42분, 2일 23시간 in Korean.
+// 3h02, 42 min, 2d23h.
 function duration(ms) {
   const total = Math.round(ms / MINUTE);
   const days = Math.floor(total / 1440);
@@ -844,23 +641,6 @@ function clockTime(ms) {
     const d = new Date(ms);
     return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
   }
-}
-
-// The 5-hour window's share used, or null without one.
-function fiveHourOf(list) {
-  const w = (list ?? []).find((l) => l.kind === "five_hour");
-  return w && Number.isFinite(w.percentUsed) ? w.percentUsed : null;
-}
-
-// When the 5-hour window resets, in ms; null unknown.
-function fiveHourReset(list) {
-  const ms = Date.parse((list ?? []).find((l) => l.kind === "five_hour")?.resetsAt ?? "");
-  return Number.isFinite(ms) ? ms : null;
-}
-
-// 6.5, 12, 0.4: one decimal under 10.
-function decimal(x) {
-  return x >= 10 ? String(Math.round(x)) : String(Math.round(x * 10) / 10);
 }
 
 function bound(percent) {
@@ -899,8 +679,8 @@ function hitOf(r) {
   return total > 0 ? Math.round(((r.read ?? 0) / total) * 100) : 0;
 }
 
-// Notes a main-loop request, names the cause when it missed the cache, learns the lifetime, and
-// adds what the tokens read from the cache saved. The model comes from the usage, else the request.
+// Notes a main-loop request, names the cause when it missed the cache and learns the lifetime.
+// The model comes from the usage, else the request.
 function recordRequest(at, usage, model) {
   const cur = {
     at,
@@ -924,31 +704,16 @@ function recordRequest(at, usage, model) {
     else if (missed && gap > TTL["5m"] && gap < TTL["1h"] && cur.model === prev.model && promptOf(cur) >= promptOf(prev)) seenTtl = "5m";
     if (missed) cur.cause = cur.model !== prev.model ? "model" : gap >= ttlMs() ? "lapsed" : "prefix";
   }
-  const price = priceOf(cur.model, promptOf(cur));
-  if (price) savedUsd += (cur.read * (price.input - price.read)) / 1e6;
   cache = cur;
 }
 
-// A model id as the price table names it: lowercase, without a "[1m]"-style suffix, a Vertex
-// "@date", a Bedrock "-v1:0", a trailing date or a provider prefix ("anthropic.", "us.anthropic.",
-// ".../"). "us.anthropic.claude-sonnet-5-5-20260101-v1:0" → "claude-sonnet-5-5".
+// A model id in its plain form: lowercase, without a "[1m]"-style suffix, a Vertex "@date", a
+// Bedrock "-v1:0", a trailing date or a provider prefix ("anthropic.", "us.anthropic.", ".../").
+// "us.anthropic.claude-sonnet-5-5-20260101-v1:0" → "claude-sonnet-5-5".
 export function modelId(model) {
   let id = String(model ?? "").trim().toLowerCase();
   id = id.replace(/\[[^\]]*\]$/, "").replace(/@[^@/]*$/, "").replace(/-v\d+(?::\d+)?$/, "").replace(/-20\d{6}$/, "");
   return id.slice(Math.max(id.lastIndexOf("."), id.lastIndexOf("/")) + 1);
-}
-
-// List prices of a model id, for a prompt of that many tokens; null when the table lacks it.
-function priceOf(model, tokens = 0) {
-  const id = modelId(model);
-  if (!Object.prototype.hasOwnProperty.call(PRICES, id)) return null;
-  const price = PRICES[id];
-  return price.over && tokens > price.over.at ? price.over : price;
-}
-
-// Price of a cache write, per million tokens, for the lifetime in use.
-function writePrice(price, ttl) {
-  return (ttl === TTL["1h"] ? 2 : 1.25) * price.input;
 }
 
 // Claude Code's rules for the main conversation, after what the traffic showed.
@@ -962,9 +727,9 @@ function ttlMs() {
   return plan.length > 0 && plan.every((l) => l.percentUsed < 100) ? TTL["1h"] : TTL["5m"];
 }
 
-// What the cache block shows: { tone, value, detail, urgent, stake, advice, tip }; null when
-// caching is off. detail follows the value (in yellow when urgent), stake comes after it, dim;
-// advice is for the terminal only (the app puts it in tip, the pill's card).
+// What the cache block shows: { tone, value, detail, urgent, advice, tip }; null when caching is
+// off. detail follows the value (in yellow when urgent); advice is for the terminal only (the app
+// puts it in tip, the pill's card).
 function cacheState(now) {
   if (cacheEnv.off) return null;
   if (compacted) return { tone: "none", value: T.compacted, detail: "", tip: T.tips.compacted };
@@ -972,30 +737,23 @@ function cacheState(now) {
   const left = cache.at + ttlMs() - now;
   const tokens = readings.length > 0 ? readings[readings.length - 1].tokens : promptOf(cache);
   const ttl = ttlMs();
-  // In dollars, at list prices, for the context the next message reads: from the cache, and
-  // written again once it lapsed. Null for a model missing from PRICES: tokens only.
-  const price = priceOf(cache.model, tokens);
-  const costs = price ? { read: (tokens * price.read) / 1e6, rewrite: (tokens * writePrice(price, ttl)) / 1e6 } : null;
   // Expired: say what the next message writes again, and the way out: from 300k a new thread
-  // (it avoids rewriting the whole context at full price), from 100k /compact. In the app the
-  // way out goes to the card; the terminal, without one, keeps it on the line.
+  // (it avoids rewriting the whole context), from 100k /compact. In the app the way out goes to
+  // the card; the terminal, without one, keeps it on the line.
   if (left <= 0) {
-    const rewrite = T.toRewrite(short(tokens));
-    const detail = tokens < COMPACT_AT ? "" : costs ? `${rewrite} ${approx(costs.rewrite)}` : rewrite;
+    const detail = tokens < COMPACT_AT ? "" : T.toRewrite(short(tokens));
     const advice = tokens >= LARGE_CONTEXT ? T.newThread : tokens >= COMPACT_AT ? "/compact" : "";
-    const tip = [T.tips.expired(short(tokens), costs && approx(costs.rewrite))];
+    const tip = [T.tips.expired(short(tokens))];
     if (tokens >= LARGE_CONTEXT) tip.push(T.tips.newThread);
     else if (tokens >= COMPACT_AT) tip.push(T.tips.compact);
     return { tone: "alert", value: T.expired, detail, advice, tip: tip.join("\n") };
   }
   const share = hitOf(cache);
-  // A miss: what writing the cache again cost above a message served by it.
+  // A miss: its cause, and what was written again.
   if (cache.cause) {
     const cause = T.causes[cache.cause];
-    const surcharge = price ? ((cache.write ?? 0) * (writePrice(price, ttl) - price.read)) / 1e6 : null;
-    const extra = surcharge !== null && surcharge >= 0.01 ? ` · +${T.money(surcharge)}` : "";
-    const tip = T.tips.missed(T.percent(share), cause, short(cache.write ?? 0), surcharge !== null && approx(surcharge));
-    return { tone: "fast", value: T.percent(share), detail: `${T.missed} · ${cause}${extra}`, tip };
+    const tip = T.tips.missed(T.percent(share), cause, short(cache.write ?? 0));
+    return { tone: "fast", value: T.percent(share), detail: `${T.missed} · ${cause}`, tip };
   }
   const time = left < MINUTE ? T.underMinute : duration(left);
   const soon = left < CACHE_SOON;
@@ -1003,17 +761,9 @@ function cacheState(now) {
   // A cache that served the message (90% or more), or one just rebuilt after a compaction,
   // shows its time alone; below, the share first.
   const shown = share >= GOOD_HIT || cache.rebuilt ? { value: time, detail: "" } : { value: T.percent(share), detail: time };
-  // Under 10 minutes: what letting it lapse would cost.
-  if (soon) {
-    const stake = T.atStake(costs ? T.money(costs.rewrite) : short(tokens));
-    const tip = [T.tips.soon(expiry, short(tokens), costs && { read: approx(costs.read), rewrite: approx(costs.rewrite) })];
-    return { tone: "fast", ...shown, urgent: true, stake, tip: tip.join("\n") };
-  }
+  // Under 10 minutes: the time in yellow, and the card says what lapsing would write again.
+  if (soon) return { tone: "fast", ...shown, urgent: true, tip: T.tips.soon(expiry, short(tokens)) };
   const tip = [T.tips.warm(expiry, ttl === TTL["1h"], seenTtl !== null), T.tips.lastRead(T.percent(share), short(cache.read ?? 0))];
-  if (costs) {
-    tip.push(T.tips.costs(approx(costs.read), approx(costs.rewrite)));
-    if (savedUsd >= 0.01) tip.push(T.tips.saved(approx(savedUsd)));
-  }
   return { tone: "calm", ...shown, urgent: false, tip: tip.join("\n") };
 }
 
@@ -1063,23 +813,10 @@ async function refreshAgents($) {
   return true;
 }
 
-// One subagent request: its tokens, and their cost at list prices (Haiku 5.5's by the request's
-// prompt size). Subagents write the 5-minute cache (assumed). A model missing from PRICES counts
-// tokens only.
-function recordAgentStep(id, at, usage, model, effort) {
-  const a = (team[id] ??= { model: "", effort: null, usd: 0, priced: true, input: 0, read: 0, write: 0, output: 0, at, description: "", type: "" });
-  const u = { input: usage.input_tokens ?? 0, read: usage.cache_read_input_tokens ?? 0, write: usage.cache_creation_input_tokens ?? 0, output: usage.output_tokens ?? 0 };
-  a.model = usage.model || model || a.model;
-  if (effort !== undefined && effort !== null) a.effort = effort;
-  for (const k of ["input", "read", "write", "output"]) a[k] += u[k];
-  const price = priceOf(a.model, u.input + u.read + u.write);
-  if (price) a.usd += requestCost(price, u, TTL["5m"]);
-  else a.priced = false;
-}
-
-// What one request cost: its fresh input, cache reads, cache writes and output.
-function requestCost(price, u, ttl) {
-  return (u.input * price.input + u.read * price.read + u.write * writePrice(price, ttl) + u.output * OUTPUT * price.input) / 1e6;
+// One subagent request: the agent joins the thread's team, with its model and its first request's time.
+function noteAgent(id, at, model) {
+  const a = (team[id] ??= { model: "", at, description: "", type: "" });
+  a.model = model || a.model;
 }
 
 // The description and type of each agent the list still holds.
@@ -1098,13 +835,6 @@ function modelName(model) {
   return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2].replace(/-/g, ".")}` : String(model ?? "");
 }
 
-// A share of the thread's cost, "> 99%" and "< 1%" at the ends.
-function shareOf(usd, total) {
-  if (!(total > 0)) return "";
-  const pct = (usd / total) * 100;
-  return T.percent(pct < 1 ? "< 1" : pct > 99 ? "> 99" : Math.round(pct));
-}
-
 // Agents in this thread: those counted and those running that have not answered yet.
 function teamSize() {
   const ids = new Set(Object.keys(team));
@@ -1112,37 +842,10 @@ function teamSize() {
   return ids.size;
 }
 
-// The agents pill's card: the main thread's share, then each model's agents with their efforts
-// and tokens, the agents still running, and what delegating saved against the main thread's model.
+// The agents pill's card: the agents still running with their latest tool call, then the last
+// batch's receipt.
 function teamTip(now) {
-  const list = Object.values(team);
   const lines = [T.team.title(teamSize(), agents.length)];
-  // What is known of each agent's cost, even one with an unpriced request: never the main thread's.
-  const agentsUsd = list.reduce((sum, a) => sum + a.usd, 0);
-  const mainModel = cache?.model ?? "";
-  // The main thread: the session's cost less its agents' (its own requests are not all seen here).
-  if (cost !== null) {
-    const mainUsd = Math.max(0, cost - agentsUsd);
-    lines.push(T.team.line(T.team.main(modelName(mainModel) || "Claude"), approx(mainUsd), shareOf(mainUsd, cost)));
-  }
-  const groups = new Map();
-  for (const a of list) {
-    const g = groups.get(a.model) ?? { n: 0, usd: 0, priced: true, tokens: 0, efforts: new Map() };
-    g.n++;
-    g.usd += a.usd;
-    g.priced &&= a.priced;
-    g.tokens += a.input + a.read + a.write + a.output;
-    if (a.effort !== null && a.effort !== undefined) {
-      const e = T.team.efforts[a.effort] ?? String(a.effort);
-      g.efforts.set(e, (g.efforts.get(e) ?? 0) + 1);
-    }
-    groups.set(a.model, g);
-  }
-  for (const [model, g] of [...groups].sort((x, y) => y[1].usd - x[1].usd)) {
-    const label = T.team.group(modelName(model), g.n);
-    lines.push(g.priced ? T.team.line(label, approx(g.usd), cost !== null ? shareOf(g.usd, cost) : "") : label);
-    lines.push(T.team.detail([...g.efforts].map(([e, n]) => `${e} ×${n}`).join(" · "), short(g.tokens)));
-  }
   const receipt = batchReceipt(now);
   if (teamSize() === 0 && receipt.length === 0) lines.push(T.team.none);
   for (const r of agents) {
@@ -1152,17 +855,6 @@ function teamTip(now) {
     if (act?.text) lines.push(T.team.doing(act.text, act.calls));
   }
   lines.push(...receipt);
-  // The same tokens at the main thread's prices, for the agents on a cheaper model.
-  const main = priceOf(mainModel, 0);
-  if (main) {
-    let saved = 0;
-    for (const a of list) {
-      if (!a.priced || a.model === mainModel) continue;
-      const ref = requestCost(main, a, TTL["5m"]);
-      if (ref > a.usd) saved += ref - a.usd;
-    }
-    if (saved >= 0.01) lines.push(T.team.saved(approx(saved), modelName(mainModel)));
-  }
   return lines.join("\n");
 }
 
@@ -1180,22 +872,21 @@ function touch(id, at, step) {
 }
 
 // A run (re)starting at `at`. An ended one that ran stays in its batch as it was, with the tool
-// calls and the cost of that run alone; the new one counts from here.
+// calls of that run alone; the new one counts from here.
 function begin(id, r, at) {
   if (r.ran && r.to !== null) {
-    past.push({ id, from: r.from, to: r.to, ran: true, parentId: r.parentId, calls: callsOf(id) - (r.callsAt ?? 0), usd: usdOf(id) - (r.usdAt ?? 0), priced: team[id]?.priced !== false });
+    past.push({ id, from: r.from, to: r.to, ran: true, parentId: r.parentId, calls: callsOf(id) - (r.callsAt ?? 0) });
     // A long session's wakes: the oldest runs go, the recent batches stay.
     if (past.length > 500) past.shift();
   }
   Object.assign(r, { from: at, to: null, seen: at, ran: true, ...baseOf(id) });
 }
 
-// Where a run's tool calls and cost start: the agent's totals so far.
+// Where a run's tool calls start: the agent's total so far.
 function baseOf(id) {
-  return { callsAt: callsOf(id), usdAt: usdOf(id) };
+  return { callsAt: callsOf(id) };
 }
 const callsOf = (id) => activity[id]?.calls ?? 0;
-const usdOf = (id) => team[id]?.usd ?? 0;
 
 // The batches of agents seen running, oldest first: a start more than BATCH_GAP after
 // everything before it had ended opens a new one. After agentpane's latestBatch (MIT).
@@ -1211,11 +902,11 @@ export function batchesOf(all, gap = BATCH_GAP) {
   return out;
 }
 
-// The last batch of two or more that has ended, on two lines: agents, wall time and cost, then
-// how much ran side by side (an agent's subagents run inside its own time) and the tool calls.
-// After agentpane's batchReceipt (MIT); the cost is this mod's.
+// The last batch of two or more that has ended, on two lines: agents and wall time, then how
+// much ran side by side (an agent's subagents run inside its own time) and the tool calls.
+// After agentpane's batchReceipt (MIT).
 function batchReceipt(now) {
-  const current = Object.entries(runs).map(([id, r]) => ({ id, ...r, calls: callsOf(id) - (r.callsAt ?? 0), usd: usdOf(id) - (r.usdAt ?? 0), priced: team[id]?.priced !== false }));
+  const current = Object.entries(runs).map(([id, r]) => ({ id, ...r, calls: callsOf(id) - (r.callsAt ?? 0) }));
   // An open run with nothing in flight and no trace for STALLED (a teammate whose pane died, an agent
   // waiting on a plan) would keep its batch, and every later one, open for good: left out.
   const all = [...past, ...current].filter((r) => r.to !== null || r.busy > 0 || r.status === "waiting" || now - (r.seen ?? r.from) <= STALLED);
@@ -1227,12 +918,9 @@ function batchReceipt(now) {
   const ids = new Set(batch.map((r) => r.id));
   const work = batch.filter((r) => !ids.has(r.parentId)).reduce((n, r) => n + r.to - r.from, 0);
   const calls = batch.reduce((n, r) => n + r.calls, 0);
-  const usd = batch.reduce((n, r) => n + r.usd, 0);
-  // An agent on a model without a price: no cost rather than a partial one.
-  const priced = batch.every((r) => r.priced);
   const together = wall > 0 ? work / wall : 1;
   const how = T.team.batchHow(together >= 1.2 ? together : 0, calls);
-  return [T.team.batch(ids.size, span(wall), priced && usd > 0 ? approx(usd) : ""), ...(how ? [`  ${how}`] : [])];
+  return [T.team.batch(ids.size, span(wall)), ...(how ? [`  ${how}`] : [])];
 }
 
 // "40 s", "1 min 42", then the band's own durations.
@@ -1262,9 +950,9 @@ function fit(text, n) {
   return c.length > n ? `${c.slice(0, n - 1).join("")}…` : text;
 }
 
-// The cache block as the terminal writes it: "cache 8 min · $2.32 at stake".
+// The cache block as the terminal writes it: "cache expired · 107k to rewrite · /compact".
 function cacheText(state) {
-  return state ? [`${T.cache} ${state.value}`, state.detail, state.stake, state.advice].filter(Boolean).join(" · ") : "";
+  return state ? [`${T.cache} ${state.value}`, state.detail, state.advice].filter(Boolean).join(" · ") : "";
 }
 
 // ---------- Blocks ----------
@@ -1319,17 +1007,17 @@ function cacheBlock({ Text, Svg }, mode, state) {
   const valueColor =
     state.tone === "alert" ? TONES.alert.text : state.tone === "fast" && (!state.urgent || !state.detail) ? TONES.fast.text : undefined;
   parts.push(Text(state.tone === "none" ? { key: "v", dimColor: true, children: state.value } : { key: "v", bold: true, ...(valueColor ? { color: valueColor } : {}), children: state.value }));
-  // After the value: the urgent detail in yellow, then the rest dim (the stake, and in the
-  // terminal the advice the app keeps for the card).
+  // After the value: the urgent detail in yellow, then the rest dim (in the terminal the advice
+  // the app keeps for the card).
   if (mode !== "none") {
     const lead = state.urgent ? state.detail : "";
-    const rest = [state.urgent ? "" : state.detail, state.stake, mode === "text" ? state.advice : ""].filter(Boolean).join(" · ");
+    const rest = [state.urgent ? "" : state.detail, mode === "text" ? state.advice : ""].filter(Boolean).join(" · ");
     if (mode === "svg" && (lead || rest)) parts.push(divider(Text, "s"));
     if (lead) parts.push(Text({ key: "d", bold: true, color: TONES.fast.text, children: mode === "svg" ? lead : `· ${lead}` }));
     if (rest) parts.push(Text({ key: "e", dimColor: true, children: mode === "svg" && !lead ? rest : `· ${rest}` }));
   }
   const tint = TINTS[state.tone] ?? TINTS.calm;
-  // Hover the pill for the expiry time, the share read, the costs and the advice.
+  // Hover the pill for the expiry time, the share read and the advice.
   return { key: "cache", tint, parts, tip: state.tip ?? "" };
 }
 
@@ -1412,23 +1100,8 @@ function drawLine(elements, surface, columns, now) {
   }
   for (const g of gauges) blocks.push(gaugeBlock(elements, mode, g));
   if (cacheNow) blocks.push(cacheBlock(elements, mode, cacheNow));
-  // The cost goes first when the terminal is short of room.
-  if (cost !== null && cost >= 0.005 && mode !== "none") {
-    const parts = [Text({ key: "v", bold: true, children: T.cost(cost) })];
-    const share = lastPromptText();
-    if (desktop) {
-      // The app keeps the total; the last prompt goes to the card.
-      parts.unshift(icon(Svg, "i", "coin", ICON_COLORS.cost, T.icons.cost));
-      const tip = [T.costTips.total(T.cost(cost)), limits.list.length > 0 ? T.costTips.plan : T.costTips.api];
-      if (share) tip.push(T.costTips.last(share));
-      blocks.push({ key: "cost", tint: TINTS.cost, parts, tip: tip.join("\n") });
-    } else {
-      if (share) parts.push(Text({ key: "d", dimColor: true, children: `(${share})` }));
-      blocks.push({ key: "cost", tint: TINTS.cost, parts });
-    }
-  }
-  // Agents last. In the app the pill stays, its card splitting the cost by model and effort; in
-  // the terminal the count shows once the thread has run one.
+  // Agents last. In the app the pill stays, its card listing the agents running and the last
+  // batch; in the terminal the count shows once the thread has run one.
   const crew = teamSize();
   if (desktop || crew > 0) {
     const parts = [];
@@ -1467,8 +1140,8 @@ function drawLine(elements, surface, columns, now) {
   return Box({ flexDirection: "row", alignItems: "center", paddingX: 1, children });
 }
 
-// Width of the terminal line in cells, with the bars and details. Korean labels take two cells
-// a character, so the measure counts cells, not characters.
+// Width of the terminal line in cells, with the bars and details. A wide character takes two
+// cells, so the measure counts cells, not characters.
 function textWidth(gauges, cacheNow) {
   let width = 0;
   let blocks = 0;
@@ -1484,11 +1157,6 @@ function textWidth(gauges, cacheNow) {
   blocks += gauges.length;
   if (cacheNow) {
     width += cells(cacheText(cacheNow));
-    blocks++;
-  }
-  if (cost !== null && cost >= 0.005) {
-    const share = lastPromptText();
-    width += cells(T.cost(cost)) + (share ? 3 + cells(share) : 0);
     blocks++;
   }
   if (teamSize() > 0) {
@@ -1512,14 +1180,6 @@ function isBlank(node) {
   // An element carries its children beside its props, not inside them.
   if (typeof node === "object" && (node.type === "Box" || node.type === "Text")) return isBlank(node.children ?? node.props?.children);
   return false;
-}
-
-// "+$1.07 · +2% 5h": what the last prompt cost, in dollars and in points of the 5-hour limit.
-function lastPromptText() {
-  const parts = [];
-  if (lastPrompt !== null && lastPrompt >= 0.005) parts.push(T.lastPrompt(lastPrompt));
-  if (lastPrompt5h !== null && lastPrompt5h >= 0.1) parts.push(T.lastPrompt5h(lastPrompt5h));
-  return parts.join(" · ");
 }
 
 // ---------- Weather: readings and drawing (Token Weather) ----------
@@ -1549,7 +1209,7 @@ function turnDeltas() {
   return deltas.slice(-TURN_BARS);
 }
 
-// Height relative to the heaviest prompt shown: the prompt that cost the most fills the height.
+// Height relative to the heaviest prompt shown: the heaviest one fills the height.
 function barLevels() {
   const deltas = turnDeltas();
   const top = Math.max(...deltas, 1);

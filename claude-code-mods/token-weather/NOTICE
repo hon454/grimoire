@@ -3,10 +3,10 @@ Copyright 2026 hon454
 
 token-weather is a port of token-weather-usage from claude-mods
 (https://github.com/augiefra/claude-mods), Copyright 2026 Eric Cologni,
-licensed under the Apache License, Version 2.0. Changes: Korean labels in
-place of French and Russian, wide-character-aware width measurement for the
-terminal line, gauge keys by window kind, removal of unused code, and
-grimoire's layout and naming.
+licensed under the Apache License, Version 2.0. Changes: English labels only (French
+and Russian removed), no cost figures or price table, wide-character-aware width
+measurement for the terminal line, gauge keys by window kind, removal of unused
+code, and grimoire's layout and naming.
 
 token-weather-usage itself includes code adapted from the Token Weather
 example mod (context weather, context tokens, recent turns chart) in

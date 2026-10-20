@@ -1,6 +1,6 @@
 // Tests for the token-weather mod, run with `claude plugin test claude-code-mods/token-weather`.
-// Adapted from token-weather-usage's tests (Eric Cologni, Apache-2.0): Korean cases in place of
-// French and Russian, gauge keys by window kind.
+// Adapted from token-weather-usage's tests (Eric Cologni, Apache-2.0): English only, no cost
+// figures, gauge keys by window kind.
 import { test, expect, mock } from "claude-code/testing";
 // @ts-ignore: the module is plain JavaScript.
 import { toolText, batchesOf, modelId, cells } from "../hooks/token-weather.mjs";
@@ -17,11 +17,10 @@ const LIMITS = [
 ];
 
 // below: what a mod placed after this one draws under the line.
-function world(on: any, env: Record<string, string> = {}, stored: Record<string, unknown> = {}, below?: string) {
+function world(on: any, stored: Record<string, unknown> = {}, below?: string) {
   const clock = mock.clock(on, { now: NOW });
   mock.store(on, stored);
-  // English unless a test says otherwise: the runtime locale must not decide (this suite runs on Korean machines too).
-  mock.env(on, { LANG: "en_US.UTF-8", ...env });
+  mock.env(on, {});
   on("session.id", () => ({ value: "session-1" }));
   on("session.start", (_$: any, e: any) => ({ cwd: e.cwd ?? "/tmp" }));
   on("ui.invalidate", () => ({ value: undefined }));
@@ -89,7 +88,7 @@ for (const surface of ["terminal", "desktop"] as const) {
     expect(texts).not.toContain(`${dot}3h00 → ${at(NOW + 3 * 3_600_000)}`);
     expect(texts).toContain("59%");
     expect(texts).toContain(`${dot}3d00h`);
-    // No request yet: the cache block waits, no cost without a ledger. In the app the bolt stands for the word.
+    // No request yet: the cache block waits. In the app the bolt stands for the word.
     if (surface === "terminal") expect(texts).toContain("cache");
     expect(texts).toContain("—");
     if (surface === "desktop") {
@@ -133,42 +132,12 @@ for (const surface of ["terminal", "desktop"] as const) {
 }
 
 test("keeps what later mods draw under the line", async ($, on) => {
-  world(on, {}, {}, "drawn after this mod");
+  world(on, {}, "drawn after this mod");
   withUsage(on, LIMITS);
   await $.session.start({ source: "startup", cwd: "/tmp" } as any);
   const { texts } = await band($, "terminal");
   expect(texts).toContain("drawn after this mod");
   expect(texts.indexOf("107k")).toBeLessThan(texts.indexOf("drawn after this mod"));
-});
-
-test("auto: Korean when LANG is Korean", async ($, on) => {
-  world(on, { LANG: "ko_KR.UTF-8" });
-  withUsage(on, LIMITS);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  const { texts } = await band($, "terminal");
-  expect(texts).toContain("107k");
-  expect(texts).toContain("5시간");
-  expect(texts).toContain("32%");
-  expect(texts).toContain("· 3시간");
-  expect(texts).toContain("7일");
-  expect(texts).toContain("· 3일");
-  expect(texts).toContain("캐시");
-});
-
-test("auto: LC_ALL comes before LANG", async ($, on) => {
-  world(on, { LC_ALL: "ko_KR.UTF-8", LANG: "en_US.UTF-8" });
-  withUsage(on, LIMITS);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  const { texts } = await band($, "terminal");
-  expect(texts).toContain("7일");
-});
-
-test("auto: English when LANG is another language", async ($, on) => {
-  world(on, { LANG: "fr_FR.UTF-8" });
-  withUsage(on, LIMITS);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  const { texts } = await band($, "terminal");
-  expect(texts).toContain("7d");
 });
 
 test("cells: Hangul takes two terminal cells", () => {
@@ -227,7 +196,7 @@ for (const surface of ["terminal", "desktop"] as const) {
 
 test("on start, the shared reading wins over an old local one", async ($, on) => {
   // Another session measured 63% two minutes ago.
-  world(on, {}, {
+  world(on, {
     limits: { at: NOW - 120_000, list: [{ kind: "five_hour", percentUsed: 63, resetsAt: new Date(NOW + 3 * 3_600_000).toISOString() }] },
   });
   // This idle session still holds an old reading at 34%.
@@ -257,21 +226,9 @@ test("narrow terminal: no bar, no detail", async ($, on) => {
   expect(texts).not.toContain("· 3h00");
 });
 
-test("narrow terminal in Korean: wide labels count double, so the bar goes sooner", async ($, on) => {
-  world(on, { LANG: "ko_KR.UTF-8" });
-  withUsage(on, LIMITS);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  // Wide enough for the English line, not for the Korean one with its two-cell labels.
-  const wide = await band($, "terminal", 200);
-  expect(wide.texts).toContain("━");
-  const tight = await band($, "terminal", 66);
-  expect(tight.texts).toContain("32%");
-  expect(tight.texts).not.toContain("━");
-});
-
 test("after a restart, the turn bars come back", async ($, on) => {
   mock.clock(on, { now: NOW });
-  mock.env(on, { LANG: "en_US.UTF-8" });
+  mock.env(on, {});
   // In-memory store: this session already had 3 readings (+20k, then +80k); another one has slept for 9 days.
   const store = new Map<string, unknown>([
     ["turns:session-1", { at: NOW - 60_000, readings: [10, 12, 20].map((p) => ({ tokens: p * 10_000, window: 1_000_000, percent: p })) }],
@@ -321,7 +278,7 @@ for (const surface of ["terminal", "desktop"] as const) {
   });
 }
 
-// ---------- Prompt cache and cost ----------
+// ---------- Prompt cache ----------
 
 // One main-loop request answered with this usage.
 async function step($: any, usage: Record<string, unknown>, model = "claude-opus-5-5") {
@@ -342,23 +299,6 @@ function engineStep(on: any, usages: Record<string, unknown>[]) {
 
 const HIT = { model: "claude-opus-5-5", input_tokens: 300, cache_read_input_tokens: 98_000, cache_creation_input_tokens: 1_700, output_tokens: 500 };
 const MISS = { model: "claude-opus-5-5", input_tokens: 300, cache_read_input_tokens: 0, cache_creation_input_tokens: 99_700, output_tokens: 500 };
-
-// The mod's list prices for the models used here, USD per million tokens (Anthropic, 2026-10-08).
-// Haiku 5.5 costs 5× more past 100k tokens of prompt.
-const PRICE: Record<string, { input: number; read: number }> = {
-  "claude-opus-5-5": { input: 4, read: 0.2 },
-  "claude-sonnet-5-5": { input: 2, read: 0.1 },
-  "claude-haiku-5-5": { input: 0.1, read: 0.01 },
-  "claude-haiku-5-5 over 100k": { input: 0.5, read: 0.05 },
-  "claude-haiku-4-5": { input: 1, read: 0.1 },
-};
-// LIMITS means a subscription within its plan: the 1-hour lifetime, whose cache writes cost 2× input.
-const write1h = (model = "claude-opus-5-5") => 2 * PRICE[model].input;
-const readCost = (tokens: number, model = "claude-opus-5-5") => (tokens * PRICE[model].read) / 1e6;
-const rewriteCost = (tokens: number, model = "claude-opus-5-5") => (tokens * write1h(model)) / 1e6;
-const savedBy = (read: number, model = "claude-opus-5-5") => (read * (PRICE[model].input - PRICE[model].read)) / 1e6;
-// The mod's money format, for amounts between a cent and 100 dollars.
-const en$ = (usd: number) => `$${usd.toFixed(2)}`;
 
 // The cache pill's hover card in the app; null without one.
 async function boltTip(ui: any): Promise<string | null> {
@@ -384,7 +324,7 @@ test("cache: share read and time left on a subscription (1 hour)", async ($, on)
 test("cache: yellow under 10 minutes, then expired with /compact", async ($, on) => {
   const clock = mock.clock(on, { now: NOW });
   mock.store(on, {});
-  mock.env(on, { LANG: "en_US.UTF-8" });
+  mock.env(on, {});
   on("session.id", () => ({ value: "session-1" }));
   on("session.start", (_$: any, e: any) => ({ cwd: e.cwd ?? "/tmp" }));
   on("ui.invalidate", () => ({ value: undefined }));
@@ -398,21 +338,21 @@ test("cache: yellow under 10 minutes, then expired with /compact", async ($, on)
   expect(texts).toContain("5 min");
   const soon: any = await ui.find({ type: "Text", text: "5 min" });
   expect(soon?.props?.color).toBe("#a8690a");
-  // What letting it lapse costs: the 107k context written again (1 hour lifetime), dim.
-  const stake: any = await ui.find({ type: "Text", text: `· ${en$(rewriteCost(107_000))} at stake` });
-  expect(stake?.props?.dimColor).toBe(true);
+  // The time alone: no stake, no dollars, on either surface.
+  expect(texts.join(" ")).not.toContain("at stake");
+  expect(texts.join(" ")).not.toContain("$");
   const desktop = await band($, "desktop");
-  expect(desktop.texts).toContain(`${en$(rewriteCost(107_000))} at stake`);
   const yellow: any = await desktop.ui.find({ type: "Text", text: "5 min" });
   expect(yellow?.props?.color).toBe("#a8690a");
-  expect(await boltTip(desktop.ui)).toBe(
-    `The cache expires at ${at(NOW + 3_600_000)}. Send your next message before then, or it writes 107k tokens again (≈ ${en$(rewriteCost(107_000))} instead of ≈ ${en$(readCost(107_000))}).`,
-  );
+  expect(desktop.texts.join(" ")).not.toContain("$");
+  // The card says what lapsing would write again, in tokens.
+  expect(await boltTip(desktop.ui)).toBe(`The cache expires at ${at(NOW + 3_600_000)}. Send your next message before then, or it writes 107k tokens again.`);
   await (clock as any).advance(6 * 60_000);
   ({ ui, texts } = await band($, "terminal"));
   expect(texts).toContain("expired");
-  // 107k of context: past 100k, what gets written again, its price, and /compact before going on.
-  expect(texts).toContain(`· 107k to rewrite ≈ ${en$(rewriteCost(107_000))} · /compact`);
+  // 107k of context: past 100k, what gets written again (tokens only) and /compact before going on.
+  expect(texts).toContain("· 107k to rewrite · /compact");
+  expect(texts.join(" ")).not.toContain("$");
   const expired: any = await ui.find({ type: "Text", text: "expired" });
   expect(expired?.props?.color).toBe("red");
 });
@@ -426,35 +366,12 @@ test("cache: a miss after a model change names the cause", async ($, on) => {
   await step($, MISS, "claude-sonnet-5-5");
   const { texts } = await band($, "terminal");
   expect(texts).toContain("0%");
-  // The surcharge: 99.7k tokens written (Sonnet 5.5, 1 hour) instead of read from the cache.
-  const surcharge = (99_700 * (write1h("claude-sonnet-5-5") - PRICE["claude-sonnet-5-5"].read)) / 1e6;
-  expect(texts).toContain(`· missed · model changed · +${en$(surcharge)}`);
+  // The cause on the line; the tokens written again in the card. No surcharge.
+  expect(texts).toContain("· missed · model changed");
+  expect(texts.join(" ")).not.toContain("$");
   const desktop = await band($, "desktop");
-  expect(desktop.texts).toContain(`missed · model changed · +${en$(surcharge)}`);
-  expect(await boltTip(desktop.ui)).toBe(
-    `This message read only 0% from the cache (model changed): it wrote 99.7k tokens again, ≈ ${en$(surcharge)} more than a message served by the cache.`,
-  );
-});
-
-test("cache: Haiku 5.5 priced by prompt size", async ($, on) => {
-  const clock = mock.clock(on, { now: NOW });
-  mock.store(on, {});
-  mock.env(on, { LANG: "en_US.UTF-8" });
-  on("session.id", () => ({ value: "session-1" }));
-  on("session.start", (_$: any, e: any) => ({ cwd: e.cwd ?? "/tmp" }));
-  on("ui.invalidate", () => ({ value: undefined }));
-  on("ui.render", ($: any, e: any) => $.ui.resolve(e).Box({ children: [] }));
-  withUsage(on, LIMITS);
-  const haiku = { ...HIT, model: "claude-haiku-5-5" };
-  engineStep(on, [haiku]);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await step($, haiku, "claude-haiku-5-5");
-  await (clock as any).advance(55 * 60_000);
-  // The 107k context is past 100k: written again at the higher price.
-  const over = "claude-haiku-5-5 over 100k";
-  const { texts } = await band($, "desktop");
-  expect(texts).toContain(`${en$(rewriteCost(107_000, over))} at stake`);
-  expect(texts).not.toContain(`${en$(rewriteCost(107_000, "claude-haiku-5-5"))} at stake`);
+  expect(desktop.texts).toContain("missed · model changed");
+  expect(await boltTip(desktop.ui)).toBe("This message read only 0% from the cache (model changed): it wrote 99.7k tokens again.");
 });
 
 test("cache: 5 minutes on an API key (no plan window)", async ($, on) => {
@@ -465,39 +382,6 @@ test("cache: 5 minutes on an API key (no plan window)", async ($, on) => {
   await step($, HIT);
   const { texts } = await band($, "terminal");
   expect(texts).toContain("5 min");
-});
-
-test("cost: shown in dollars, Korean labels", async ($, on) => {
-  world(on, { LANG: "ko_KR.UTF-8" });
-  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 107_000, window: 1_000_000, percent: 11 }, rateLimits: LIMITS, cost: { usd: 4.321 } } }));
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  for (const surface of ["terminal", "desktop"] as const) {
-    const { ui, texts } = await band($, surface);
-    expect(texts).toContain("≈ $4.32");
-    if (surface === "desktop") {
-      const svgs = (await ui.findAll({ type: "Svg" })) as any[];
-      expect(svgs.some((s) => s.props?.alt === "세션 비용" && String(s.props?.source).includes("#b8892a"))).toBe(true);
-    }
-  }
-});
-
-test("cost: the last prompt's share, next to the total in the terminal, in the card in the app", async ($, on) => {
-  world(on);
-  on("turn.complete", () => ({ text: "" }));
-  const costs = [4.0, 4.84];
-  let call = 0;
-  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 107_000 + call * 1_000, window: 1_000_000, percent: 11 }, rateLimits: LIMITS, cost: { usd: costs[Math.min(call++, costs.length - 1)] } } }));
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await ($ as any).turn.complete({ answer: "ok" } as any);
-  const terminal = await band($, "terminal");
-  expect(terminal.texts).toContain("≈ $4.84");
-  expect(terminal.texts).toContain("(+$0.84)");
-  const desktop = await band($, "desktop");
-  expect(desktop.texts).toContain("≈ $4.84");
-  expect(desktop.texts).not.toContain("+$0.84");
-  expect(await cardOf(desktop.ui, "cost")).toBe(
-    "Thread cost ≈ $4.84\nAt API prices: a subscription is not billed per token, this counts toward its limits.\nLast prompt: +$0.84",
-  );
 });
 
 test("agents: a pill while subagents run, gone once they finish", async ($, on) => {
@@ -527,9 +411,9 @@ test("agents: a pill while subagents run, gone once they finish", async ($, on) 
   expect(await cardOf(app.ui, "agents")).toBe("Agents in this thread: 0\nNo subagent in this thread yet.");
 });
 
-test("agents: the card splits the cost by model and effort, and what delegating saved", async ($, on) => {
+test("agents: those that ran a request are counted, without a cost split, and kept for a resumed thread", async ($, on) => {
   world(on);
-  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 107_000, window: 1_000_000, percent: 11 }, rateLimits: LIMITS, cost: { usd: 10 } } }));
+  withUsage(on, LIMITS);
   on("agent.list", () => ({
     value: [
       { id: "h1", description: "List the files", type: "Explore", status: "completed" },
@@ -538,7 +422,6 @@ test("agents: the card splits the cost by model and effort, and what delegating 
     ],
   }));
   on("turn.complete", () => ({ text: "" }));
-  // 98k tokens a request, under Haiku 5.5's 100k threshold.
   const work = { input_tokens: 2_000, cache_read_input_tokens: 70_000, cache_creation_input_tokens: 6_000, output_tokens: 20_000 };
   engineStep(on, [HIT, { ...work, model: "claude-haiku-5-5" }, { ...work, model: "claude-haiku-5-5" }, { ...work, model: "claude-sonnet-5-5" }]);
   await $.session.start({ source: "startup", cwd: "/tmp" } as any);
@@ -549,38 +432,23 @@ test("agents: the card splits the cost by model and effort, and what delegating 
     }
     await ($ as any).turn.complete({ answer: "ok", agentId } as any);
   }
-  // Each request at list prices: fresh input, cache reads, 5-minute cache writes, output at 5× input.
-  const cost = (p: { input: number; read: number }) => (2_000 * p.input + 70_000 * p.read + 6_000 * 1.25 * p.input + 20_000 * 5 * p.input) / 1e6;
-  const haiku = 2 * cost(PRICE["claude-haiku-5-5"]);
-  const sonnet = cost(PRICE["claude-sonnet-5-5"]);
-  const saved = 3 * cost(PRICE["claude-opus-5-5"]) - haiku - sonnet;
   const { ui, texts } = await band($, "desktop");
   expect(texts).toContain("3");
-  expect(await cardOf(ui, "agents")).toBe(
-    [
-      "Agents in this thread: 3",
-      `Opus 5.5 · main thread: ≈ ${en$(10 - haiku - sonnet)} · 98%`,
-      `Sonnet 5.5 · 1 agent: ≈ ${en$(sonnet)} · 2%`,
-      "  effort high ×1 · 98k tokens",
-      `Haiku 5.5 · 2 agents: ≈ ${en$(haiku)} · < 1%`,
-      "  effort medium ×1 · high ×1 · 196k tokens",
-      `Delegating: ≈ ${en$(saved)} saved compared with Opus 5.5.`,
-    ].join("\n"),
-  );
-  // The detail lines are dim.
-  const detail: any = await ui.find({ type: "Text", text: "  effort high ×1 · 98k tokens" });
-  expect(detail?.props?.dimColor).toBe(true);
+  // The count alone: no model groups, no efforts, no dollars.
+  expect(await cardOf(ui, "agents")).toBe("Agents in this thread: 3");
+  expect(texts.join(" ")).not.toContain("$");
   // Kept in the store: a resumed thread finds its agents again.
   await $.session.start({ source: "resume", cwd: "/tmp" } as any);
-  expect(String(await cardOf((await band($, "desktop")).ui, "agents"))).toContain("Haiku 5.5 · 2 agents");
+  const resumed = await band($, "desktop");
+  expect(resumed.texts).toContain("3");
+  expect(await cardOf(resumed.ui, "agents")).toBe("Agents in this thread: 3");
 });
 
 test("desktop icons: gauge centred at y=12", async ($, on) => {
   world(on);
   on("turn.complete", () => ({ text: "" }));
-  const costs = [4.0, 4.84];
   let call = 0;
-  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 400_000 + call * 1_000, window: 1_000_000, percent: 40 }, rateLimits: LIMITS, cost: { usd: costs[Math.min(call++, costs.length - 1)] } } }));
+  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 400_000 + call++ * 1_000, window: 1_000_000, percent: 40 }, rateLimits: LIMITS } }));
   await $.session.start({ source: "resume", cwd: "/tmp" } as any);
   await ($ as any).turn.complete({ answer: "ok" } as any);
   const { ui } = await band($, "desktop");
@@ -592,7 +460,7 @@ test("desktop icons: gauge centred at y=12", async ($, on) => {
 test("cache expired from 300k: what gets written again, and a new thread", async ($, on) => {
   const clock = mock.clock(on, { now: NOW });
   mock.store(on, {});
-  mock.env(on, { LANG: "en_US.UTF-8" });
+  mock.env(on, {});
   on("session.id", () => ({ value: "session-1" }));
   on("session.start", (_$: any, e: any) => ({ cwd: e.cwd ?? "/tmp" }));
   on("ui.invalidate", () => ({ value: undefined }));
@@ -605,34 +473,18 @@ test("cache expired from 300k: what gets written again, and a new thread", async
   const { texts } = await band($, "terminal");
   // A new thread avoids rewriting the whole context; a compaction would read it all again.
   // The terminal has no card: the advice stays on the line.
-  expect(texts).toContain(`· 741k to rewrite ≈ ${en$(rewriteCost(741_000))} · new thread`);
+  expect(texts).toContain("· 741k to rewrite · new thread");
   expect(texts.join(" ")).not.toContain("/compact");
+  expect(texts.join(" ")).not.toContain("$");
   // In the app the advice moves to the bolt's card.
   const desktop = await band($, "desktop");
-  expect(desktop.texts).toContain(`741k to rewrite ≈ ${en$(rewriteCost(741_000))}`);
+  expect(desktop.texts).toContain("741k to rewrite");
   expect(desktop.texts.join(" ")).not.toContain("new thread");
   const tip = String(await boltTip(desktop.ui));
-  expect(tip).toContain(`The next message writes the whole context (741k) again at full price, ≈ ${en$(rewriteCost(741_000))}.`);
+  expect(tip).toContain("The next message writes the whole context (741k) again.");
+  expect(tip).not.toContain("$");
   expect(tip).toContain("A new thread avoids this rewrite; a compaction would read it all again.");
   expect(tip).not.toContain("/compact");
-});
-
-test("last prompt: its share of the 5-hour limit next to its cost (Korean)", async ($, on) => {
-  world(on, { LANG: "ko_KR.UTF-8" });
-  on("turn.complete", () => ({ text: "" }));
-  const steps = [
-    { usd: 4.0, five: 30 },
-    { usd: 5.07, five: 32.5 },
-  ];
-  let call = 0;
-  on("session.usage", () => {
-    const s = steps[Math.min(call++, steps.length - 1)];
-    return { value: { startedAt: NOW, context: { tokens: 107_000 + call * 1_000, window: 1_000_000, percent: 11 }, rateLimits: [{ ...LIMITS[1], percentUsed: s.five }, LIMITS[0]], cost: { usd: s.usd } } };
-  });
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await ($ as any).turn.complete({ answer: "ok" } as any);
-  const { texts } = await band($, "terminal");
-  expect(texts).toContain("(+$1.07 · +2.5% 5시간)");
 });
 
 test("cache: below 90% served, the share before the time", async ($, on) => {
@@ -645,14 +497,6 @@ test("cache: below 90% served, the share before the time", async ($, on) => {
   const { texts } = await band($, "terminal");
   expect(texts).toContain("72%");
   expect(texts).toContain("· 1h00");
-});
-
-test("cost: no cents from 100 dollars", async ($, on) => {
-  world(on);
-  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 107_000, window: 1_000_000, percent: 11 }, rateLimits: LIMITS, cost: { usd: 134.69 } } }));
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  const { texts } = await band($, "terminal");
-  expect(texts).toContain("≈ $135");
 });
 
 test("desktop: pills never shrink, and the 5-hour reset time sits in the pill's hover card", async ($, on) => {
@@ -671,7 +515,7 @@ test("desktop: pills never shrink, and the 5-hour reset time sits in the pill's 
 async function largeExpired($: any, on: any, compaction: Record<string, unknown>) {
   const clock = mock.clock(on, { now: NOW });
   mock.store(on, {});
-  mock.env(on, { LANG: "en_US.UTF-8" });
+  mock.env(on, {});
   on("session.id", () => ({ value: "session-1" }));
   on("session.start", (_$: any, e: any) => ({ cwd: e.cwd ?? "/tmp" }));
   on("ui.invalidate", () => ({ value: undefined }));
@@ -695,7 +539,7 @@ test("compaction: the context drops at once, no expired cache", async ($, on) =>
   const before = await band($, "terminal");
   expect(before.texts).toContain("784k");
   expect(before.texts).toContain("expired");
-  expect(before.texts).toContain(`· 784k to rewrite ≈ ${en$(rewriteCost(784_000))} · new thread`);
+  expect(before.texts).toContain("· 784k to rewrite · new thread");
   await ($ as any).session.compact({ trigger: "manual", messages: [{ role: "user", text: "Go on", toolUses: [] }, { role: "assistant", text: "Done", toolUses: [] }] });
   const after = await band($, "terminal");
   expect(after.texts).toContain("48k");
@@ -721,39 +565,34 @@ test("compaction: a skipped one changes nothing", async ($, on) => {
   expect(texts).not.toContain("compacted");
 });
 
-// ---------- Cache prices ----------
+// ---------- Cache card ----------
 
 // A large thread: 289k of context, 287k of it read from the cache by the last message.
 const BIG = { tokens: 289_000, window: 1_000_000, percent: 29 };
 const BIG_HIT = { model: "claude-opus-5-5", input_tokens: 300, cache_read_input_tokens: 287_000, cache_creation_input_tokens: 1_700, output_tokens: 500 };
 
-// Model ids as providers spell them, and the list price each one should find.
-for (const [model, family] of [
-  ["claude-opus-5-5", "claude-opus-5-5"],
-  ["claude-opus-5-5[1m]", "claude-opus-5-5"],
-  ["us.anthropic.claude-sonnet-5-5", "claude-sonnet-5-5"],
-  ["claude-haiku-4-5-20251001", "claude-haiku-4-5"],
-  ["claude-unknown-9", null],
-] as const) {
-  test(`cache price of ${model}`, async ($, on) => {
-    world(on);
-    withUsage(on, LIMITS, BIG);
-    engineStep(on, [{ ...BIG_HIT, model }]);
-    await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-    await step($, { ...BIG_HIT, model }, model);
-    const tip = String(await boltTip((await band($, "desktop")).ui));
-    if (family) {
-      expect(tip).toContain(`Reading the context: ≈ ${en$(readCost(289_000, family))} a message. If it expires: ≈ ${en$(rewriteCost(289_000, family))} to write it again.`);
-    } else {
-      // Unknown: tokens only, no price anywhere.
-      expect(tip).toContain("Last message: 99% read from the cache (287k).");
-      expect(tip).not.toContain("$");
-    }
-  });
-}
+test("cache card, warm: lifetime assumed, the share read, no costs", async ($, on) => {
+  world(on);
+  withUsage(on, LIMITS, BIG);
+  engineStep(on, [BIG_HIT]);
+  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
+  await step($, BIG_HIT);
+  await step($, BIG_HIT);
+  const { ui, texts } = await band($, "desktop");
+  // The pill itself: the time left alone.
+  expect(texts).toContain("1h00");
+  expect(texts.join(" ")).not.toContain("$");
+  expect(await boltTip(ui)).toBe(
+    [
+      `Cache warm until ${at(NOW + 3_600_000)} (1-hour lifetime, assumed).`,
+      // 287k read out of a 289.3k prompt.
+      "Last message: 99% read from the cache (287k).",
+    ].join("\n"),
+  );
+});
 
-test("cache card, warm, Korean: lifetime observed, costs, savings", async ($, on) => {
-  const clock = world(on, { LANG: "ko_KR.UTF-8" });
+test("cache card, warm: lifetime observed after a hit past 5 minutes", async ($, on) => {
+  const clock = world(on);
   withUsage(on, LIMITS, BIG);
   engineStep(on, [BIG_HIT, BIG_HIT]);
   await $.session.start({ source: "startup", cwd: "/tmp" } as any);
@@ -761,40 +600,10 @@ test("cache card, warm, Korean: lifetime observed, costs, savings", async ($, on
   // A hit 6 minutes later proves the 1-hour lifetime.
   await clock.advance(6 * 60_000);
   await step($, BIG_HIT);
-  const { ui, texts } = await band($, "desktop");
-  // The pill itself is unchanged: the time left alone.
-  expect(texts).toContain("1시간");
-  expect(texts.join(" ")).not.toContain("$");
-  expect(await boltTip(ui)).toBe(
-    [
-      `캐시는 ${at(NOW + 6 * 60_000 + 3_600_000)}까지 유지됩니다 (1시간 수명, 관측값).`,
-      // 287k read out of a 289.3k prompt.
-      "마지막 메시지: 99%를 캐시에서 읽음 (287k).",
-      `컨텍스트 읽기: 메시지당 ≈ ${en$(readCost(289_000))}. 만료되면 다시 쓰는 데 ≈ ${en$(rewriteCost(289_000))}.`,
-      // Two hits of 287k each, at the input price minus the cache-read price.
-      `이 스레드에서 캐시가 아낀 비용: ≈ ${en$(2 * savedBy(287_000))}.`,
-    ].join("\n"),
-  );
+  expect(String(await boltTip((await band($, "desktop")).ui))).toContain(`Cache warm until ${at(NOW + 6 * 60_000 + 3_600_000)} (1-hour lifetime, observed).`);
 });
 
-test("cache card, warm, English: lifetime assumed", async ($, on) => {
-  world(on);
-  withUsage(on, LIMITS, BIG);
-  engineStep(on, [BIG_HIT]);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await step($, BIG_HIT);
-  await step($, BIG_HIT);
-  expect(await boltTip((await band($, "desktop")).ui)).toBe(
-    [
-      `Cache warm until ${at(NOW + 3_600_000)} (1-hour lifetime, assumed).`,
-      "Last message: 99% read from the cache (287k).",
-      `Reading the context: ≈ ${en$(readCost(289_000))} a message. If it expires: ≈ ${en$(rewriteCost(289_000))} to write it again.`,
-      `This thread: ≈ ${en$(2 * savedBy(287_000))} saved by the cache.`,
-    ].join("\n"),
-  );
-});
-
-test("cache: under 10 minutes and under 90% served, the stake after the time", async ($, on) => {
+test("cache: under 10 minutes and under 90% served, the time in yellow after the share", async ($, on) => {
   const clock = world(on);
   withUsage(on, LIMITS);
   const PART = { ...HIT, cache_read_input_tokens: 72_000, cache_creation_input_tokens: 0, input_tokens: 28_000 };
@@ -806,11 +615,11 @@ test("cache: under 10 minutes and under 90% served, the stake after the time", a
   expect(texts).toContain("72%");
   const time: any = await ui.find({ type: "Text", text: "· 5 min" });
   expect(time?.props?.color).toBe("#a8690a");
-  expect(texts).toContain(`· ${en$(rewriteCost(107_000))} at stake`);
-  expect(texts.indexOf("· 5 min")).toBeLessThan(texts.indexOf(`· ${en$(rewriteCost(107_000))} at stake`));
+  expect(texts.indexOf("72%")).toBeLessThan(texts.indexOf("· 5 min"));
+  expect(texts.join(" ")).not.toContain("at stake");
 });
 
-test("cache expired at 150k: the price in the pill, /compact in the card", async ($, on) => {
+test("cache expired at 150k: the tokens in the pill, /compact in the card", async ($, on) => {
   const clock = world(on);
   withUsage(on, LIMITS, { tokens: 150_000, window: 1_000_000, percent: 15 });
   engineStep(on, [HIT]);
@@ -818,71 +627,23 @@ test("cache expired at 150k: the price in the pill, /compact in the card", async
   await step($, HIT);
   await clock.advance(61 * 60_000);
   const desktop = await band($, "desktop");
-  expect(desktop.texts).toContain(`150k to rewrite ≈ ${en$(rewriteCost(150_000))}`);
+  expect(desktop.texts).toContain("150k to rewrite");
   expect(desktop.texts.join(" ")).not.toContain("/compact");
-  expect(await boltTip(desktop.ui)).toBe(
-    `The next message writes the whole context (150k) again at full price, ≈ ${en$(rewriteCost(150_000))}.\n/compact before going on: the context written again will be smaller.`,
-  );
+  expect(desktop.texts.join(" ")).not.toContain("$");
+  expect(await boltTip(desktop.ui)).toBe("The next message writes the whole context (150k) again.\n/compact before going on: the context written again will be smaller.");
   // The terminal, without a card, keeps the advice on the line.
   const { texts } = await band($, "terminal");
-  expect(texts).toContain(`· 150k to rewrite ≈ ${en$(rewriteCost(150_000))} · /compact`);
-});
-
-test("cache: an unknown model shows tokens, never dollars", async ($, on) => {
-  const clock = world(on);
-  withUsage(on, LIMITS);
-  const OTHER = { ...HIT, model: "claude-unknown-9" };
-  engineStep(on, [OTHER]);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await step($, OTHER, "claude-unknown-9");
-  await clock.advance(55 * 60_000);
-  let desktop = await band($, "desktop");
-  expect(desktop.texts).toContain("107k at stake");
-  expect(desktop.texts.join(" ")).not.toContain("$");
-  expect(await boltTip(desktop.ui)).toBe(`The cache expires at ${at(NOW + 3_600_000)}. Send your next message before then, or it writes 107k tokens again.`);
-  await clock.advance(6 * 60_000);
-  desktop = await band($, "desktop");
-  expect(desktop.texts).toContain("107k to rewrite");
-  expect(desktop.texts.join(" ")).not.toContain("$");
-  expect(String(await boltTip(desktop.ui))).not.toContain("$");
-  const { texts } = await band($, "terminal");
-  expect(texts).toContain("· 107k to rewrite · /compact");
-});
-
-test("cache savings: kept in the store, back on a resumed session", async ($, on) => {
-  mock.clock(on, { now: NOW });
-  mock.env(on, { LANG: "en_US.UTF-8" });
-  const store = new Map<string, unknown>();
-  on("store.get", (_$: any, e: any) => ({ value: store.get(e.key) }));
-  on("store.set", (_$: any, e: any) => (store.set(e.key, e.value), { value: undefined }));
-  on("store.delete", (_$: any, e: any) => (store.delete(e.key), { value: undefined }));
-  on("store.keys", () => ({ value: [...store.keys()] }));
-  on("session.id", () => ({ value: "session-1" }));
-  on("session.start", (_$: any, e: any) => ({ cwd: e.cwd ?? "/tmp" }));
-  on("ui.invalidate", () => ({ value: undefined }));
-  on("ui.render", ($: any, e: any) => $.ui.resolve(e).Box({ children: [] }));
-  on("turn.complete", () => ({ text: "" }));
-  withUsage(on, LIMITS, BIG);
-  engineStep(on, [BIG_HIT]);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await step($, BIG_HIT);
-  await step($, BIG_HIT);
-  await ($ as any).turn.complete({ answer: "ok" } as any);
-  const saved = (store.get("turns:session-1") as any)?.saved;
-  expect(Math.abs(saved - 2 * savedBy(287_000))).toBeLessThan(1e-9);
-  // Restarted: the figure comes back from the store, not from new requests.
-  await $.session.start({ source: "resume", cwd: "/tmp" } as any);
-  expect(String(await boltTip((await band($, "desktop")).ui))).toContain(`This thread: ≈ ${en$(2 * savedBy(287_000))} saved by the cache.`);
+  expect(texts).toContain("· 150k to rewrite · /compact");
 });
 
 // ---------- Agents card: each running agent's latest tool call, the last batch ----------
 
 // Each request answers with the tools queued by use().
-function crew(on: any, env: Record<string, string> = {}, steps = true) {
-  const clock = world(on, env);
-  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 107_000, window: 1_000_000, percent: 11 }, rateLimits: LIMITS, cost: { usd: 10 } } }));
+function crew(on: any) {
+  const clock = world(on);
+  withUsage(on, LIMITS);
   on("turn.complete", () => ({ text: "" }));
-  if (steps) on("turn.step", async function* () {
+  on("turn.step", async function* () {
     const { uses, stop } = next.shift() ?? { uses: [], stop: "end_turn" };
     return { turnId: "t", index: 0, answer: "", toolUses: uses.map((name: string) => ({ name, input: { command: "SECRET=x" } })), stopReason: stop, usage: null };
   });
@@ -923,7 +684,7 @@ async function agentStep($: any, agentId: string, model = "claude-haiku-5-5") {
 
 const agentsCard = async ($: any) => String(await cardOf((await band($, "desktop")).ui, "agents"));
 
-test("prices: Bedrock and Vertex ids find the same model as the API's", () => {
+test("model ids: Bedrock and Vertex ids read as the same model as the API's", () => {
   for (const id of [
     "claude-sonnet-5-5",
     "claude-sonnet-5-5-20260101",
@@ -943,7 +704,7 @@ test("agents: a tool's name in Claude Code's words, never its arguments", () => 
   expect(toolText("mcp__8377b461-f34f-4b2d-a906-1f52a65d3dc1__get-product")).toBe("get-product");
   expect(toolText("mcp__claude-in-chrome__javascript_tool")).toBe("claude-…:javascript_tool");
   for (const tool of ["mcp__claude-in-chrome__javascript_tool", "mcp__plugin_pdf-viewer_pdf__display_pdf", "Bash"]) {
-    expect(`  ↳ ${toolText(tool)} · 호출 123회`.length).toBeLessThanOrEqual(55);
+    expect(`  ↳ ${toolText(tool)} · 123 calls`.length).toBeLessThanOrEqual(55);
   }
 });
 
@@ -997,25 +758,23 @@ test("agents: each running agent's latest tool call, then the batch's receipt", 
   for (const line of done.split("\n").filter((l) => l.includes("batch") || l.includes("parallel"))) expect(line.length).toBeLessThanOrEqual(55);
 });
 
-for (const [lang, receipt] of [
-  ["en_US.UTF-8", "Last batch: 2 agents in 20 s\n  3 tool calls"],
-  ["ko_KR.UTF-8", "최근 묶음: 에이전트 2 · 20초\n  도구 호출 3회"],
-] as const) {
-  test(`agents: the last batch's receipt (${lang})`, async ($, on) => {
-    const clock = crew(on, { LANG: lang });
-    const team = roster(on);
-    await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-    await team.add($, "w1", "w2");
-    await use($, "w1", "Grep");
-    await use($, "w2", "Glob");
-    await clock.advance(20_000);
-    await use($, "w1", "Read");
-    expect(String(await cardOf((await band($, "desktop")).ui, "agents"))).not.toContain(receipt.split("\n")[0]);
-    team.done();
-    await clock.advance(10_000);
-    expect(String(await cardOf((await band($, "desktop")).ui, "agents"))).toContain(receipt);
-  });
-}
+test("agents: the last batch's receipt, without a cost", async ($, on) => {
+  const receipt = "Last batch: 2 agents in 20 s\n  3 tool calls";
+  const clock = crew(on);
+  const team = roster(on);
+  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
+  await team.add($, "w1", "w2");
+  await use($, "w1", "Grep");
+  await use($, "w2", "Glob");
+  await clock.advance(20_000);
+  await use($, "w1", "Read");
+  expect(String(await cardOf((await band($, "desktop")).ui, "agents"))).not.toContain(receipt.split("\n")[0]);
+  team.done();
+  await clock.advance(10_000);
+  const card = String(await cardOf((await band($, "desktop")).ui, "agents"));
+  expect(card).toContain(receipt);
+  expect(card).not.toContain("$");
+});
 
 test("agents: one waiting on its own agents stays in the batch until it ends", async ($, on) => {
   const clock = crew(on);
@@ -1111,35 +870,6 @@ test("agents: an agent stuck open with no trace for 10 minutes no longer hides l
   expect(await agentsCard($)).toContain("Last batch: 2 agents in 30 s\n  3 tool calls");
 });
 
-test("agents: the receipt's cost, and none when an agent has no price", async ($, on) => {
-  const clock = crew(on, {}, false);
-  const team = roster(on);
-  // 98k tokens a request, under Haiku 5.5's 100k threshold: $0.01165 each.
-  const work = { input_tokens: 2_000, cache_read_input_tokens: 70_000, cache_creation_input_tokens: 6_000, output_tokens: 20_000 };
-  engineStep(on, [{ ...work, model: "claude-haiku-5-5" }, { ...work, model: "claude-haiku-5-5" }, { ...work, model: "claude-haiku-5-5" }, { ...work, model: "claude-unknown-9" }, { ...work, model: "claude-haiku-5-5" }]);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await team.add($, "w1", "w2");
-  await agentStep($, "w1");
-  await agentStep($, "w2");
-  await clock.advance(20_000);
-  await agentStep($, "w1");
-  team.done();
-  await clock.advance(10_000);
-  expect(await agentsCard($)).toContain(`Last batch: 2 agents in 20 s · ≈ ${en$(3 * 0.01165)}`);
-  // A later batch with an agent the price list does not know: no cost rather than a partial one.
-  await clock.advance(120_000);
-  await team.add($, "w3", "w4");
-  await agentStep($, "w3", "claude-unknown-9");
-  await agentStep($, "w4");
-  await clock.advance(20_000);
-  await use($, "w3", "Read");
-  team.done();
-  await clock.advance(10_000);
-  const card = await agentsCard($);
-  expect(card).toContain("Last batch: 2 agents in 20 s\n  1 tool call");
-  expect(card).not.toContain("Last batch: 2 agents in 20 s · ≈");
-});
-
 test("agents: a subagent inside its parent's time does not count as running side by side", async ($, on) => {
   const clock = crew(on);
   const team = roster(on);
@@ -1160,35 +890,36 @@ test("agents: a subagent inside its parent's time does not count as running side
   expect(card).not.toContain("×");
 });
 
-// 7-day estimate: the day part the run-out falls in, as the Korean band writes it (the hours after
-// midnight read as that calendar day's early morning).
-const KO_DAYS = ["일", "월", "화", "수", "목", "금", "토"];
-const KO_PARTS = ["새벽", "오전", "오후", "저녁"];
-function koDayPart(ms: number) {
-  const d = new Date(ms);
-  const h = d.getHours();
-  if (h < 6) return `${KO_DAYS[d.getDay()]}요일 새벽`;
-  return `${KO_DAYS[d.getDay()]}요일 ${KO_PARTS[h < 12 ? 1 : h < 18 ? 2 : 3]}`;
-}
 const weekOf = (used: number, daysLeft: number) => [
   { kind: "seven_day", percentUsed: used, resetsAt: new Date(NOW + daysLeft * 86_400_000).toISOString() },
 ];
 const runOutText = (texts: string[]) => texts.find((t) => t.startsWith("⚠"));
 
-test("7-day estimate: at the week's pace the limit runs out before the reset (Korean)", async ($, on) => {
-  world(on, { LANG: "ko_KR.UTF-8" });
+// 7-day estimate: the day part the run-out falls in, as the band writes it (the hours after
+// midnight belong to the day before, as its night).
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const PARTS = ["night", "morning", "afternoon", "evening"];
+function dayPart(ms: number) {
+  const d = new Date(ms);
+  const h = d.getHours();
+  if (h < 6) return `${DAYS[(d.getDay() + 6) % 7]} night`;
+  return `${DAYS[d.getDay()]} ${PARTS[h < 12 ? 1 : h < 18 ? 2 : 3]}`;
+}
+
+test("7-day estimate: at the week's pace the limit runs out before the reset", async ($, on) => {
+  world(on);
   // 70% in 4 days: 17.5% a day, the last 30% gone in about 1.7 days, before the reset in 3.
   withUsage(on, weekOf(70, 3));
   await $.session.start({ source: "startup", cwd: "/tmp" } as any);
   const { ui, texts } = await band($, "terminal");
   const out = NOW + (30 / 70) * 4 * 86_400_000;
-  expect(runOutText(texts)).toBe(`⚠ ${koDayPart(out)} 소진`);
-  const pill: any = await ui.find({ type: "Text", text: `⚠ ${koDayPart(out)} 소진` });
+  expect(runOutText(texts)).toBe(`⚠ out ${dayPart(out)}`);
+  const pill: any = await ui.find({ type: "Text", text: `⚠ out ${dayPart(out)}` });
   expect(pill?.props?.color).toBe("#a8690a");
   const card = await cardOf((await band($, "desktop")).ui, "gauge-seven_day");
-  expect(card).toContain("이번 주 속도(4일 동안 +70%)");
-  expect(card).not.toContain("최근 ");
-  expect(card).toContain("초기화 전인");
+  expect(card).toContain("At this week's pace (+70% in 4d00h)");
+  expect(card).not.toContain("At the last ");
+  expect(card).toContain("before the reset on");
 });
 
 test("7-day estimate: none when the pace lasts until the reset", async ($, on) => {
@@ -1217,7 +948,7 @@ test("7-day estimate: none under 15% used", async ($, on) => {
 test("7-day estimate: the week's pace decides, the last day's shown beside it", async ($, on) => {
   const resetsAt = new Date(NOW + 3 * 86_400_000).toISOString();
   // 70% in 4 days: out in about 1.7 days. A day ago 30% was used: 40% in a day, out in 18 hours.
-  world(on, {}, { week: [{ at: NOW - 86_400_000, used: 30, resetsAt }] });
+  world(on, { week: [{ at: NOW - 86_400_000, used: 30, resetsAt }] });
   withUsage(on, [{ kind: "seven_day", percentUsed: 70, resetsAt }]);
   await $.session.start({ source: "startup", cwd: "/tmp" } as any);
   const { ui, texts } = await band($, "terminal");
@@ -1232,7 +963,7 @@ test("7-day estimate: the week's pace decides, the last day's shown beside it", 
 
 test("7-day estimate: a quiet last day lasts until the reset", async ($, on) => {
   const resetsAt = new Date(NOW + 3 * 86_400_000).toISOString();
-  world(on, {}, { week: [{ at: NOW - 86_400_000, used: 68, resetsAt }] });
+  world(on, { week: [{ at: NOW - 86_400_000, used: 68, resetsAt }] });
   withUsage(on, [{ kind: "seven_day", percentUsed: 70, resetsAt }]);
   await $.session.start({ source: "startup", cwd: "/tmp" } as any);
   expect(await cardOf((await band($, "desktop")).ui, "gauge-seven_day")).toContain("it would last until the reset");
@@ -1250,7 +981,7 @@ test("7-day estimate: red within a day", async ($, on) => {
 
 test("7-day estimate: readings are kept, at most one per half hour", async ($, on) => {
   const clock = mock.clock(on, { now: NOW }) as any;
-  mock.env(on, { LANG: "en_US.UTF-8" });
+  mock.env(on, {});
   const store = new Map<string, unknown>();
   on("store.get", (_$: any, e: any) => ({ value: store.get(e.key) }));
   on("store.set", (_$: any, e: any) => (store.set(e.key, e.value), { value: undefined }));
@@ -1282,40 +1013,3 @@ test("narrow terminal: no run-out warning either", async ($, on) => {
   expect(runOutText((await band($, "terminal")).texts)).toBeDefined();
 });
 
-test("last prompt: no 5-hour share across a reset, even when the new reading is higher", async ($, on) => {
-  world(on, { LANG: "ko_KR.UTF-8" });
-  on("turn.complete", () => ({ text: "" }));
-  const steps = [
-    { usd: 4.0, five: 2, reset: NOW + 60_000 },
-    { usd: 5.07, five: 3, reset: NOW + 5 * 3_600_000 },
-  ];
-  let call = 0;
-  on("session.usage", () => {
-    const s = steps[Math.min(call++, steps.length - 1)];
-    return { value: { startedAt: NOW, context: { tokens: 107_000 + call * 1_000, window: 1_000_000, percent: 11 }, rateLimits: [{ ...LIMITS[1], percentUsed: s.five, resetsAt: new Date(s.reset).toISOString() }, LIMITS[0]], cost: { usd: s.usd } } };
-  });
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await ($ as any).turn.complete({ answer: "ok" } as any);
-  const { texts } = await band($, "terminal");
-  expect(texts).toContain("(+$1.07)");
-  expect(texts.some((t: string) => t.includes("% 5시간"))).toBe(false);
-});
-
-test("agents: an agent with an unpriced request keeps its known cost out of the main thread", async ($, on) => {
-  world(on);
-  on("session.usage", () => ({ value: { startedAt: NOW, context: { tokens: 107_000, window: 1_000_000, percent: 11 }, rateLimits: LIMITS, cost: { usd: 10 } } }));
-  on("agent.list", () => ({ value: [{ id: "h1", description: "List the files", type: "Explore", status: "completed" }] }));
-  on("turn.complete", () => ({ text: "" }));
-  const work = { input_tokens: 2_000, cache_read_input_tokens: 70_000, cache_creation_input_tokens: 6_000, output_tokens: 20_000 };
-  engineStep(on, [HIT, { ...work, model: "claude-haiku-5-5" }, { ...work, model: "claude-unknown-9" }]);
-  await $.session.start({ source: "startup", cwd: "/tmp" } as any);
-  await step($, HIT);
-  for (const model of ["claude-haiku-5-5", "claude-unknown-9"]) {
-    const stream = ($ as any).turn.step({ turnId: "t", index: 0, model, effort: "medium", agentId: "h1", messageCount: 2 });
-    for await (const _ of stream) {
-    }
-  }
-  await ($ as any).turn.complete({ answer: "ok", agentId: "h1" } as any);
-  const known = (2_000 * PRICE["claude-haiku-5-5"].input + 70_000 * PRICE["claude-haiku-5-5"].read + 6_000 * 1.25 * PRICE["claude-haiku-5-5"].input + 20_000 * 5 * PRICE["claude-haiku-5-5"].input) / 1e6;
-  expect(await agentsCard($)).toContain(`Opus 5.5 · main thread: ≈ ${en$(10 - known)}`);
-});
