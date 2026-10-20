@@ -92,5 +92,5 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 - **Codex SessionStart 세부.** 평문 출력은 실측으로 확인했다. `matcher` 값(`startup|resume|clear|compact`)이 Codex에서 어떤 소스 이름과 대응하는지는 아직 문서 기반이다.
 - **Codex 프론트매터 허용 목록**은 ECC의 기록에 의존한다.
 - **CI의 `claude plugin validate` 잡 (해소, 2026-10-20).** 첫 푸시의 워크플로우에서 인증 없이 통과했다.
-- **Windows의 Claude 훅 셸.** `node "<경로>"` 형태는 어느 셸에서든 동작해야 하지만 실제 세션으로 확인해야 한다.
-- **`dev-install`**은 ADR 0009가 `proposed` 상태이며 구현 전이다. 그 전까지는 `docs/PLUGIN-AUTHORING.md`의 수동 절차를 쓴다.
+- **Windows의 Claude 훅 (해소, 2026-10-21).** 로컬 디렉토리 마켓플레이스로 설치한 archmage의 SessionStart 훅이 Windows의 Claude Code 데스크톱 세션에서 실행되어 `<grimoire_required_reading>` 블록이 컨텍스트에 들어가고 스킬이 `archmage:<skill>`로 노출되는 것을 확인했다. 훅 오류나 경고는 없었다.
+- **`dev-install`**은 ADR 0009가 `proposed` 상태이며 구현 전이다. 그 전까지는 `docs/PLUGIN-AUTHORING.md`의 수동 절차를 쓴다. 실측에서 Claude도 디렉토리 마켓플레이스의 플러그인을 `~/.claude/plugins/cache/grimoire/<plugin>/<version>`에 **복사**해 설치했으므로(제자리 로드가 아님), 수정 반영에는 Codex와 마찬가지로 재설치 또는 버전 변경이 필요하다. 구현 시 `dev-refresh`가 두 하네스 모두를 갱신해야 한다.
