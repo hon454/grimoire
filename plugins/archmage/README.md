@@ -6,9 +6,9 @@
 
 | 종류 | 이름 | 역할 |
 |---|---|---|
-| 스킬 | `reading-the-grimoire` | 설치된 그리모어 책과 스킬을 어떻게 찾고 쓰는지 설명 |
-| 스킬 | `binding-a-book` | 새 책 뼈대 생성, 스킬과 훅 작성 규약, 검증, 릴리스 절차 |
-| 훅 | `SessionStart` | `reading-the-grimoire` 본문을 세션 컨텍스트에 주입 (`scripts/session-start.mjs`) |
+| 스킬 | `required-reading` | 설치된 그리모어 책과 스킬을 어떻게 찾고 쓰는지 설명 |
+| 스킬 | `book-binding` | 새 책 뼈대 생성, 스킬과 훅 작성 규약, 검증, 릴리스 절차 |
+| 훅 | `SessionStart` | `required-reading` 본문을 세션 컨텍스트에 주입 (`scripts/session-start.mjs`) |
 
 ## 설치
 

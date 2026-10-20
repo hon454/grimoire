@@ -10,7 +10,7 @@
       "name": "archmage",
       "source": "./plugins/archmage",
       "description": "Required reading for the grimoire: teaches the agent how to use grimoire plugins and how to bind new books.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "category": "Developer Tools",
       "tags": [
         "grimoire",

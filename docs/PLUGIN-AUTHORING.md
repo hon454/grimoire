@@ -1,11 +1,11 @@
 # 새 책 만들기
 
-이 문서는 grimoire 체크아웃 안에서 새 플러그인(`book-of-*`)을 만들고 검증하고 릴리스하는 절차입니다. 에이전트에게 시키려면 archmage의 `binding-a-book` 스킬이 같은 절차를 영어로 담고 있습니다.
+이 문서는 grimoire 체크아웃 안에서 새 플러그인(`book-of-*`)을 만들고 검증하고 릴리스하는 절차입니다. 에이전트에게 시키려면 archmage의 `book-binding` 스킬이 같은 절차를 영어로 담고 있습니다.
 
 ## 1. 뼈대 생성
 
 ```bash
-node tools/grimoire.mjs new-book book-of-<domain> --description "<한 문장 설명>" [--category "<Codex 카테고리>"] [--skill <동명사형-스킬명>]
+node tools/grimoire.mjs new-book book-of-<domain> --description "<한 문장 설명>" [--category "<Codex 카테고리>"] [--skill <스킬명>]
 ```
 
 생성되는 것:
@@ -33,7 +33,7 @@ metadata:
 ...
 ```
 
-- 이름은 동명사형(`doing-something`)이고 모든 플러그인을 통틀어 유일해야 합니다.
+- 이름은 주제를 가리키는 가장 짧은 kebab-case 이름(`tdd`, `adr`, `code-review`)입니다. 관사(`a`, `an`, `the`)를 넣지 않고 4단어 이하이며 모든 플러그인을 통틀어 유일해야 합니다. 동사가 필요하면 동명사(`reviewing-pull-requests`)도 됩니다(ADR 0011).
 - 프론트매터 키는 `name`, `description`, `metadata`, `license`, `allowed-tools`만 허용됩니다. Claude 전용 값은 `metadata` 아래에 둡니다.
 - `description`은 두 하네스가 스킬을 고르는 근거입니다. "Use when ..."으로 시작하는 트리거 문장 뒤에 무엇을 하는지 한두 문장을 씁니다.
 - 스크립트는 `node scripts/x.mjs`처럼 인터프리터 경유로 호출하도록 본문에 씁니다.

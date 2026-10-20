@@ -1,6 +1,6 @@
 {
   "name": "archmage",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Required reading for the grimoire: teaches the agent how to use grimoire plugins and how to bind new books.",
   "author": {
     "name": "hon454",
@@ -9,7 +9,13 @@
   "homepage": "https://github.com/hon454/grimoire",
   "repository": "https://github.com/hon454/grimoire",
   "license": "MIT",
-  "keywords": ["grimoire", "meta", "skills", "plugin-authoring", "bootstrap"],
+  "keywords": [
+    "grimoire",
+    "meta",
+    "skills",
+    "plugin-authoring",
+    "bootstrap"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "interface": {
@@ -18,7 +24,11 @@
     "longDescription": "Archmage is the meta plugin of the grimoire. It injects a short guide on how to use installed grimoire plugins at session start and ships the skill that scaffolds, validates and releases a new book-of-* plugin.",
     "developerName": "hon454",
     "category": "Developer Tools",
-    "capabilities": ["Interactive", "Read", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
     "websiteURL": "https://github.com/hon454/grimoire",
     "defaultPrompt": [
       "Which grimoire books are installed and what do they cover?",

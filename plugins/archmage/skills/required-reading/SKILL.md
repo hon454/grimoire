@@ -1,5 +1,5 @@
 ---
-name: reading-the-grimoire
+name: required-reading
 description: Use at the start of any session where grimoire plugins are installed, or when the user asks what grimoire books are available or how to use them. Explains how grimoire books expose skills in Claude Code and Codex and how to pick the right one.
 metadata:
   plugin: archmage
@@ -12,9 +12,9 @@ The grimoire is a set of plugins. Each plugin is a book named `book-of-<domain>`
 
 ## How books appear to you
 
-- **Claude Code** namespaces a skill as `<book>:<skill>`, for example `book-of-engineering:reviewing-a-pull-request`. Skills show up in the Skill tool and, when user-invocable, in the slash menu.
+- **Claude Code** namespaces a skill as `<book>:<skill>`, for example `book-of-engineering:tdd`. Skills show up in the Skill tool and, when user-invocable, in the slash menu.
 - **Codex** exposes the same skill as `$<skill>` in the composer and through its skill discovery. Codex prompt stubs and slash commands are not used; skills are the only entry point.
-- Skill names are gerund phrases (`doing-something`) and unique across all books, so the bare skill name is enough to identify one.
+- Skill names are short topic names (`tdd`, `code-review`, `required-reading`), unique across all books, so the bare skill name is enough to identify one.
 
 ## How to use a book
 
@@ -26,4 +26,4 @@ The grimoire is a set of plugins. Each plugin is a book named `book-of-<domain>`
 ## When asked about the grimoire itself
 
 - To list what is installed, look at the enabled plugins whose names are `archmage` or start with `book-of-`.
-- To add a new book or skill, use the `binding-a-book` skill from this plugin.
+- To add a new book or skill, use the `book-binding` skill from this plugin.

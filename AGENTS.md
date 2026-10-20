@@ -59,7 +59,7 @@ Run `check` before every commit. CI runs `check`, the tests, and `claude plugin 
 - The Codex manifest always sets `hooks`: `"./hooks/hooks.json"` when that file exists, `{}` otherwise. Omitting the key makes Codex auto-load `hooks/hooks.json`.
 - No `commands/` (skills only), no `bin/` (claude.ai and Cowork refuse plugins that have one), no symlinks (Codex drops them), no `CLAUDE.md` inside a plugin root.
 - Every skill directory holds `SKILL.md` whose frontmatter `name` equals the directory name, has a `description`, and uses only `name`, `description`, `metadata`, `license`, `allowed-tools`. Every skill also has `agents/openai.yaml`.
-- Skill names are gerund phrases (`reading-the-grimoire`) and unique across all plugins.
+- Skill names are the shortest topic name (`tdd`, `code-review`, `required-reading`): kebab-case, no article word (`a`, `an`, `the`), at most 4 words, unique across all plugins. Gerunds are allowed, not required (ADR 0011).
 - `hooks/hooks.json` uses only events both harnesses support and matchers in Claude's names (`Bash`, `Edit|Write`, `Agent`), which Codex aliases. Every `${CLAUDE_PLUGIN_ROOT}/...` path it references must exist.
 - No personal absolute paths (`C:\Users\...`, `/Users/...`, `/home/...`) inside `plugins/`.
 - Both marketplace files are up to date with the plugins on disk.
@@ -80,7 +80,7 @@ Run `check` before every commit. CI runs `check`, the tests, and `claude plugin 
 
 ## Adding a plugin
 
-1. `node tools/grimoire.mjs new-book book-of-<domain> --description "..." [--category "..."] [--skill <gerund-name>]`
+1. `node tools/grimoire.mjs new-book book-of-<domain> --description "..." [--category "..."] [--skill <skill-name>]`
 2. Write the skills. Keep `SKILL.md` frontmatter to the allowed keys; put anything else under `metadata`.
 3. `node tools/grimoire.mjs check`, then `node tools/run-tests.mjs`.
 4. Add a `CHANGELOG.md` entry, commit, and tag `<plugin>/v<version>` when releasing.

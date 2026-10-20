@@ -48,8 +48,8 @@ test("check flags VERSION, manifest and CHANGELOG drift", () => {
     writeFileSync(join(sb.dir, "plugins", "archmage", "VERSION"), "9.9.9\n");
     const r = sb.tool(["check"]);
     assert.equal(r.code, 1);
-    assert.match(r.stdout, /CHANGELOG\.md newest entry is 0\.1\.0 but VERSION is 9\.9\.9/);
-    assert.match(r.stdout, /claude manifest version "0\.1\.0" does not equal VERSION 9\.9\.9/);
+    assert.match(r.stdout, /CHANGELOG\.md newest entry is \d+\.\d+\.\d+ but VERSION is 9\.9\.9/);
+    assert.match(r.stdout, /claude manifest version "\d+\.\d+\.\d+" does not equal VERSION 9\.9\.9/);
     assert.match(r.stdout, /marketplace\.json: stale/);
   } finally {
     sb.cleanup();
@@ -60,14 +60,20 @@ test("check enforces skill naming, frontmatter keys and the openai.yaml sidecar"
   const sb = makeSandbox();
   try {
     const skills = join(sb.dir, "plugins", "archmage", "skills");
-    mkdirSync(join(skills, "review-code"));
+    mkdirSync(join(skills, "reviewing-a-pull-request"));
     writeFileSync(
-      join(skills, "review-code", "SKILL.md"),
-      "---\nname: review-code\ndescription: x\nversion: 1\n---\nbody\n",
+      join(skills, "reviewing-a-pull-request", "SKILL.md"),
+      "---\nname: reviewing-a-pull-request\ndescription: x\nversion: 1\n---\nbody\n",
+    );
+    mkdirSync(join(skills, "writing-tests-before-production-code"));
+    writeFileSync(
+      join(skills, "writing-tests-before-production-code", "SKILL.md"),
+      "---\nname: writing-tests-before-production-code\ndescription: x\n---\nbody\n",
     );
     const r = sb.tool(["check"]);
     assert.equal(r.code, 1);
-    assert.match(r.stdout, /skill name must be a gerund phrase/);
+    assert.match(r.stdout, /skill name must not contain the article "a"/);
+    assert.match(r.stdout, /skill name must be at most 4 words/);
     assert.match(r.stdout, /frontmatter key "version" is not accepted/);
     assert.match(r.stdout, /missing agents\/openai\.yaml/);
   } finally {
@@ -78,7 +84,7 @@ test("check enforces skill naming, frontmatter keys and the openai.yaml sidecar"
 test("check rejects duplicate skill names across plugins and non-portable hook events", () => {
   const sb = makeSandbox();
   try {
-    const r1 = sb.tool(["new-book", "book-of-dupes", "--skill", "reading-the-grimoire"]);
+    const r1 = sb.tool(["new-book", "book-of-dupes", "--skill", "required-reading"]);
     assert.equal(r1.code, 0, r1.out);
     const hooks = join(sb.dir, "plugins", "archmage", "hooks", "hooks.json");
     const h = JSON.parse(readFileSync(hooks, "utf8"));

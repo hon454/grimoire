@@ -42,7 +42,7 @@ docs/research/YYYY-MM-DD-*.md       조사 노트 (불변)
 .github/workflows/validate.yml      CI
 ```
 
-현재 플러그인은 `archmage` 하나다. 메타 플러그인이며 `reading-the-grimoire`(세션 시작 시 주입되는 필독서)와 `binding-a-book`(새 책 제본 절차) 스킬, SessionStart 훅을 담는다. 다른 모든 도메인은 `book-of-<domain>` 플러그인으로 첫 스킬부터 분리된다.
+현재 플러그인은 `archmage` 하나다. 메타 플러그인이며 `required-reading`(세션 시작 시 주입되는 필독서)와 `book-binding`(새 책 제본 절차) 스킬, SessionStart 훅을 담는다. 다른 모든 도메인은 `book-of-<domain>` 플러그인으로 첫 스킬부터 분리된다.
 
 Claude 전용 mod는 `claude-code-mods/`에 둔다. mod는 Claude Code의 함수 훅 모듈이라 Codex로 옮길 수 없으므로 Codex 마켓플레이스와 `dev-install`의 Codex 목록에서 빠지며, 이름은 접두사 없는 보통 이름이다. 두 계열은 마켓플레이스 하나를 공유하므로 이름은 통틀어 유일해야 한다(ADR 0010). 첫 mod는 `token-weather`로, Eric Cologni의 token-weather-usage(Apache-2.0)를 옮긴 것이다. 프롬프트 위 한 줄에 컨텍스트 날씨, 5시간·7일 한도 게이지, 캐시 카운트다운, 세션 비용, 에이전트를 그리며 라벨은 영어와 한국어다. 원본 라이선스와 NOTICE를 자기 디렉토리에 동봉한다.
 
@@ -64,7 +64,7 @@ Claude 전용 mod는 `claude-code-mods/`에 둔다. mod는 Claude Code의 함수
 |---|---|---|
 | 마켓플레이스 | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` (`category`, `policy` 필수) |
 | 플러그인 매니페스트 | `.claude-plugin/plugin.json` | `.codex-plugin/plugin.json` (루트 `plugin.json`은 금지, ADR 0004) |
-| 스킬 | `skills/<name>/SKILL.md` 자동 탐색, `플러그인:스킬` 네임스페이스 | 동일. 실측에서 `archmage:reading-the-grimoire`로 노출 |
+| 스킬 | `skills/<name>/SKILL.md` 자동 탐색, `플러그인:스킬` 네임스페이스 | 동일. 실측에서 `archmage:required-reading`으로 노출 |
 | 훅 | `hooks/hooks.json` | 동일 파일. 이벤트 이름과 stdin 계약 거의 동일. 비관리 훅은 `/hooks` 신뢰 필요 |
 | 훅 matcher 도구명 | `Bash`, `Edit`, `Write`, `Agent` | 같은 이름을 별칭으로 수용 (`tool_name`은 `apply_patch` 등으로 옴) |
 | 플러그인 경로 변수 | `${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_PLUGIN_DATA}`, `${CLAUDE_PROJECT_DIR}` | `PLUGIN_ROOT`, `PLUGIN_DATA` 외에 `CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA`도 제공 |
@@ -91,10 +91,11 @@ Claude 전용 mod는 `claude-code-mods/`에 둔다. mod는 Claude Code의 함수
 | [0004](decisions/0004-codex-manifest-location.md) | Codex 매니페스트는 `.codex-plugin/`, 루트 `plugin.json` 금지, `hooks` 명시 | accepted |
 | [0005](decisions/0005-manifest-management.md) | 매니페스트 손 작성, 마켓플레이스 생성, `VERSION` 스탬프, 도구는 레포 루트 | accepted |
 | [0006](decisions/0006-hook-runtime.md) | Node 20+ 의존성 0, 단일 `hooks.json`, 환경변수로 하네스 판별 | accepted |
-| [0007](decisions/0007-skills-only-component-policy.md) | 스킬만, `commands/`와 `bin/` 금지, 동명사 이름, 프론트매터 허용 목록, 사이드카 | accepted |
+| [0007](decisions/0007-skills-only-component-policy.md) | 스킬만, `commands/`와 `bin/` 금지, 프론트매터 허용 목록, 사이드카 (동명사 이름 규칙은 0011이 대체) | superseded |
 | [0008](decisions/0008-versioning-and-changelog.md) | 플러그인별 semver와 `CHANGELOG.md`, `check`가 일치 강제 | accepted |
 | [0009](decisions/0009-dev-install-swap-model.md) | 개발용 로컬 설치는 swap 모델 (`dev-install`/`dev-refresh`/`dev-uninstall`) | accepted |
 | [0010](decisions/0010-claude-only-mods-family.md) | Claude 전용 mod는 `claude-code-mods/` 별도 계열, Codex 마켓플레이스 제외 | accepted |
+| [0011](decisions/0011-skill-naming-rules.md) | 스킬 이름은 짧은 주제 이름(`tdd`, `code-review`), 관사 금지, 4단어 상한, 전 플러그인 유일 | accepted |
 
 조사 노트: [SDD 도구와 ADR 규격의 문서 구조](research/2026-10-20-sdd-doc-structures.md), [레퍼런스 플러그인 레포 다섯 곳](research/2026-10-20-reference-plugin-repos.md).
 

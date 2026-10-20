@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // SessionStart hook for the archmage plugin.
 //
-// Reads the body of skills/reading-the-grimoire/SKILL.md and hands it to the
+// Reads the body of skills/required-reading/SKILL.md and hands it to the
 // harness as additional context. Works in Claude Code and Codex:
 //
 //   Claude Code  stdout JSON {"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"..."}}
@@ -64,7 +64,7 @@ function main() {
   }
   let body;
   try {
-    body = stripFrontmatter(readFileSync(join(pluginRoot, "skills", "reading-the-grimoire", "SKILL.md"), "utf8"));
+    body = stripFrontmatter(readFileSync(join(pluginRoot, "skills", "required-reading", "SKILL.md"), "utf8"));
   } catch {
     return;
   }

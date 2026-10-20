@@ -47,6 +47,9 @@ const MOD_CATEGORY = "Developer Tools";
 const MOD_MODULE_EXT = /\.(ts|tsx|jsx|js|mjs|cjs|mts|cts)$/;
 const DEFAULT_CATEGORY = "Developer Tools";
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+// Skill names (ADR 0011): kebab-case, no article words, at most this many words.
+const SKILL_ARTICLES = new Set(["a", "an", "the"]);
+const SKILL_MAX_WORDS = 4;
 const SEMVER = /^\d+\.\d+\.\d+$/;
 const SKILL_FRONTMATTER_KEYS = new Set(["name", "description", "metadata", "license", "allowed-tools"]);
 const COMMON_HOOK_EVENTS = new Set([
@@ -149,6 +152,16 @@ function today() {
 }
 
 // Minimal YAML frontmatter reader: returns top-level keys and scalar values.
+// Returns null when a skill name is acceptable, otherwise the reason it is not.
+export function skillNameProblem(name) {
+  if (!KEBAB.test(name)) return "must be kebab-case";
+  const words = name.split("-");
+  const article = words.find((w) => SKILL_ARTICLES.has(w));
+  if (article) return `must not contain the article "${article}"; name the topic, such as "tdd" or "code-review"`;
+  if (words.length > SKILL_MAX_WORDS) return `must be at most ${SKILL_MAX_WORDS} words; name the topic, not its description`;
+  return null;
+}
+
 export function parseFrontmatter(markdown) {
   if (!markdown.startsWith("---")) return null;
   const end = markdown.indexOf("\n---", 3);
@@ -417,10 +430,8 @@ function checkHooks(p, hooksFile, report, id) {
 
 function checkSkill(p, skill, report, id, seenSkills) {
   const dir = join(p.path, "skills", skill);
-  if (!KEBAB.test(skill)) report.error(id, "skill directory name must be kebab-case");
-  if (!/^[a-z0-9]+ing(-|$)/.test(skill)) {
-    report.error(id, 'skill name must be a gerund phrase such as "reading-the-grimoire"');
-  }
+  const problem = skillNameProblem(skill);
+  if (problem) report.error(id, `skill name ${problem}`);
   if (seenSkills.has(skill)) report.error(id, `skill name already used by ${seenSkills.get(skill)}`);
   else seenSkills.set(skill, `plugins/${p.dir}`);
 
@@ -663,8 +674,8 @@ export function newBook(root, name, opts = {}) {
   const path = join(pluginsDir(root), name);
   if (existsSync(path)) throw new Error(`plugins/${name} already exists`);
   if (opts.skill) {
-    if (!KEBAB.test(opts.skill)) throw new Error(`skill "${opts.skill}" is not kebab-case`);
-    if (!/^[a-z0-9]+ing(-|$)/.test(opts.skill)) throw new Error(`skill "${opts.skill}" must be a gerund phrase such as "reviewing-code"`);
+    const problem = skillNameProblem(opts.skill);
+    if (problem) throw new Error(`skill "${opts.skill}" ${problem}`);
   }
 
   const domain = name.slice(BOOK_PREFIX.length);
@@ -693,7 +704,7 @@ export function newBook(root, name, opts = {}) {
 
   writeMarketplaces(root);
   console.log(`created plugins/${name}`);
-  console.log("next: write skills under skills/<gerund-name>/SKILL.md, then run: node tools/grimoire.mjs check");
+  console.log("next: write skills under skills/<skill-name>/SKILL.md (short topic name, no articles), then run: node tools/grimoire.mjs check");
 }
 
 // Scaffold a Claude-only mod under claude-code-mods/<name>.
@@ -732,7 +743,7 @@ function usage() {
 
   node tools/grimoire.mjs check
   node tools/grimoire.mjs stamp [plugin] [--set X.Y.Z]
-  node tools/grimoire.mjs new-book <book-of-name> [--description "..."] [--category "..."] [--skill <gerund-name>]
+  node tools/grimoire.mjs new-book <book-of-name> [--description "..."] [--category "..."] [--skill <skill-name>]
   node tools/grimoire.mjs new-mod <name> [--description "..."]       Claude-only mod under ${MODS_DIR}/
   node tools/grimoire.mjs marketplaces
 

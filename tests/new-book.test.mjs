@@ -15,7 +15,7 @@ test("new-book scaffolds a plugin that passes check and lands in both marketplac
       "--category",
       "Engineering",
       "--skill",
-      "reviewing-a-pull-request",
+      "code-review",
     ]);
     assert.equal(r.code, 0, r.out);
 
@@ -26,8 +26,8 @@ test("new-book scaffolds a plugin that passes check and lands in both marketplac
       "README.md",
       ".claude-plugin/plugin.json",
       ".codex-plugin/plugin.json",
-      "skills/reviewing-a-pull-request/SKILL.md",
-      "skills/reviewing-a-pull-request/agents/openai.yaml",
+      "skills/code-review/SKILL.md",
+      "skills/code-review/agents/openai.yaml",
     ]) {
       assert.ok(existsSync(join(root, rel)), `missing ${rel}`);
     }
@@ -55,11 +55,13 @@ test("new-book scaffolds a plugin that passes check and lands in both marketplac
   }
 });
 
-test("new-book rejects names without the book-of- prefix and non-gerund skills", () => {
+test("new-book rejects names without the book-of- prefix and skill names with articles or too many words", () => {
   const sb = makeSandbox();
   try {
     assert.equal(sb.tool(["new-book", "engineering"]).code, 1);
-    assert.equal(sb.tool(["new-book", "book-of-x", "--skill", "review"]).code, 1);
+    assert.equal(sb.tool(["new-book", "book-of-x", "--skill", "writing-an-adr"]).code, 1);
+    assert.equal(sb.tool(["new-book", "book-of-x", "--skill", "Review"]).code, 1);
+    assert.equal(sb.tool(["new-book", "book-of-x", "--skill", "one-two-three-four-five"]).code, 1);
     assert.equal(sb.tool(["new-book", "archmage"]).code, 1, "existing plugin");
     assert.ok(!existsSync(join(sb.dir, "plugins", "book-of-x")));
   } finally {
@@ -70,19 +72,19 @@ test("new-book rejects names without the book-of- prefix and non-gerund skills",
 test("stamp --set writes VERSION into both manifests and regenerates marketplaces", () => {
   const sb = makeSandbox();
   try {
-    const r = sb.tool(["stamp", "archmage", "--set", "0.2.0"]);
+    const r = sb.tool(["stamp", "archmage", "--set", "0.9.0"]);
     assert.equal(r.code, 0, r.out);
     const root = join(sb.dir, "plugins", "archmage");
-    assert.equal(readFileSync(join(root, "VERSION"), "utf8").trim(), "0.2.0");
+    assert.equal(readFileSync(join(root, "VERSION"), "utf8").trim(), "0.9.0");
     for (const rel of [".claude-plugin/plugin.json", ".codex-plugin/plugin.json"]) {
-      assert.equal(JSON.parse(readFileSync(join(root, rel), "utf8")).version, "0.2.0");
+      assert.equal(JSON.parse(readFileSync(join(root, rel), "utf8")).version, "0.9.0");
     }
     const mp = JSON.parse(readFileSync(join(sb.dir, ".claude-plugin", "marketplace.json"), "utf8"));
-    assert.equal(mp.plugins[0].version, "0.2.0");
+    assert.equal(mp.plugins[0].version, "0.9.0");
     // The CHANGELOG was not updated, so check must now fail on exactly that.
     const c = sb.tool(["check"]);
     assert.equal(c.code, 1);
-    assert.match(c.stdout, /CHANGELOG\.md newest entry is 0\.1\.0 but VERSION is 0\.2\.0/);
+    assert.match(c.stdout, /CHANGELOG\.md newest entry is \d+\.\d+\.\d+ but VERSION is 0\.9\.0/);
   } finally {
     sb.cleanup();
   }

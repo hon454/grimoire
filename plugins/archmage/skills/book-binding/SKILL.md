@@ -1,5 +1,5 @@
 ---
-name: binding-a-book
+name: book-binding
 description: Use when creating a new grimoire plugin (a book-of-* book), adding a skill or hook to an existing book, or preparing a book release. Covers the scaffold tool, the layout and frontmatter rules both harnesses accept, validation, and versioning.
 metadata:
   plugin: archmage
@@ -15,7 +15,7 @@ A book is one plugin directory under `plugins/` in the grimoire repository. This
 From the repository root:
 
 ```
-node tools/grimoire.mjs new-book book-of-<domain> --description "<one sentence>" [--category "<Codex category>"] [--skill <gerund-name>]
+node tools/grimoire.mjs new-book book-of-<domain> --description "<one sentence>" [--category "<Codex category>"] [--skill <skill-name>]
 ```
 
 The tool creates `VERSION` (0.1.0), `CHANGELOG.md`, both manifests, a `README.md`, and, with `--skill`, a first skill with its `agents/openai.yaml` sidecar. It then regenerates both marketplace files. Only `archmage` may omit the `book-of-` prefix.
@@ -24,7 +24,7 @@ The tool creates `VERSION` (0.1.0), `CHANGELOG.md`, both manifests, a `README.md
 
 Each skill lives in `skills/<name>/SKILL.md` plus `skills/<name>/agents/openai.yaml`.
 
-- Name the skill as a gerund phrase (`reviewing-a-pull-request`). Names must be unique across every book.
+- Name the skill after its topic with the shortest name that identifies it (`tdd`, `adr`, `code-review`). A domain term beats a description of it; a gerund (`reviewing-pull-requests`) is fine when a verb is needed. Names are kebab-case, at most 4 words, contain no article (`a`, `an`, `the`), and must be unique across every book; `check` enforces all four.
 - Frontmatter may use only `name`, `description`, `metadata`, `license`, `allowed-tools`. Put anything else under `metadata`. `name` must equal the directory name.
 - Write the `description` as a trigger: "Use when ..." followed by what the skill does. Both harnesses pick skills by this text.
 - Reference helper scripts through the interpreter (`node scripts/x.mjs`), never by bare path.

@@ -1,5 +1,5 @@
 interface:
-  display_name: "Reading the Grimoire"
+  display_name: "Required Reading"
   short_description: "How grimoire books and skills work in this session"
   default_prompt: "Explain which grimoire books are installed and how to use them."
 policy:

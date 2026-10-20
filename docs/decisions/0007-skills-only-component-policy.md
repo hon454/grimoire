@@ -1,8 +1,8 @@
 ---
-status: accepted
+status: superseded
 date: 2026-10-20
 supersedes: []
-superseded-by: null
+superseded-by: 0011-skill-naming-rules.md
 ---
 # 플러그인은 스킬만 제공하고 `commands/`와 `bin/`을 금지하며 스킬 이름과 프론트매터를 제한한다
 
